@@ -104,9 +104,16 @@ int poissonScalar(const double lambd);
 void saveWeights(MatrixXd &wgt, string fn);
 void readWeights(MatrixXd &wgt, string fn);
 
+int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
+        double const WPENSCALE, double const ALTPMULT, int const PRESTIME,
+        int const NBLASTSPIKESPRES, int const NBPRES, int const NONOISE,
+        int const NOSPIKE, int const NBRESPS, int const NOINH, int const PHASE,
+        int const STIM1, int const STIM2, int const PULSETIME,
+        MatrixXd const &initwff, MatrixXd const &initw, int const NOLAT,
+        int const NOELAT, double const initINPUTMULT);
+
 int main(int argc, char *argv[]) {
   srand(0);
-  clock_t tic;
   int PHASE;
   int STIM1, STIM2;
   int PRESTIMELEARNING = 350; // ms
@@ -213,10 +220,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // On the command line, you must specify one of 'learn', 'pulse', 'test',
-  // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
-  // number. IF using 'mix', you must specify two stimulus numbers.
-
   if (PHASE == LEARNING) {
     NBPATTERNS = NBPATTERNSLEARNING;
     PRESTIME = PRESTIMELEARNING;
@@ -313,15 +316,37 @@ int main(int argc, char *argv[]) {
     cerr << "Which phase?\n";
     return -1;
   }
+
+  return run(LATCONNMULT, WIE_MAX, DELAYPARAM, WPENSCALE, ALTPMULT, PRESTIME,
+             NBLASTSPIKESPRES, NBPRES, NONOISE, NOSPIKE, NBRESPS, NOINH, PHASE,
+             STIM1, STIM2, PULSETIME, wff, w, NOLAT, NOELAT, INPUTMULT);
+}
+
+int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
+        double const WPENSCALE, double const ALTPMULT, int const PRESTIME,
+        int const NBLASTSPIKESPRES, int const NBPRES, int const NONOISE,
+        int const NOSPIKE, int const NBRESPS, int const NOINH, int const PHASE,
+        int const STIM1, int const STIM2, int const PULSETIME,
+        MatrixXd const &initwff, MatrixXd const &initw, int const NOLAT,
+        int const NOELAT, double const initINPUTMULT) {
+  // On the command line, you must specify one of 'learn', 'pulse', 'test',
+  // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
+  // number. IF using 'mix', you must specify two stimulus numbers.
+
   cout << "Lat. conn.: " << LATCONNMULT << endl;
   cout << "WIE_MAX: " << WIE_MAX << " / " << WIE_MAX * LATCONNMULT / 4.32
        << endl;
   cout << "DELAYPARAM: " << DELAYPARAM << endl;
   cout << "WPENSCALE: " << WPENSCALE << endl;
   cout << "ALTPMULT: " << ALTPMULT << endl;
-  NBSTEPSPERPRES = (int)(PRESTIME / dt);
-  NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
-  NBSTEPS = NBSTEPSPERPRES * NBPRES;
+  int NBSTEPSPERPRES = (int)(PRESTIME / dt);
+  int NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
+  int NBSTEPS = NBSTEPSPERPRES * NBPRES;
+
+  MatrixXd wff = initwff;
+  MatrixXd w = initw;
+
+  double INPUTMULT = initINPUTMULT;
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
   MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
@@ -518,7 +543,7 @@ int main(int argc, char *argv[]) {
 
   // Initializations done, let's get to it!
 
-  tic = clock();
+  clock_t tic = clock();
   int numstep = 0;
 
   // For each stimulus presentation...
@@ -1063,6 +1088,8 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  return 0;
 }
 
 /*
