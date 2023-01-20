@@ -18,8 +18,6 @@ add_executable(stdp
 
 find_package(Eigen3 REQUIRED)
 
-target_include_directories(stdp PRIVATE
-  ${EIGEN3_INCLUDE_DIR}
-)
+target_link_libraries(stdp Eigen3::Eigen)
 
 target_compile_features(stdp PRIVATE cxx_std_20)
