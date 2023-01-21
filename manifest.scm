@@ -5,4 +5,5 @@
    "cmake"
    "make"
    ;; Libraries
-   "eigen"))
+   "eigen"
+   "cxxopts"))

@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <cstdlib>
 #include <ctime>
+#include <cxxopts.hpp>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -13,6 +14,27 @@
 #define MIXING 5678
 #define SPONTANEOUS 7913
 #define PULSE 1978
+
+enum class Phase {
+  unspecified = 0,
+  learning,
+  testing,
+  mixing,
+  spontaneous,
+  pulse,
+};
+
+std::istream &operator>>(std::istream &is, Phase &p) {
+  std::string s;
+  is >> s;
+  p = (s == "learning"      ? Phase::learning
+       : s == "testing"     ? Phase::testing
+       : s == "mixing"      ? Phase::mixing
+       : s == "spontaneous" ? Phase::spontaneous
+       : s == "pulse"       ? Phase::pulse
+                            : Phase::unspecified);
+  return is;
+}
 
 // #define MOD (70.0 / 126.0)
 #define MOD (1.0 / 126.0)
@@ -107,13 +129,41 @@ void readWeights(MatrixXd &wgt, string fn);
 int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         double const WPENSCALE, double const ALTPMULT, int const PRESTIME,
         int const NBLASTSPIKESPRES, int const NBPRES, int const NONOISE,
-        int const NOSPIKE, int const NBRESPS, int const NOINH, int const PHASE,
-        int const STIM1, int const STIM2, int const PULSETIME,
-        MatrixXd const &initwff, MatrixXd const &initw, int const NOLAT,
-        int const NOELAT, double const initINPUTMULT, int randomSeed = 0);
+        int const NOSPIKE, int const NBRESPS, int const NOINH,
+        Phase const PHASE, int const STIM1, int const STIM2,
+        int const PULSETIME, MatrixXd const &initwff, MatrixXd const &initw,
+        int const NOLAT, int const NOELAT, double const initINPUTMULT,
+        int randomSeed = 0);
 
 int main(int argc, char *argv[]) {
-  int PHASE;
+  cxxopts::Options options("stdp", "Caluculate with V1 developing model");
+  options.add_options()("phase", "Which phase to do",
+                        cxxopts::value<Phase>())("h,help", "Print help");
+  options.parse_positional({"phase"});
+  options.show_positional_help();
+  options.positional_help("PHASE");
+
+  auto parsedOptionsResult = options.parse(argc, argv);
+
+  if (parsedOptionsResult.count("help")) {
+    std::cout << options.help() << std::endl;
+
+    return 0;
+  }
+
+  Phase const phase = parsedOptionsResult["phase"].as<Phase>();
+
+  if (phase == Phase::unspecified) {
+    cerr << endl
+         << "Error: You must provide at least one argument - 'learn', 'mix', "
+            "'pulse' or 'test'."
+         << endl;
+    if (argc > 1) {
+      cout << "You provided argument '" << argv[1] << "'" << endl;
+    }
+    return -1;
+  }
+
   int STIM1, STIM2;
   int PRESTIMELEARNING = 350; // ms
   int PRESTIMETESTING = 350;
@@ -134,26 +184,6 @@ int main(int argc, char *argv[]) {
   double LATCONNMULT = LATCONNMULTINIT;
   double INPUTMULT = -1.0; // To be modified!
   double DELAYPARAM = 5.0;
-  if (argc > 1 && strcmp(argv[1], "test") == 0)
-    PHASE = TESTING;
-  else if (argc > 1 && strcmp(argv[1], "learn") == 0)
-    PHASE = LEARNING;
-  else if (argc > 1 && strcmp(argv[1], "mix") == 0)
-    PHASE = MIXING;
-  else if (argc > 1 && strcmp(argv[1], "pulse") == 0)
-    PHASE = PULSE;
-  else if (argc > 1 && strcmp(argv[1], "spont") == 0)
-    PHASE = SPONTANEOUS;
-  else {
-    cerr << endl
-         << "Error: You must provide at least one argument - 'learn', 'mix', "
-            "'pulse' or 'test'."
-         << endl;
-    if (argc > 1) {
-      cout << "You provided argument '" << argv[1] << "'" << endl;
-    }
-    return -1;
-  }
 
   MatrixXd w = MatrixXd::Zero(NBNEUR, NBNEUR);
   MatrixXd wff = MatrixXd::Zero(NBNEUR, FFRFSIZE);
@@ -219,7 +249,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (PHASE == LEARNING) {
+  if (phase == Phase::learning) {
     NBPATTERNS = NBPATTERNSLEARNING;
     PRESTIME = PRESTIMELEARNING;
     NBPRES = NBPATTERNS; //* NBPRESPERPATTERNLEARNING;
@@ -250,7 +280,7 @@ int main(int argc, char *argv[]) {
     wff.bottomRows(NBI)
         .setZero(); // Inhibitory neurons do not receive FF excitation from the
                     // sensory RFs (should they? TRY LATER)
-  } else if (PHASE == PULSE) {
+  } else if (phase == Phase::pulse) {
     NBPATTERNS = NBPATTERNSPULSE;
     PRESTIME = PRESTIMEPULSE;
     NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
@@ -269,7 +299,7 @@ int main(int argc, char *argv[]) {
     readWeights(w, "w.dat");
     readWeights(wff, "wff.dat");
     cout << "Pulse input time: " << PULSETIME << " ms" << endl;
-  } else if (PHASE == TESTING) {
+  } else if (phase == Phase::testing) {
     NBPATTERNS = NBPATTERNSTESTING;
     PRESTIME = PRESTIMETESTING;
     NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
@@ -284,7 +314,7 @@ int main(int argc, char *argv[]) {
     // excitatory inputs from excitatory neurons w.rightCols(NBI).fill(-1.0); //
     // Everybody receives fixed, negative inhibition (including inhibitory
     // neurons)
-  } else if (PHASE == SPONTANEOUS) {
+  } else if (phase == Phase::spontaneous) {
     NBPATTERNS = NBPATTERNSSPONT;
     PRESTIME = PRESTIMESPONT;
     NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
@@ -293,7 +323,7 @@ int main(int argc, char *argv[]) {
     readWeights(w, "w.dat");
     readWeights(wff, "wff.dat");
     cout << "Spontaneous activity - no stimulus !" << endl;
-  } else if (PHASE == MIXING) {
+  } else if (phase == Phase::mixing) {
     NBPATTERNS = 2;
     PRESTIME = PRESTIMEMIXING;
     NBPRES = NBMIXES * 3; //* NBPRESPERPATTERNTESTING;
@@ -317,17 +347,18 @@ int main(int argc, char *argv[]) {
   }
 
   return run(LATCONNMULT, WIE_MAX, DELAYPARAM, WPENSCALE, ALTPMULT, PRESTIME,
-             NBLASTSPIKESPRES, NBPRES, NONOISE, NOSPIKE, NBRESPS, NOINH, PHASE,
+             NBLASTSPIKESPRES, NBPRES, NONOISE, NOSPIKE, NBRESPS, NOINH, phase,
              STIM1, STIM2, PULSETIME, wff, w, NOLAT, NOELAT, INPUTMULT);
 }
 
 int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         double const WPENSCALE, double const ALTPMULT, int const PRESTIME,
         int const NBLASTSPIKESPRES, int const NBPRES, int const NONOISE,
-        int const NOSPIKE, int const NBRESPS, int const NOINH, int const PHASE,
-        int const STIM1, int const STIM2, int const PULSETIME,
-        MatrixXd const &initwff, MatrixXd const &initw, int const NOLAT,
-        int const NOELAT, double const initINPUTMULT, int randomSeed) {
+        int const NOSPIKE, int const NBRESPS, int const NOINH,
+        Phase const phase, int const STIM1, int const STIM2,
+        int const PULSETIME, MatrixXd const &initwff, MatrixXd const &initw,
+        int const NOLAT, int const NOELAT, double const initINPUTMULT,
+        int randomSeed) {
   srand(randomSeed);
 
   // On the command line, you must specify one of 'learn', 'pulse', 'test',
@@ -551,7 +582,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
   for (int numpres = 0; numpres < NBPRES; numpres++) {
     // Where are we in the data file?
     int posindata = ((numpres % nbpatchesinfile) * FFRFSIZE / 2);
-    if (PHASE == PULSE)
+    if (phase == Phase::pulse)
       posindata = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
     if (posindata >= totaldatasize - FFRFSIZE / 2) {
       cerr << "Error: tried to read beyond data end.\n";
@@ -576,7 +607,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         lgnrates.maxCoeff(); // Scale by max! The inputs are scaled to have a
                              // maximum of 1 (multiplied by INPUTMULT below)
 
-    if (PHASE == MIXING) {
+    if (phase == Phase::mixing) {
       int posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
       if (posindata1 >= totaldatasize - FFRFSIZE / 2) {
         cerr << "Error: tried to read beyond data end.\n";
@@ -658,11 +689,12 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
 
       lgnfiringsprev = lgnfirings;
 
-      if (((PHASE == PULSE) && (numstepthispres >= (double)(PULSESTART) / dt) &&
+      if (((phase == Phase::pulse) &&
+           (numstepthispres >= (double)(PULSESTART) / dt) &&
            (numstepthispres < (double)(PULSESTART + PULSETIME) /
                                   dt)) // In the PULSE case, inputs only fire
                                        // for a short period of time
-          || ((PHASE != PULSE) &&
+          || ((phase != Phase::pulse) &&
               (numstepthispres <
                NBSTEPSPERPRES -
                    ((double)TIMEZEROINPUT /
@@ -677,7 +709,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       else
         lgnfirings.setZero();
 
-      if (PHASE == SPONTANEOUS)
+      if (phase == Phase::spontaneous)
         lgnfirings.setZero();
 
       // We compute the feedforward input:
@@ -872,7 +904,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       vneg = vneg + (dt / TAUVNEG) * (vprevprev - vneg);
       vpos = vpos + (dt / TAUVPOS) * (vprevprev - vpos);
 
-      if ((PHASE == LEARNING) && (numpres >= 401))
+      if ((phase == Phase::learning) && (numpres >= 401))
       // if (numpres >= 401)
       {
 
@@ -966,7 +998,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       myfile << endl << lastnspikes << endl;
       myfile.close();
 
-      if (PHASE == TESTING) {
+      if (phase == Phase::testing) {
         myfile.open("resps_test.txt", ios::trunc | ios::out);
         myfile << endl << resps << endl;
         myfile.close();
@@ -980,7 +1012,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         // ios::trunc | ios::out);  myfile << endl << lastnv << endl;
         // myfile.close();
       }
-      if (PHASE == SPONTANEOUS) {
+      if (phase == Phase::spontaneous) {
         myfile.open("resps_spont.txt", ios::trunc | ios::out);
         myfile << endl << resps << endl;
         myfile.close();
@@ -990,7 +1022,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         myfile << endl << lastnspikes << endl;
         myfile.close();
       }
-      if (PHASE == PULSE) {
+      if (phase == Phase::pulse) {
         myfile.open("resps_pulse" + nolatindicator + noinhindicator + ".txt",
                     ios::trunc | ios::out);
         myfile << endl << resps << endl;
@@ -1015,7 +1047,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         // int)STIM1)+nolatindicator+noinhindicator+".txt", ios::trunc |
         // ios::out);  myfile << endl << lastnv << endl; myfile.close();
       }
-      if (PHASE == MIXING) {
+      if (phase == Phase::mixing) {
         myfile.open("respssumv_mix" + nolatindicator + noinhindicator +
                         nospikeindicator + ".txt",
                     ios::trunc | ios::out);
@@ -1040,7 +1072,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         myfile << endl << resps << endl;
         myfile.close();
       }
-      if (PHASE == LEARNING) {
+      if (phase == Phase::learning) {
         cout << "(Saving temporary data ... )" << endl;
 
         myfile.open("w.txt", ios::trunc | ios::out);

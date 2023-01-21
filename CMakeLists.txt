@@ -17,7 +17,9 @@ add_executable(stdp
   )
 
 find_package(Eigen3 REQUIRED)
+find_package(cxxopts REQUIRED)
 
 target_link_libraries(stdp Eigen3::Eigen)
+target_link_libraries(stdp cxxopts::cxxopts)
 
 target_compile_features(stdp PRIVATE cxx_std_20)
