@@ -27,12 +27,12 @@ enum class Phase {
 std::istream &operator>>(std::istream &is, Phase &p) {
   std::string s;
   is >> s;
-  p = (s == "learning"      ? Phase::learning
-       : s == "testing"     ? Phase::testing
-       : s == "mixing"      ? Phase::mixing
-       : s == "spontaneous" ? Phase::spontaneous
-       : s == "pulse"       ? Phase::pulse
-                            : Phase::unspecified);
+  p = (s == "learn"   ? Phase::learning
+       : s == "test"  ? Phase::testing
+       : s == "mix"   ? Phase::mixing
+       : s == "spont" ? Phase::spontaneous
+       : s == "pulse" ? Phase::pulse
+                      : Phase::unspecified);
   return is;
 }
 
