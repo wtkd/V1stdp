@@ -158,9 +158,6 @@ int main(int argc, char *argv[]) {
          << "Error: You must provide at least one argument - 'learn', 'mix', "
             "'pulse' or 'test'."
          << endl;
-    if (argc > 1) {
-      cout << "You provided argument '" << argv[1] << "'" << endl;
-    }
     return -1;
   }
 
