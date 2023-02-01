@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
   options.show_positional_help();
   options.positional_help("PHASE");
 
-  auto parsedOptionsResult = options.parse(argc, argv);
+  auto const parsedOptionsResult = options.parse(argc, argv);
 
   if (parsedOptionsResult.count("help")) {
     std::cout << options.help() << std::endl;
