@@ -133,12 +133,14 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         Phase const PHASE, int const STIM1, int const STIM2,
         int const PULSETIME, MatrixXd const &initwff, MatrixXd const &initw,
         int const NOLAT, int const NOELAT, double const initINPUTMULT,
-        int randomSeed = 0);
+        int randomSeed);
 
 int main(int argc, char *argv[]) {
   cxxopts::Options options("stdp", "Caluculate with V1 developing model");
   options.add_options()("phase", "Which phase to do",
-                        cxxopts::value<Phase>())("h,help", "Print help");
+                        cxxopts::value<Phase>())("h,help", "Print help")(
+      "s,seed", "Seed for pseudorandom",
+      cxxopts::value<unsigned int>()->default_value("0"));
   options.parse_positional({"phase"});
   options.show_positional_help();
   options.positional_help("PHASE");
@@ -160,6 +162,9 @@ int main(int argc, char *argv[]) {
          << endl;
     return -1;
   }
+
+  unsigned int const randomSeed =
+      parsedOptionsResult["seed"].as<unsigned int>();
 
   int STIM1, STIM2;
   int PRESTIMELEARNING = 350; // ms
@@ -345,7 +350,8 @@ int main(int argc, char *argv[]) {
 
   return run(LATCONNMULT, WIE_MAX, DELAYPARAM, WPENSCALE, ALTPMULT, PRESTIME,
              NBLASTSPIKESPRES, NBPRES, NONOISE, NOSPIKE, NBRESPS, NOINH, phase,
-             STIM1, STIM2, PULSETIME, wff, w, NOLAT, NOELAT, INPUTMULT);
+             STIM1, STIM2, PULSETIME, wff, w, NOLAT, NOELAT, INPUTMULT,
+             randomSeed);
 }
 
 int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
@@ -357,6 +363,8 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         int const NOLAT, int const NOELAT, double const initINPUTMULT,
         int randomSeed) {
   srand(randomSeed);
+
+  cout << "RandomSeed: " << randomSeed << endl;
 
   // On the command line, you must specify one of 'learn', 'pulse', 'test',
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
