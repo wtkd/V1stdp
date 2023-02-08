@@ -140,7 +140,10 @@ int main(int argc, char *argv[]) {
   options.add_options()("phase", "Which phase to do",
                         cxxopts::value<Phase>())("h,help", "Print help")(
       "s,seed", "Seed for pseudorandom",
-      cxxopts::value<unsigned int>()->default_value("0"));
+      cxxopts::value<unsigned int>()->default_value("0"))(
+      "S,save-directory", "Directory to save data")("L,load-directory",
+                                                    "Directory to load data")(
+      "-d,data-directory", "Directory to load and save data");
   options.parse_positional({"phase"});
   options.show_positional_help();
   options.positional_help("PHASE");
