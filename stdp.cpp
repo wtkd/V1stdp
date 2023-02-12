@@ -137,13 +137,17 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
 
 int main(int argc, char *argv[]) {
   cxxopts::Options options("stdp", "Caluculate with V1 developing model");
-  options.add_options()("phase", "Which phase to do",
-                        cxxopts::value<Phase>())("h,help", "Print help")(
-      "s,seed", "Seed for pseudorandom",
-      cxxopts::value<unsigned int>()->default_value("0"))(
-      "S,save-directory", "Directory to save data")("L,load-directory",
-                                                    "Directory to load data")(
-      "-d,data-directory", "Directory to load and save data");
+
+  // clang-format off
+  options.add_options()
+    ("phase", "Which phase to do", cxxopts::value<Phase>())
+    ("h,help", "Print help")
+    ("s,seed", "Seed for pseudorandom", cxxopts::value<unsigned int>()->default_value("0"))
+    ("S,save-directory", "Directory to save data")
+    ("L,load-directory", "Directory to load data")
+    ("d,data-directory", "Directory to load and save data");
+  // clang-format on
+
   options.parse_positional({"phase"});
   options.show_positional_help();
   options.positional_help("PHASE");
