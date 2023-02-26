@@ -10,11 +10,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#define LEARNING 1234
-#define TESTING 4321
-#define MIXING 5678
-#define SPONTANEOUS 7913
-#define PULSE 1978
 
 enum class Phase {
   unspecified = 0,
