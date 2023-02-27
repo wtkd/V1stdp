@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "config.hpp"
+
 enum class Phase {
   unspecified = 0,
   learning,
@@ -156,7 +158,8 @@ int main(int argc, char *argv[]) {
 
   // Show help
   if (parsedOptionsResult.count("help")) {
-    std::cout << options.help() << std::endl;
+    std::cerr << "stdp " << VERSION << std::endl;
+    std::cerr << options.help() << std::endl;
 
     return 0;
   }
