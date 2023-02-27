@@ -151,8 +151,9 @@ int main(int argc, char *argv[]) {
   // clang-format on
 
   options.parse_positional({"phase"});
-  options.show_positional_help();
-  options.positional_help("PHASE");
+
+  options.positional_help("");
+  options.custom_help("learn|test|mix|spont|pulse [OPTIONS...]");
 
   auto const parsedOptionsResult = options.parse(argc, argv);
 
