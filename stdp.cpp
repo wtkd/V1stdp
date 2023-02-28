@@ -10,6 +10,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 
 #include "config.hpp"
 
@@ -147,13 +148,31 @@ int main(int argc, char *argv[]) {
     ("d,data-directory", "Directory to load and save data", cxxopts::value<std::filesystem::path>()->default_value("."))
     ("I,input-directory", "Directory to input image data", cxxopts::value<std::filesystem::path>())
     ("S,save-directory", "Directory to save weight data", cxxopts::value<std::filesystem::path>())
-    ("L,load-directory", "Directory to load weight data", cxxopts::value<std::filesystem::path>());
+    ("L,load-directory", "Directory to load weight data", cxxopts::value<std::filesystem::path>())
+    ("nonoise", "No noise", cxxopts::value<bool>()->default_value("false"))
+    ("nospike", "No spike", cxxopts::value<bool>()->default_value("false"))
+    ("noinh", "No inhibitary connection", cxxopts::value<bool>()->default_value("false"))
+    ("nolat", "No latetal connection", cxxopts::value<bool>()->default_value("false"))
+    ("noelat", "No excitatory lateral connection", cxxopts::value<bool>()->default_value("false"))
+    ("delayparam", "Delay parameter", cxxopts::value<double>()->default_value(std::to_string(.33)))
+    ("latconnmult", "Lateral connection multiplication", cxxopts::value<double>()->default_value(std::to_string(LATCONNMULTINIT)))
+    ("wpenscale", "Wpenscale", cxxopts::value<double>()->default_value(std::to_string(.33)))
+    ("timepres", "Timepres", cxxopts::value<int>()->default_value(std::to_string(350)))
+    ("altpmult", "Altpmult", cxxopts::value<double>()->default_value(std::to_string(.75)))
+    ("wie", "Weight on I-E", cxxopts::value<double>()->default_value(std::to_string(.5)))
+    ("wei", "Weight on E-I", cxxopts::value<double>()->default_value(std::to_string(20.0)))
+    ("pulsetime", "This is the time during which stimulus is active during PULSE trials (different from PRESTIMEPULSE which is total trial time)",
+     cxxopts::value<int>()->default_value(std::to_string(100)))
+    ("stimulation-number-1", "Numbers of stimulation on mixing or pulse", cxxopts::value<int>())
+    ("stimulation-number-2", "Numbers of stimulation on mixing", cxxopts::value<int>())
+    ;
   // clang-format on
 
-  options.parse_positional({"phase"});
+  options.parse_positional(
+      {"phase", "stimulation-number-1", "stimulation-number-2"});
 
   options.positional_help("");
-  options.custom_help("learn|test|mix|spont|pulse [OPTIONS...]");
+  options.custom_help("learn|test|mix|spont|pulse [STIM1 STIM2 OPTIONS...]");
 
   auto const parsedOptionsResult = options.parse(argc, argv);
 
@@ -193,89 +212,65 @@ int main(int argc, char *argv[]) {
           ? parsedOptionsResult["load-directory"].as<std::filesystem::path>()
           : dataDirectory;
 
-  int STIM1, STIM2;
-  int PRESTIMELEARNING = 350; // ms
-  int PRESTIMETESTING = 350;
-  int PULSETIME =
-      100; // This is the time during which stimulus is active during PULSE
-           // trials (different from PRESTIMEPULSE which is total trial time)
-  int NOLAT = 0;
-  int NOELAT = 0;
-  int NOINH = 0;
-  int NOSPIKE = 0;
-  int NONOISE = 0;
+  // -1 because of c++ zero-counting (the nth
+  // pattern has location n-1 in the array)
+  int const STIM1 =
+      parsedOptionsResult.count("stimulation-number-1")
+          ? parsedOptionsResult["stimulation-number-1"].as<int>() - 1
+          : -1;
+  int const STIM2 =
+      parsedOptionsResult.count("stimulation-number-2")
+          ? parsedOptionsResult["stimulation-number-2"].as<int>() - 1
+          : -1;
+
+  int const PRESTIMELEARNING = parsedOptionsResult["timepres"].as<int>(); // ms
+  int const PRESTIMETESTING = parsedOptionsResult["timepres"].as<int>();
+  int const PULSETIME = parsedOptionsResult["pulsetime"].as<int>();
+  bool const NOLAT = parsedOptionsResult["nolat"].as<bool>();
+  bool const NOELAT = parsedOptionsResult["noelat"].as<bool>();
+  bool const NOINH = parsedOptionsResult["noinh"].as<bool>();
+  bool const NOSPIKE = parsedOptionsResult["nospike"].as<bool>();
+  bool const NONOISE = parsedOptionsResult["nonoise"].as<bool>();
   int NBLASTSPIKESSTEPS = 0;
   int NBLASTSPIKESPRES = 50;
   int NBRESPS =
       -1; // Number of resps (total nb of spike / total v for each presentation)
           // to be stored in resps and respssumv. Must be set depending on the
           // PHASE (learmning, testing, mixing, etc.)
-  double LATCONNMULT = LATCONNMULTINIT;
+  double const LATCONNMULT = parsedOptionsResult["latconnmult"].as<double>();
   double INPUTMULT = -1.0; // To be modified!
-  double DELAYPARAM = 5.0;
+  double const DELAYPARAM = parsedOptionsResult["delayparam"].as<double>();
 
   MatrixXd w = MatrixXd::Zero(NBNEUR, NBNEUR);
   MatrixXd wff = MatrixXd::Zero(NBNEUR, FFRFSIZE);
 
   // These constants are only used for learning:
-  double WPENSCALE = .33;
-  double ALTPMULT = .75;
-  double WEI_MAX = 20.0 * 4.32 / LATCONNMULT; // 1.5
-  double WIE_MAX = .5 * 4.32 / LATCONNMULT;
-  double WII_MAX = .5 * 4.32 / LATCONNMULT;
+  double const WPENSCALE = parsedOptionsResult["wpenscale"].as<double>();
+  double const ALTPMULT = parsedOptionsResult["altpmult"].as<double>();
+  double const WEI_MAX =
+      parsedOptionsResult["wei"].as<double>() * 4.32 / LATCONNMULT; // 1.5
+  double const WIE_MAX =
+      parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
+  // WII max is yoked to WIE max
+  double const WII_MAX =
+      parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
   int NBPATTERNS, PRESTIME, NBPRES, NBSTEPSPERPRES, NBSTEPS;
 
   // Command line parameters handling
-
-  for (int nn = 2; nn < argc; nn++) {
-    if (std::string(argv[nn]).compare("nonoise") == 0) {
-      NONOISE = 1;
-      cout << "No noise!" << endl;
-    }
-    if (std::string(argv[nn]).compare("nospike") == 0) {
-      NOSPIKE = 1;
-      cout << "No spiking! !" << endl;
-    }
-    if (std::string(argv[nn]).compare("noinh") == 0) {
-      NOINH = 1;
-      cout << "No inhibition!" << endl;
-    }
-    if (std::string(argv[nn]).compare("delayparam") == 0) {
-      DELAYPARAM = std::stod(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("latconnmult") == 0) {
-      LATCONNMULT = std::stod(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("wpenscale") == 0) {
-      WPENSCALE = std::stod(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("timepres") == 0) {
-      PRESTIMELEARNING = std::stoi(argv[nn + 1]);
-      PRESTIMETESTING = std::stoi(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("altpmult") == 0) {
-      ALTPMULT = std::stod(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("wie") == 0) {
-      WIE_MAX = std::stod(argv[nn + 1]) * 4.32 / LATCONNMULT;
-      // WII max is yoked to WIE max
-      WII_MAX = std::stod(argv[nn + 1]) * 4.32 / LATCONNMULT;
-    }
-    if (std::string(argv[nn]).compare("wei") == 0) {
-      WEI_MAX = std::stod(argv[nn + 1]) * 4.32 / LATCONNMULT;
-    }
-    if (std::string(argv[nn]).compare("nolat") == 0) {
-      NOLAT = 1;
-      cout << "No lateral connections! (Either E or I)" << endl;
-    }
-    if (std::string(argv[nn]).compare("noelat") == 0) {
-      NOELAT = 1;
-      cout << "No E-E lateral connections! (E-I, I-I and I-E unaffected)"
-           << endl;
-    }
-    if (std::string(argv[nn]).compare("pulsetime") == 0) {
-      PULSETIME = std::stoi(argv[nn + 1]);
-    }
+  if (NONOISE) {
+    cout << "No noise!" << endl;
+  }
+  if (NOSPIKE) {
+    cout << "No spiking! !" << endl;
+  }
+  if (NOINH) {
+    cout << "No inhibition!" << endl;
+  }
+  if (NOLAT) {
+    cout << "No lateral connections! (Either E or I)" << endl;
+  }
+  if (NOELAT) {
+    cout << "No E-E lateral connections! (E-I, I-I and I-E unaffected)" << endl;
   }
 
   if (phase == Phase::learning) {
@@ -313,15 +308,14 @@ int main(int argc, char *argv[]) {
     NBPATTERNS = NBPATTERNSPULSE;
     PRESTIME = PRESTIMEPULSE;
     NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
-    if (argc < 3) {
+    if (STIM1 == -1) {
       cerr << endl
            << "Error: When using 'pulse', you must provide the number of the "
               "stimulus you want to pulse."
            << endl;
       return -1;
     }
-    STIM1 = std::stoi(argv[2]) - 1; // -1 because of c++ zero-counting (the nth
-                                    // pattern has location n-1 in the array)
+
     NBLASTSPIKESPRES = NBPATTERNS;
     NBRESPS = NBPRES;
     cout << "Stim1: " << STIM1 << endl;
@@ -360,15 +354,14 @@ int main(int argc, char *argv[]) {
     NBRESPS = NBPRES;
     readWeights(w, loadDirectory / "w.dat");
     readWeights(wff, loadDirectory / "wff.dat");
-    if (argc < 4) {
+    if (STIM1 == -1 || STIM2 == -1) {
       cerr << endl
            << "Error: When using 'mix', you must provide the numbers of the 2 "
               "stimuli you want to mix."
            << endl;
       return -1;
     }
-    STIM1 = std::stoi(argv[2]) - 1;
-    STIM2 = std::stoi(argv[3]) - 1;
+
     cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << endl;
   } else {
     cerr << "Which phase?\n";
