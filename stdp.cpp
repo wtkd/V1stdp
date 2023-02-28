@@ -420,25 +420,29 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
   cout << "Reading input data...." << endl;
   int nbpatchesinfile = 0, totaldatasize = 0;
 
-  // The stimulus patches are 17x17x2 in length, arranged linearly. See below
-  // for the setting of feedforward firing rates based on patch data. See also
-  // makepatchesImageNetInt8.m
+  auto const [imagedata, fsize] = [&]() {
+    // The stimulus patches are 17x17x2 in length, arranged linearly. See below
+    // for the setting of feedforward firing rates based on patch data. See also
+    // makepatchesImageNetInt8.m
 
-  ifstream DataFile(inputDirectory / std::filesystem::path(
-                                         "patchesCenteredScaledBySumTo126"
-                                         "ImageNetONOFFRotatedNewInt8.bin.dat"),
-                    ios::in | ios::binary | ios::ate);
-  if (!DataFile.is_open()) {
-    throw ios_base::failure("Failed to open the binary data file!");
-    return -1;
-  }
-  ifstream::pos_type fsize = DataFile.tellg();
-  char *membuf = new char[fsize];
-  DataFile.seekg(0, ios::beg);
-  DataFile.read(membuf, fsize);
-  DataFile.close();
-  int8_t *imagedata = (int8_t *)membuf;
-  // double* imagedata = (double*) membuf;
+    ifstream DataFile(
+        inputDirectory /
+            std::filesystem::path("patchesCenteredScaledBySumTo126"
+                                  "ImageNetONOFFRotatedNewInt8.bin.dat"),
+        ios::in | ios::binary | ios::ate);
+    if (!DataFile.is_open()) {
+      throw ios_base::failure("Failed to open the binary data file!");
+      exit(1);
+    }
+    auto const fsize = DataFile.tellg();
+    auto membuf = make_unique<int8_t[]>(fsize);
+    DataFile.seekg(0, ios::beg);
+    DataFile.read(reinterpret_cast<char *>(membuf.get()), fsize);
+    DataFile.close();
+
+    return tuple{move(membuf), fsize};
+    // double* imagedata = (double*) membuf;
+  }();
   cout << "Data read!" << endl;
   // totaldatasize = fsize / sizeof(double); // To change depending on whether
   // the data is float/single (4) or double (8)
