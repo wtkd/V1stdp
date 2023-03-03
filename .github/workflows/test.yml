@@ -21,4 +21,5 @@ jobs:
       - name: Upload files
         uses: actions/upload-artifact@v3
         with:
+          name: data
           path: ./data/
