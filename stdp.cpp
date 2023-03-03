@@ -60,9 +60,6 @@ std::istream &operator>>(std::istream &is, Phase &p) {
 #define VSTIM 1.0
 
 #define TIMEZEROINPUT 100
-#define NBPATTERNSLEARNING 500000
-#define NBPATTERNSTESTING 1000 // 1000
-#define NBPATTERNSPULSE 50
 #define PRESTIMEMIXING 350 // in ms
 #define PRESTIMEPULSE 350
 #define NBPATTERNSSPONT 300
@@ -145,6 +142,9 @@ int main(int argc, char *argv[]) {
     ("phase", "Which phase to do", cxxopts::value<Phase>())
     ("h,help", "Print help")
     ("s,seed", "Seed for pseudorandom", cxxopts::value<unsigned int>()->default_value("0"))
+    ("step-number-learning", "Step number of times on learning", cxxopts::value<int>()->default_value(std::to_string(500'000)))
+    ("step-number-testing", "Step number of times on testing", cxxopts::value<int>()->default_value(std::to_string(1'000)))
+    ("step-number-pulse", "Step number of times on pulse", cxxopts::value<int>()->default_value(std::to_string(50)))
     ("d,data-directory", "Directory to load and save data", cxxopts::value<std::filesystem::path>()->default_value("."))
     ("I,input-directory", "Directory to input image data", cxxopts::value<std::filesystem::path>())
     ("S,save-directory", "Directory to save weight data", cxxopts::value<std::filesystem::path>())
@@ -196,6 +196,13 @@ int main(int argc, char *argv[]) {
 
   unsigned int const randomSeed =
       parsedOptionsResult["seed"].as<unsigned int>();
+
+  int const NBPATTERNSLEARNING =
+      parsedOptionsResult["step-number-learning"].as<int>();
+  int const NBPATTERNSTESTING =
+      parsedOptionsResult["step-number-testing"].as<int>();
+  int const NBPATTERNSPULSE =
+      parsedOptionsResult["step-number-pulse"].as<int>();
 
   auto const dataDirectory =
       parsedOptionsResult["data-directory"].as<std::filesystem::path>();
