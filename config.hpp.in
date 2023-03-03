@@ -1,0 +1,3 @@
+#include <string>
+
+std::string_view constexpr inline VERSION = "@VERSION@";

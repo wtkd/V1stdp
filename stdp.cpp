@@ -4,15 +4,36 @@
 #include <Eigen/Dense>
 #include <cstdlib>
 #include <ctime>
+#include <cxxopts.hpp>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#define LEARNING 1234
-#define TESTING 4321
-#define MIXING 5678
-#define SPONTANEOUS 7913
-#define PULSE 1978
+#include <tuple>
+
+#include "config.hpp"
+
+enum class Phase {
+  unspecified = 0,
+  learning,
+  testing,
+  mixing,
+  spontaneous,
+  pulse,
+};
+
+std::istream &operator>>(std::istream &is, Phase &p) {
+  std::string s;
+  is >> s;
+  p = (s == "learn"   ? Phase::learning
+       : s == "test"  ? Phase::testing
+       : s == "mix"   ? Phase::mixing
+       : s == "spont" ? Phase::spontaneous
+       : s == "pulse" ? Phase::pulse
+                      : Phase::unspecified);
+  return is;
+}
 
 // #define MOD (70.0 / 126.0)
 #define MOD (1.0 / 126.0)
@@ -39,9 +60,6 @@
 #define VSTIM 1.0
 
 #define TIMEZEROINPUT 100
-#define NBPATTERNSLEARNING 500000
-#define NBPATTERNSTESTING 1000 // 1000
-#define NBPATTERNSPULSE 50
 #define PRESTIMEMIXING 350 // in ms
 #define PRESTIMEPULSE 350
 #define NBPATTERNSSPONT 300
@@ -101,123 +119,168 @@ using namespace std;
 MatrixXd poissonMatrix(const MatrixXd &lambd);
 MatrixXd poissonMatrix2(const MatrixXd &lambd);
 int poissonScalar(const double lambd);
-void saveWeights(MatrixXd &wgt, string fn);
-void readWeights(MatrixXd &wgt, string fn);
+void saveWeights(MatrixXd &wgt, std::filesystem::path);
+void readWeights(MatrixXd &wgt, std::filesystem::path);
+
+int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
+        double const WPENSCALE, double const ALTPMULT, int const PRESTIME,
+        int const NBLASTSPIKESPRES, int const NBPRES, int const NONOISE,
+        int const NOSPIKE, int const NBRESPS, int const NOINH,
+        Phase const PHASE, int const STIM1, int const STIM2,
+        int const PULSETIME, MatrixXd const &initwff, MatrixXd const &initw,
+        int const NOLAT, int const NOELAT, double const initINPUTMULT,
+        int randomSeed, std::filesystem::path const inputDirectory,
+        std::filesystem::path const saveDirectory,
+        std::filesystem::path const loadDirectory);
 
 int main(int argc, char *argv[]) {
-  srand(0);
-  clock_t tic;
-  int PHASE;
-  int STIM1, STIM2;
-  int PRESTIMELEARNING = 350; // ms
-  int PRESTIMETESTING = 350;
-  int PULSETIME =
-      100; // This is the time during which stimulus is active during PULSE
-           // trials (different from PRESTIMEPULSE which is total trial time)
-  int NOLAT = 0;
-  int NOELAT = 0;
-  int NOINH = 0;
-  int NOSPIKE = 0;
-  int NONOISE = 0;
+  // Parse command line arguments
+  cxxopts::Options options("stdp", "Caluculate with V1 developing model");
+
+  // clang-format off
+  options.add_options()
+    ("phase", "Which phase to do", cxxopts::value<Phase>())
+    ("h,help", "Print help")
+    ("s,seed", "Seed for pseudorandom", cxxopts::value<unsigned int>()->default_value("0"))
+    ("step-number-learning", "Step number of times on learning", cxxopts::value<int>()->default_value(std::to_string(500'000)))
+    ("step-number-testing", "Step number of times on testing", cxxopts::value<int>()->default_value(std::to_string(1'000)))
+    ("step-number-pulse", "Step number of times on pulse", cxxopts::value<int>()->default_value(std::to_string(50)))
+    ("d,data-directory", "Directory to load and save data", cxxopts::value<std::filesystem::path>()->default_value("."))
+    ("I,input-directory", "Directory to input image data", cxxopts::value<std::filesystem::path>())
+    ("S,save-directory", "Directory to save weight data", cxxopts::value<std::filesystem::path>())
+    ("L,load-directory", "Directory to load weight data", cxxopts::value<std::filesystem::path>())
+    ("nonoise", "No noise", cxxopts::value<bool>()->default_value("false"))
+    ("nospike", "No spike", cxxopts::value<bool>()->default_value("false"))
+    ("noinh", "No inhibitary connection", cxxopts::value<bool>()->default_value("false"))
+    ("nolat", "No latetal connection", cxxopts::value<bool>()->default_value("false"))
+    ("noelat", "No excitatory lateral connection", cxxopts::value<bool>()->default_value("false"))
+    ("delayparam", "Delay parameter", cxxopts::value<double>()->default_value(std::to_string(.33)))
+    ("latconnmult", "Lateral connection multiplication", cxxopts::value<double>()->default_value(std::to_string(LATCONNMULTINIT)))
+    ("wpenscale", "Wpenscale", cxxopts::value<double>()->default_value(std::to_string(.33)))
+    ("timepres", "Timepres", cxxopts::value<int>()->default_value(std::to_string(350)))
+    ("altpmult", "Altpmult", cxxopts::value<double>()->default_value(std::to_string(.75)))
+    ("wie", "Weight on I-E", cxxopts::value<double>()->default_value(std::to_string(.5)))
+    ("wei", "Weight on E-I", cxxopts::value<double>()->default_value(std::to_string(20.0)))
+    ("pulsetime", "This is the time during which stimulus is active during PULSE trials (different from PRESTIMEPULSE which is total trial time)",
+     cxxopts::value<int>()->default_value(std::to_string(100)))
+    ("stimulation-number-1", "Numbers of stimulation on mixing or pulse", cxxopts::value<int>())
+    ("stimulation-number-2", "Numbers of stimulation on mixing", cxxopts::value<int>())
+    ;
+  // clang-format on
+
+  options.parse_positional(
+      {"phase", "stimulation-number-1", "stimulation-number-2"});
+
+  options.positional_help("");
+  options.custom_help("learn|test|mix|spont|pulse [STIM1 STIM2 OPTIONS...]");
+
+  auto const parsedOptionsResult = options.parse(argc, argv);
+
+  // Show help
+  if (parsedOptionsResult.count("help")) {
+    std::cerr << "stdp " << VERSION << std::endl;
+    std::cerr << options.help() << std::endl;
+
+    return 0;
+  }
+
+  Phase const phase = parsedOptionsResult["phase"].as<Phase>();
+
+  if (phase == Phase::unspecified) {
+    cerr << endl
+         << "Error: You must provide at least one argument - 'learn', 'mix', "
+            "'pulse' or 'test'."
+         << endl;
+    return -1;
+  }
+
+  unsigned int const randomSeed =
+      parsedOptionsResult["seed"].as<unsigned int>();
+
+  int const NBPATTERNSLEARNING =
+      parsedOptionsResult["step-number-learning"].as<int>();
+  int const NBPATTERNSTESTING =
+      parsedOptionsResult["step-number-testing"].as<int>();
+  int const NBPATTERNSPULSE =
+      parsedOptionsResult["step-number-pulse"].as<int>();
+
+  auto const dataDirectory =
+      parsedOptionsResult["data-directory"].as<std::filesystem::path>();
+  auto const inputDirectory =
+      parsedOptionsResult.count("input-directory")
+          ? parsedOptionsResult["input-directory"].as<std::filesystem::path>()
+          : dataDirectory;
+  auto const saveDirectory =
+      parsedOptionsResult.count("save-directory")
+          ? parsedOptionsResult["save-directory"].as<std::filesystem::path>()
+          : dataDirectory;
+  auto const loadDirectory =
+      parsedOptionsResult.count("load-directory")
+          ? parsedOptionsResult["load-directory"].as<std::filesystem::path>()
+          : dataDirectory;
+
+  // -1 because of c++ zero-counting (the nth
+  // pattern has location n-1 in the array)
+  int const STIM1 =
+      parsedOptionsResult.count("stimulation-number-1")
+          ? parsedOptionsResult["stimulation-number-1"].as<int>() - 1
+          : -1;
+  int const STIM2 =
+      parsedOptionsResult.count("stimulation-number-2")
+          ? parsedOptionsResult["stimulation-number-2"].as<int>() - 1
+          : -1;
+
+  int const PRESTIMELEARNING = parsedOptionsResult["timepres"].as<int>(); // ms
+  int const PRESTIMETESTING = parsedOptionsResult["timepres"].as<int>();
+  int const PULSETIME = parsedOptionsResult["pulsetime"].as<int>();
+  bool const NOLAT = parsedOptionsResult["nolat"].as<bool>();
+  bool const NOELAT = parsedOptionsResult["noelat"].as<bool>();
+  bool const NOINH = parsedOptionsResult["noinh"].as<bool>();
+  bool const NOSPIKE = parsedOptionsResult["nospike"].as<bool>();
+  bool const NONOISE = parsedOptionsResult["nonoise"].as<bool>();
   int NBLASTSPIKESSTEPS = 0;
   int NBLASTSPIKESPRES = 50;
   int NBRESPS =
       -1; // Number of resps (total nb of spike / total v for each presentation)
           // to be stored in resps and respssumv. Must be set depending on the
           // PHASE (learmning, testing, mixing, etc.)
-  double LATCONNMULT = LATCONNMULTINIT;
+  double const LATCONNMULT = parsedOptionsResult["latconnmult"].as<double>();
   double INPUTMULT = -1.0; // To be modified!
-  double DELAYPARAM = 5.0;
-  if (argc > 1 && strcmp(argv[1], "test") == 0)
-    PHASE = TESTING;
-  else if (argc > 1 && strcmp(argv[1], "learn") == 0)
-    PHASE = LEARNING;
-  else if (argc > 1 && strcmp(argv[1], "mix") == 0)
-    PHASE = MIXING;
-  else if (argc > 1 && strcmp(argv[1], "pulse") == 0)
-    PHASE = PULSE;
-  else if (argc > 1 && strcmp(argv[1], "spont") == 0)
-    PHASE = SPONTANEOUS;
-  else {
-    cerr << endl
-         << "Error: You must provide at least one argument - 'learn', 'mix', "
-            "'pulse' or 'test'."
-         << endl;
-    if (argc > 1) {
-      cout << "You provided argument '" << argv[1] << "'" << endl;
-    }
-    return -1;
-  }
+  double const DELAYPARAM = parsedOptionsResult["delayparam"].as<double>();
 
   MatrixXd w = MatrixXd::Zero(NBNEUR, NBNEUR);
   MatrixXd wff = MatrixXd::Zero(NBNEUR, FFRFSIZE);
 
   // These constants are only used for learning:
-  double WPENSCALE = .33;
-  double ALTPMULT = .75;
-  double WEI_MAX = 20.0 * 4.32 / LATCONNMULT; // 1.5
-  double WIE_MAX = .5 * 4.32 / LATCONNMULT;
-  double WII_MAX = .5 * 4.32 / LATCONNMULT;
+  double const WPENSCALE = parsedOptionsResult["wpenscale"].as<double>();
+  double const ALTPMULT = parsedOptionsResult["altpmult"].as<double>();
+  double const WEI_MAX =
+      parsedOptionsResult["wei"].as<double>() * 4.32 / LATCONNMULT; // 1.5
+  double const WIE_MAX =
+      parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
+  // WII max is yoked to WIE max
+  double const WII_MAX =
+      parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
   int NBPATTERNS, PRESTIME, NBPRES, NBSTEPSPERPRES, NBSTEPS;
 
   // Command line parameters handling
-
-  for (int nn = 2; nn < argc; nn++) {
-    if (std::string(argv[nn]).compare("nonoise") == 0) {
-      NONOISE = 1;
-      cout << "No noise!" << endl;
-    }
-    if (std::string(argv[nn]).compare("nospike") == 0) {
-      NOSPIKE = 1;
-      cout << "No spiking! !" << endl;
-    }
-    if (std::string(argv[nn]).compare("noinh") == 0) {
-      NOINH = 1;
-      cout << "No inhibition!" << endl;
-    }
-    if (std::string(argv[nn]).compare("delayparam") == 0) {
-      DELAYPARAM = std::stod(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("latconnmult") == 0) {
-      LATCONNMULT = std::stod(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("wpenscale") == 0) {
-      WPENSCALE = std::stod(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("timepres") == 0) {
-      PRESTIMELEARNING = std::stoi(argv[nn + 1]);
-      PRESTIMETESTING = std::stoi(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("altpmult") == 0) {
-      ALTPMULT = std::stod(argv[nn + 1]);
-    }
-    if (std::string(argv[nn]).compare("wie") == 0) {
-      WIE_MAX = std::stod(argv[nn + 1]) * 4.32 / LATCONNMULT;
-      // WII max is yoked to WIE max
-      WII_MAX = std::stod(argv[nn + 1]) * 4.32 / LATCONNMULT;
-    }
-    if (std::string(argv[nn]).compare("wei") == 0) {
-      WEI_MAX = std::stod(argv[nn + 1]) * 4.32 / LATCONNMULT;
-    }
-    if (std::string(argv[nn]).compare("nolat") == 0) {
-      NOLAT = 1;
-      cout << "No lateral connections! (Either E or I)" << endl;
-    }
-    if (std::string(argv[nn]).compare("noelat") == 0) {
-      NOELAT = 1;
-      cout << "No E-E lateral connections! (E-I, I-I and I-E unaffected)"
-           << endl;
-    }
-    if (std::string(argv[nn]).compare("pulsetime") == 0) {
-      PULSETIME = std::stoi(argv[nn + 1]);
-    }
+  if (NONOISE) {
+    cout << "No noise!" << endl;
+  }
+  if (NOSPIKE) {
+    cout << "No spiking! !" << endl;
+  }
+  if (NOINH) {
+    cout << "No inhibition!" << endl;
+  }
+  if (NOLAT) {
+    cout << "No lateral connections! (Either E or I)" << endl;
+  }
+  if (NOELAT) {
+    cout << "No E-E lateral connections! (E-I, I-I and I-E unaffected)" << endl;
   }
 
-  // On the command line, you must specify one of 'learn', 'pulse', 'test',
-  // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
-  // number. IF using 'mix', you must specify two stimulus numbers.
-
-  if (PHASE == LEARNING) {
+  if (phase == Phase::learning) {
     NBPATTERNS = NBPATTERNSLEARNING;
     PRESTIME = PRESTIMELEARNING;
     NBPRES = NBPATTERNS; //* NBPRESPERPATTERNLEARNING;
@@ -248,33 +311,32 @@ int main(int argc, char *argv[]) {
     wff.bottomRows(NBI)
         .setZero(); // Inhibitory neurons do not receive FF excitation from the
                     // sensory RFs (should they? TRY LATER)
-  } else if (PHASE == PULSE) {
+  } else if (phase == Phase::pulse) {
     NBPATTERNS = NBPATTERNSPULSE;
     PRESTIME = PRESTIMEPULSE;
     NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
-    if (argc < 3) {
+    if (STIM1 == -1) {
       cerr << endl
            << "Error: When using 'pulse', you must provide the number of the "
               "stimulus you want to pulse."
            << endl;
       return -1;
     }
-    STIM1 = std::stoi(argv[2]) - 1; // -1 because of c++ zero-counting (the nth
-                                    // pattern has location n-1 in the array)
+
     NBLASTSPIKESPRES = NBPATTERNS;
     NBRESPS = NBPRES;
     cout << "Stim1: " << STIM1 << endl;
-    readWeights(w, "w.dat");
-    readWeights(wff, "wff.dat");
+    readWeights(w, loadDirectory / "w.dat");
+    readWeights(wff, loadDirectory / "wff.dat");
     cout << "Pulse input time: " << PULSETIME << " ms" << endl;
-  } else if (PHASE == TESTING) {
+  } else if (phase == Phase::testing) {
     NBPATTERNS = NBPATTERNSTESTING;
     PRESTIME = PRESTIMETESTING;
     NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
     NBLASTSPIKESPRES = 30;
     NBRESPS = NBPRES;
-    readWeights(w, "w.dat");
-    readWeights(wff, "wff.dat");
+    readWeights(w, loadDirectory / "w.dat");
+    readWeights(wff, loadDirectory / "wff.dat");
     cout << "First row of w (lateral weights): " << w.row(0) << endl;
     cout << "w(1,2) and w(2,1): " << w(1, 2) << " " << w(2, 1) << endl;
 
@@ -282,46 +344,75 @@ int main(int argc, char *argv[]) {
     // excitatory inputs from excitatory neurons w.rightCols(NBI).fill(-1.0); //
     // Everybody receives fixed, negative inhibition (including inhibitory
     // neurons)
-  } else if (PHASE == SPONTANEOUS) {
+  } else if (phase == Phase::spontaneous) {
     NBPATTERNS = NBPATTERNSSPONT;
     PRESTIME = PRESTIMESPONT;
     NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
     NBLASTSPIKESPRES = NBPATTERNS;
     NBRESPS = NBPRES;
-    readWeights(w, "w.dat");
-    readWeights(wff, "wff.dat");
+    readWeights(w, loadDirectory / "w.dat");
+    readWeights(wff, loadDirectory / "wff.dat");
     cout << "Spontaneous activity - no stimulus !" << endl;
-  } else if (PHASE == MIXING) {
+  } else if (phase == Phase::mixing) {
     NBPATTERNS = 2;
     PRESTIME = PRESTIMEMIXING;
     NBPRES = NBMIXES * 3; //* NBPRESPERPATTERNTESTING;
     NBLASTSPIKESPRES = 30;
     NBRESPS = NBPRES;
-    readWeights(w, "w.dat");
-    readWeights(wff, "wff.dat");
-    if (argc < 4) {
+    readWeights(w, loadDirectory / "w.dat");
+    readWeights(wff, loadDirectory / "wff.dat");
+    if (STIM1 == -1 || STIM2 == -1) {
       cerr << endl
            << "Error: When using 'mix', you must provide the numbers of the 2 "
               "stimuli you want to mix."
            << endl;
       return -1;
     }
-    STIM1 = std::stoi(argv[2]) - 1;
-    STIM2 = std::stoi(argv[3]) - 1;
+
     cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << endl;
   } else {
     cerr << "Which phase?\n";
     return -1;
   }
+
+  return run(LATCONNMULT, WIE_MAX, DELAYPARAM, WPENSCALE, ALTPMULT, PRESTIME,
+             NBLASTSPIKESPRES, NBPRES, NONOISE, NOSPIKE, NBRESPS, NOINH, phase,
+             STIM1, STIM2, PULSETIME, wff, w, NOLAT, NOELAT, INPUTMULT,
+             randomSeed, inputDirectory, saveDirectory, loadDirectory);
+}
+
+int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
+        double const WPENSCALE, double const ALTPMULT, int const PRESTIME,
+        int const NBLASTSPIKESPRES, int const NBPRES, int const NONOISE,
+        int const NOSPIKE, int const NBRESPS, int const NOINH,
+        Phase const phase, int const STIM1, int const STIM2,
+        int const PULSETIME, MatrixXd const &initwff, MatrixXd const &initw,
+        int const NOLAT, int const NOELAT, double const initINPUTMULT,
+        int randomSeed, std::filesystem::path const inputDirectory,
+        std::filesystem::path const saveDirectory,
+        std::filesystem::path const loadDirectory) {
+  srand(randomSeed);
+
+  cout << "RandomSeed: " << randomSeed << endl;
+
+  // On the command line, you must specify one of 'learn', 'pulse', 'test',
+  // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
+  // number. IF using 'mix', you must specify two stimulus numbers.
+
   cout << "Lat. conn.: " << LATCONNMULT << endl;
   cout << "WIE_MAX: " << WIE_MAX << " / " << WIE_MAX * LATCONNMULT / 4.32
        << endl;
   cout << "DELAYPARAM: " << DELAYPARAM << endl;
   cout << "WPENSCALE: " << WPENSCALE << endl;
   cout << "ALTPMULT: " << ALTPMULT << endl;
-  NBSTEPSPERPRES = (int)(PRESTIME / dt);
-  NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
-  NBSTEPS = NBSTEPSPERPRES * NBPRES;
+  int NBSTEPSPERPRES = (int)(PRESTIME / dt);
+  int NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
+  int NBSTEPS = NBSTEPSPERPRES * NBPRES;
+
+  MatrixXd wff = initwff;
+  MatrixXd w = initw;
+
+  double INPUTMULT = initINPUTMULT;
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
   MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
@@ -329,24 +420,29 @@ int main(int argc, char *argv[]) {
   cout << "Reading input data...." << endl;
   int nbpatchesinfile = 0, totaldatasize = 0;
 
-  // The stimulus patches are 17x17x2 in length, arranged linearly. See below
-  // for the setting of feedforward firing rates based on patch data. See also
-  // makepatchesImageNetInt8.m
+  auto const [imagedata, fsize] = [&]() {
+    // The stimulus patches are 17x17x2 in length, arranged linearly. See below
+    // for the setting of feedforward firing rates based on patch data. See also
+    // makepatchesImageNetInt8.m
 
-  ifstream DataFile(
-      "./patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat",
-      ios::in | ios::binary | ios::ate);
-  if (!DataFile.is_open()) {
-    throw ios_base::failure("Failed to open the binary data file!");
-    return -1;
-  }
-  ifstream::pos_type fsize = DataFile.tellg();
-  char *membuf = new char[fsize];
-  DataFile.seekg(0, ios::beg);
-  DataFile.read(membuf, fsize);
-  DataFile.close();
-  int8_t *imagedata = (int8_t *)membuf;
-  // double* imagedata = (double*) membuf;
+    ifstream DataFile(
+        inputDirectory /
+            std::filesystem::path("patchesCenteredScaledBySumTo126"
+                                  "ImageNetONOFFRotatedNewInt8.bin.dat"),
+        ios::in | ios::binary | ios::ate);
+    if (!DataFile.is_open()) {
+      throw ios_base::failure("Failed to open the binary data file!");
+      exit(1);
+    }
+    auto const fsize = DataFile.tellg();
+    auto membuf = make_unique<int8_t[]>(fsize);
+    DataFile.seekg(0, ios::beg);
+    DataFile.read(reinterpret_cast<char *>(membuf.get()), fsize);
+    DataFile.close();
+
+    return tuple{move(membuf), fsize};
+    // double* imagedata = (double*) membuf;
+  }();
   cout << "Data read!" << endl;
   // totaldatasize = fsize / sizeof(double); // To change depending on whether
   // the data is float/single (4) or double (8)
@@ -452,7 +548,7 @@ int main(int argc, char *argv[]) {
         (double)(NBMIXES -
                  1); // NBMIXES values equally spaced from 0 to 1 inclusive.
 
-  fstream myfile;
+  // fstream myfile;
 
   // If no-inhib mode, remove all inhibitory connections:
   if (NOINH)
@@ -518,14 +614,14 @@ int main(int argc, char *argv[]) {
 
   // Initializations done, let's get to it!
 
-  tic = clock();
+  clock_t tic = clock();
   int numstep = 0;
 
   // For each stimulus presentation...
   for (int numpres = 0; numpres < NBPRES; numpres++) {
     // Where are we in the data file?
     int posindata = ((numpres % nbpatchesinfile) * FFRFSIZE / 2);
-    if (PHASE == PULSE)
+    if (phase == Phase::pulse)
       posindata = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
     if (posindata >= totaldatasize - FFRFSIZE / 2) {
       cerr << "Error: tried to read beyond data end.\n";
@@ -550,7 +646,7 @@ int main(int argc, char *argv[]) {
         lgnrates.maxCoeff(); // Scale by max! The inputs are scaled to have a
                              // maximum of 1 (multiplied by INPUTMULT below)
 
-    if (PHASE == MIXING) {
+    if (phase == Phase::mixing) {
       int posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
       if (posindata1 >= totaldatasize - FFRFSIZE / 2) {
         cerr << "Error: tried to read beyond data end.\n";
@@ -632,11 +728,12 @@ int main(int argc, char *argv[]) {
 
       lgnfiringsprev = lgnfirings;
 
-      if (((PHASE == PULSE) && (numstepthispres >= (double)(PULSESTART) / dt) &&
+      if (((phase == Phase::pulse) &&
+           (numstepthispres >= (double)(PULSESTART) / dt) &&
            (numstepthispres < (double)(PULSESTART + PULSETIME) /
                                   dt)) // In the PULSE case, inputs only fire
                                        // for a short period of time
-          || ((PHASE != PULSE) &&
+          || ((phase != Phase::pulse) &&
               (numstepthispres <
                NBSTEPSPERPRES -
                    ((double)TIMEZEROINPUT /
@@ -651,7 +748,7 @@ int main(int argc, char *argv[]) {
       else
         lgnfirings.setZero();
 
-      if (PHASE == SPONTANEOUS)
+      if (phase == Phase::spontaneous)
         lgnfirings.setZero();
 
       // We compute the feedforward input:
@@ -846,7 +943,7 @@ int main(int argc, char *argv[]) {
       vneg = vneg + (dt / TAUVNEG) * (vprevprev - vneg);
       vpos = vpos + (dt / TAUVPOS) * (vprevprev - vpos);
 
-      if ((PHASE == LEARNING) && (numpres >= 401))
+      if ((phase == Phase::learning) && (numpres >= 401))
       // if (numpres >= 401)
       {
 
@@ -934,114 +1031,164 @@ int main(int argc, char *argv[]) {
         nolatindicator = "_nolat";
       if (NOELAT)
         nolatindicator = "_noelat";
+      {
+        std::ofstream myfile(saveDirectory /
+                                 ("lastnspikes" + nolatindicator + ".txt"),
+                             ios::trunc | ios::out);
+        myfile << endl << lastnspikes << endl;
+      }
+      if (phase == Phase::testing) {
+        {
+          std::ofstream myfile(saveDirectory / "resps_test.txt",
+                               ios::trunc | ios::out);
+          myfile << endl << resps << endl;
+        }
 
-      myfile.open("lastnspikes" + nolatindicator + ".txt",
-                  ios::trunc | ios::out);
-      myfile << endl << lastnspikes << endl;
-      myfile.close();
-
-      if (PHASE == TESTING) {
-        myfile.open("resps_test.txt", ios::trunc | ios::out);
-        myfile << endl << resps << endl;
-        myfile.close();
         // myfile.open("respssumv_test.txt", ios::trunc | ios::out);  myfile <<
         // endl << respssumv << endl; myfile.close();
-        myfile.open("lastnv_test" + nolatindicator + noinhindicator + ".txt",
-                    ios::trunc | ios::out);
-        myfile << endl << lastnv << endl;
-        myfile.close();
+
+        {
+          std::ofstream myfile(saveDirectory / ("lastnv_test" + nolatindicator +
+                                                noinhindicator + ".txt"),
+                               ios::trunc | ios::out);
+          myfile << endl << lastnv << endl;
+        }
+
         // myfile.open("lastnv_spont"+nolatindicator+noinhindicator+".txt",
         // ios::trunc | ios::out);  myfile << endl << lastnv << endl;
         // myfile.close();
       }
-      if (PHASE == SPONTANEOUS) {
-        myfile.open("resps_spont.txt", ios::trunc | ios::out);
-        myfile << endl << resps << endl;
-        myfile.close();
-        myfile.open("lastnspikes_spont" + nolatindicator + noinhindicator +
-                        ".txt",
-                    ios::trunc | ios::out);
+
+      if (phase == Phase::spontaneous) {
+        std::ofstream myfile(saveDirectory /
+                                 ("lastnspikes_spont" + nolatindicator +
+                                  noinhindicator + ".txt"),
+                             ios::trunc | ios::out);
         myfile << endl << lastnspikes << endl;
-        myfile.close();
       }
-      if (PHASE == PULSE) {
-        myfile.open("resps_pulse" + nolatindicator + noinhindicator + ".txt",
-                    ios::trunc | ios::out);
-        myfile << endl << resps << endl;
-        myfile.close();
-        myfile.open("resps_pulse_" + std::to_string((long long int)STIM1) +
-                        ".txt",
-                    ios::trunc | ios::out);
-        myfile << endl << resps << endl;
-        myfile.close();
-        myfile.open("lastnspikes_pulse" + nolatindicator + noinhindicator +
-                        ".txt",
-                    ios::trunc | ios::out);
-        myfile << endl << lastnspikes << endl;
-        myfile.close();
-        myfile.open("lastnspikes_pulse_" +
-                        std::to_string((long long int)STIM1) + nolatindicator +
-                        noinhindicator + ".txt",
-                    ios::trunc | ios::out);
-        myfile << endl << lastnspikes << endl;
-        myfile.close();
+
+      if (phase == Phase::pulse) {
+        {
+          std::ofstream myfile(saveDirectory / ("resps_pulse" + nolatindicator +
+                                                noinhindicator + ".txt"),
+                               ios::trunc | ios::out);
+          myfile << endl << resps << endl;
+        }
+
+        {
+          std::ofstream myfile(
+              saveDirectory / ("resps_pulse_" +
+                               std::to_string((long long int)STIM1) + ".txt"),
+              ios::trunc | ios::out);
+          myfile << endl << resps << endl;
+        }
+
+        {
+          std::ofstream myfile(saveDirectory /
+                                   ("lastnspikes_pulse" + nolatindicator +
+                                    noinhindicator + ".txt"),
+                               ios::trunc | ios::out);
+          myfile << endl << lastnspikes << endl;
+        }
+
+        {
+          std::ofstream myfile(saveDirectory /
+                                   ("lastnspikes_pulse_" +
+                                    std::to_string((long long int)STIM1) +
+                                    nolatindicator + noinhindicator + ".txt"),
+                               ios::trunc | ios::out);
+          myfile << endl << lastnspikes << endl;
+        }
+
         // myfile.open("lastnv_pulse_"+std::to_string((long long
         // int)STIM1)+nolatindicator+noinhindicator+".txt", ios::trunc |
         // ios::out);  myfile << endl << lastnv << endl; myfile.close();
       }
-      if (PHASE == MIXING) {
-        myfile.open("respssumv_mix" + nolatindicator + noinhindicator +
-                        nospikeindicator + ".txt",
-                    ios::trunc | ios::out);
-        myfile << endl << respssumv << endl;
-        myfile.close();
-        myfile.open("resps_mix" + nolatindicator + noinhindicator +
-                        nospikeindicator + ".txt",
-                    ios::trunc | ios::out);
-        myfile << endl << resps << endl;
-        myfile.close();
-        myfile.open("respssumv_mix" + std::to_string((long long int)STIM1) +
-                        "_" + std::to_string((long long int)STIM2) +
-                        nolatindicator + noinhindicator + nospikeindicator +
-                        ".txt",
-                    ios::trunc | ios::out);
-        myfile << endl << respssumv << endl;
-        myfile.close();
-        myfile.open("resps_mix_" + std::to_string((long long int)STIM1) + "_" +
-                        std::to_string((long long int)STIM2) + nolatindicator +
-                        noinhindicator + nospikeindicator + ".txt",
-                    ios::trunc | ios::out);
-        myfile << endl << resps << endl;
-        myfile.close();
+
+      if (phase == Phase::mixing) {
+        {
+          std::ofstream myfile(saveDirectory /
+                                   ("respssumv_mix" + nolatindicator +
+                                    noinhindicator + nospikeindicator + ".txt"),
+                               ios::trunc | ios::out);
+          myfile << endl << respssumv << endl;
+        }
+
+        {
+          std::ofstream myfile(saveDirectory /
+                                   ("resps_mix" + nolatindicator +
+                                    noinhindicator + nospikeindicator + ".txt"),
+                               ios::trunc | ios::out);
+          myfile << endl << resps << endl;
+        }
+
+        {
+          std::ofstream myfile(
+              saveDirectory /
+                  ("respssumv_mix" + std::to_string((long long int)STIM1) +
+                   "_" + std::to_string((long long int)STIM2) + nolatindicator +
+                   noinhindicator + nospikeindicator + ".txt"),
+              ios::trunc | ios::out);
+          myfile << endl << respssumv << endl;
+        }
+
+        {
+          std::ofstream myfile(
+              saveDirectory /
+                  ("resps_mix_" + std::to_string((long long int)STIM1) + "_" +
+                   std::to_string((long long int)STIM2) + nolatindicator +
+                   noinhindicator + nospikeindicator + ".txt"),
+              ios::trunc | ios::out);
+          myfile << endl << resps << endl;
+        }
       }
-      if (PHASE == LEARNING) {
+
+      if (phase == Phase::learning) {
         cout << "(Saving temporary data ... )" << endl;
 
-        myfile.open("w.txt", ios::trunc | ios::out);
-        myfile << endl << w << endl;
-        myfile.close();
-        myfile.open("wff.txt", ios::trunc | ios::out);
-        myfile << endl << wff << endl;
-        myfile.close();
-        if ((numpres + 1) % 50000 == 0) {
-          char tmpstr[80];
-          sprintf(tmpstr, "%s%d%s", "wff_", numpres + 1, ".txt");
-          myfile.open(tmpstr, ios::trunc | ios::out);
+        {
+          std::ofstream myfile(saveDirectory / "w.txt", ios::trunc | ios::out);
+          myfile << endl << w << endl;
+        }
+
+        {
+          std::ofstream myfile(saveDirectory / "wff.txt",
+                               ios::trunc | ios::out);
           myfile << endl << wff << endl;
           myfile.close();
-          sprintf(tmpstr, "%s%d%s", "w_", numpres + 1, ".txt");
-          myfile.open(tmpstr, ios::trunc | ios::out);
-          myfile << endl << w << endl;
-          myfile.close();
-          saveWeights(w, "w_" + std::to_string((long long int)(numpres + 1)) +
-                             ".dat");
-          saveWeights(wff, "wff_" +
-                               std::to_string((long long int)(numpres + 1)) +
-                               ".dat");
         }
-        myfile.open("resps.txt", ios::trunc | ios::out);
-        myfile << endl << resps << endl;
-        myfile.close();
+
+        if ((numpres + 1) % 50000 == 0) {
+          {
+            std::ofstream myfile(
+                saveDirectory / ("wff_" + std::to_string(numpres + 1) + ".txt"),
+                ios::trunc | ios::out);
+            myfile << endl << wff << endl;
+          }
+
+          {
+            std::ofstream myfile(
+                saveDirectory / ("w_" + std::to_string(numpres + 1) + ".txt"),
+                ios::trunc | ios::out);
+            myfile << endl << w << endl;
+          }
+
+          saveWeights(w,
+                      saveDirectory /
+                          ("w_" + std::to_string((long long int)(numpres + 1)) +
+                           ".dat"));
+          saveWeights(wff, saveDirectory /
+                               ("wff_" +
+                                std::to_string((long long int)(numpres + 1)) +
+                                ".dat"));
+        }
+
+        {
+          std::ofstream myfile(saveDirectory / "resps.txt",
+                               ios::trunc | ios::out);
+          myfile << endl << resps << endl;
+        }
+
         // myfile.open("patterns.txt", ios::trunc | ios::out);  myfile << endl
         // << patterns << endl; myfile.close();
         /*myfile.open("lgninputs.txt", ios::trunc | ios::out); myfile << endl <<
@@ -1058,11 +1205,14 @@ int main(int argc, char *argv[]) {
         myfile.close();*/
         // myfile.open("sumwff.txt", ios::trunc | ios::out); myfile << endl <<
         // sumwff << endl; myfile.close();
-        saveWeights(w, "w.dat");
-        saveWeights(wff, "wff.dat");
+
+        saveWeights(w, saveDirectory / "w.dat");
+        saveWeights(wff, saveDirectory / "wff.dat");
       }
     }
   }
+
+  return 0;
 }
 
 /*
@@ -1129,7 +1279,7 @@ int poissonScalar(const double lambd) {
   return (k - 1);
 }
 
-void saveWeights(MatrixXd &wgt, string fname) {
+void saveWeights(MatrixXd &wgt, std::filesystem::path fname) {
   double wdata[wgt.rows() * wgt.cols()];
   int idx = 0;
   // cout << endl << "Saving weights..." << endl;
@@ -1143,7 +1293,7 @@ void saveWeights(MatrixXd &wgt, string fname) {
   myfile.close();
 }
 
-void readWeights(MatrixXd &wgt, string fname) {
+void readWeights(MatrixXd &wgt, std::filesystem::path fname) {
   double wdata[wgt.cols() * wgt.rows()];
   int idx = 0;
   cout << endl << "Reading weights from file " << fname << endl;
