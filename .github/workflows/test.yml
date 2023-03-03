@@ -7,6 +7,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get install libcxxopts-dev libeigen3-dev
-      - run: cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -B build
-      - run: cmake --build build
-      - run: ./build/stdp --help
+      - name: Configure
+        run: cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -B build
+      - name: Build
+        run: cmake --build build
+      - name: View help
+        run: ./build/stdp --help
+      - run: mkdir data
+      - name: Learn
+        run: ./build/stdp learn --data-directory ./data --input-directory . --seed 0 --step-number-learning 1000
+      - name: Test
+        run: ./build/stdp test --data-directory ./data --input-directory . --seed 0 --step-number-testing 100
