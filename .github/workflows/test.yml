@@ -1,0 +1,25 @@
+name: Build and run
+on: [push, pull_request]
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get install libcxxopts-dev libeigen3-dev
+      - name: Configure
+        run: cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -B build
+      - name: Build
+        run: cmake --build build
+      - name: View help
+        run: ./build/stdp --help
+      - run: mkdir data
+      - name: Learn
+        run: ./build/stdp learn --data-directory ./data --input-directory . --seed 0 --step-number-learning 1000
+      - name: Test
+        run: ./build/stdp test --data-directory ./data --input-directory . --seed 0 --step-number-testing 100
+      - name: Upload files
+        uses: actions/upload-artifact@v3
+        with:
+          name: data
+          path: ./data/
