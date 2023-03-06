@@ -263,6 +263,8 @@ int main(int argc, char *argv[]) {
       parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
   int NBPATTERNS, PRESTIME, NBPRES, NBSTEPSPERPRES, NBSTEPS;
 
+  std::cout << "stdp " << VERSION << std::endl;
+
   // Command line parameters handling
   if (NONOISE) {
     cout << "No noise!" << endl;
