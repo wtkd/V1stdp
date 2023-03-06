@@ -264,6 +264,10 @@ int main(int argc, char *argv[]) {
   int NBPATTERNS, PRESTIME, NBPRES, NBSTEPSPERPRES, NBSTEPS;
 
   std::cout << "stdp " << VERSION << std::endl;
+  for (int i = 0; i < argc; ++i) {
+    cout << (i == 0 ? "" : " ") << argv[i];
+  }
+  cout << endl;
 
   // Command line parameters handling
   if (NONOISE) {
