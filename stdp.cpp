@@ -129,7 +129,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         Phase const PHASE, int const STIM1, int const STIM2,
         int const PULSETIME, MatrixXd const &initwff, MatrixXd const &initw,
         int const NOLAT, int const NOELAT, double const initINPUTMULT,
-        int randomSeed, std::filesystem::path const inputDirectory,
+        std::filesystem::path const inputDirectory,
         std::filesystem::path const saveDirectory,
         std::filesystem::path const loadDirectory);
 
@@ -193,9 +193,6 @@ int main(int argc, char *argv[]) {
          << endl;
     return -1;
   }
-
-  unsigned int const randomSeed =
-      parsedOptionsResult["seed"].as<unsigned int>();
 
   int const NBPATTERNSLEARNING =
       parsedOptionsResult["step-number-learning"].as<int>();
@@ -285,6 +282,11 @@ int main(int argc, char *argv[]) {
   if (NOELAT) {
     cout << "No E-E lateral connections! (E-I, I-I and I-E unaffected)" << endl;
   }
+
+  unsigned int const randomSeed =
+      parsedOptionsResult["seed"].as<unsigned int>();
+  srand(randomSeed);
+  cout << "RandomSeed: " << randomSeed << endl;
 
   if (phase == Phase::learning) {
     NBPATTERNS = NBPATTERNSLEARNING;
@@ -384,7 +386,7 @@ int main(int argc, char *argv[]) {
   return run(LATCONNMULT, WIE_MAX, DELAYPARAM, WPENSCALE, ALTPMULT, PRESTIME,
              NBLASTSPIKESPRES, NBPRES, NONOISE, NOSPIKE, NBRESPS, NOINH, phase,
              STIM1, STIM2, PULSETIME, wff, w, NOLAT, NOELAT, INPUTMULT,
-             randomSeed, inputDirectory, saveDirectory, loadDirectory);
+             inputDirectory, saveDirectory, loadDirectory);
 }
 
 int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
@@ -394,13 +396,9 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         Phase const phase, int const STIM1, int const STIM2,
         int const PULSETIME, MatrixXd const &initwff, MatrixXd const &initw,
         int const NOLAT, int const NOELAT, double const initINPUTMULT,
-        int randomSeed, std::filesystem::path const inputDirectory,
+        std::filesystem::path const inputDirectory,
         std::filesystem::path const saveDirectory,
         std::filesystem::path const loadDirectory) {
-  srand(randomSeed);
-
-  cout << "RandomSeed: " << randomSeed << endl;
-
   // On the command line, you must specify one of 'learn', 'pulse', 'test',
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
   // number. IF using 'mix', you must specify two stimulus numbers.
