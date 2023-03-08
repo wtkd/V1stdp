@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
     ("noinh", "No inhibitary connection", cxxopts::value<bool>()->default_value("false"))
     ("nolat", "No latetal connection", cxxopts::value<bool>()->default_value("false"))
     ("noelat", "No excitatory lateral connection", cxxopts::value<bool>()->default_value("false"))
-    ("delayparam", "Delay parameter", cxxopts::value<double>()->default_value(std::to_string(.33)))
+    ("delayparam", "Delay parameter", cxxopts::value<double>()->default_value(std::to_string(5.0)))
     ("latconnmult", "Lateral connection multiplication", cxxopts::value<double>()->default_value(std::to_string(LATCONNMULTINIT)))
     ("wpenscale", "Wpenscale", cxxopts::value<double>()->default_value(std::to_string(.33)))
     ("timepres", "Timepres", cxxopts::value<int>()->default_value(std::to_string(350)))
