@@ -1,6 +1,11 @@
-stdp
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
 compile_commands.json
-lastnspikes.txt
-lastnv_test.txt
-resps.txt
-resps_test.txt
+CTestTestfile.cmake
+_deps
