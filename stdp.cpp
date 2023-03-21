@@ -422,7 +422,6 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
   MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
 
   cout << "Reading input data...." << endl;
-  int nbpatchesinfile = 0, totaldatasize = 0;
 
   auto const [imagedata, fsize] = [&]() {
     // The stimulus patches are 17x17x2 in length, arranged linearly. See below
@@ -450,10 +449,10 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
   cout << "Data read!" << endl;
   // totaldatasize = fsize / sizeof(double); // To change depending on whether
   // the data is float/single (4) or double (8)
-  totaldatasize =
+  int const totaldatasize =
       fsize / sizeof(int8_t); // To change depending on whether the data is
                               // float/single (4) or double (8)
-  nbpatchesinfile =
+  int const nbpatchesinfile =
       totaldatasize / (PATCHSIZE * PATCHSIZE) -
       1; // The -1 is just there to ignore the last patch (I think)
   cout << "Total data size (number of values): " << totaldatasize
@@ -1023,7 +1022,8 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       cout << " Max LGN rate (should be << 1.0): " << lgnrates.maxCoeff()
            << endl;
     }
-    if (((numpres + 1) % 10000 == 0) || (numpres + 1 == NBPRES)) {
+    if (((numpres + 1) % 10000 == 0) || (numpres == 0) ||
+        (numpres + 1 == NBPRES)) {
       std::string nolatindicator("");
       std::string noinhindicator("");
       std::string nospikeindicator("");
