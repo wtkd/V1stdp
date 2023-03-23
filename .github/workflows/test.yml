@@ -1,6 +1,9 @@
 name: Build and run
 on: [push, pull_request]
 
+permissions:
+    checks: write
+
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
