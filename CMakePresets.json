@@ -10,7 +10,7 @@
       "name": "default",
       "displayName": "Default Config",
       "description": "Default build",
-      "binaryDir": "build",
+      "binaryDir": "build"
     }
   ],
   "buildPresets": [
