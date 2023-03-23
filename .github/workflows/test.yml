@@ -7,10 +7,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get install libcxxopts-dev libeigen3-dev
-      - name: Configure
-        run: cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -B build
-      - name: Build
-        run: cmake --build build
+      - uses: lukka/run-cmake@v10
       - name: View help
         run: ./build/stdp --help
       - name: Test
