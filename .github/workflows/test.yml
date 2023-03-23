@@ -6,6 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
       - run: sudo apt-get install libcxxopts-dev libeigen3-dev
       - uses: lukka/run-cmake@v10
         with:
