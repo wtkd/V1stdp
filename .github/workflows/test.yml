@@ -12,10 +12,11 @@ jobs:
         with:
           configurePreset: 'default'
           buildPreset: 'default'
-      - name: View help
-        run: ./build/stdp --help
-      - name: Test
-        run: ctest --test-dir build
+          testPreset: 'default'
+      - uses: mikepenz/action-junit-report@v3
+        if: success() || failure() # always run even if the previous step fails
+        with:
+          report_paths: 'build/junitreport.xml'
       - name: Upload files
         uses: actions/upload-artifact@v3
         with:

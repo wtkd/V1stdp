@@ -23,7 +23,10 @@
     {
       "name": "default",
       "configurePreset": "default",
-      "output": {"outputOnFailure": true}
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "junitreport.xml"
+      }
     }
   ],
   "workflowPresets": [
