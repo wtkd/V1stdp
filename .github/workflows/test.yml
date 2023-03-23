@@ -8,6 +8,9 @@ jobs:
       - uses: actions/checkout@v3
       - run: sudo apt-get install libcxxopts-dev libeigen3-dev
       - uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'default'
+          buildPreset: 'default'
       - name: View help
         run: ./build/stdp --help
       - name: Test
