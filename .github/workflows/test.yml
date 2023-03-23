@@ -1,20 +1,27 @@
 name: Build and run
 on: [push, pull_request]
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
       - run: sudo apt-get install libcxxopts-dev libeigen3-dev
-      - name: Configure
-        run: cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -B build
-      - name: Build
-        run: cmake --build build
-      - name: View help
-        run: ./build/stdp --help
-      - name: Test
-        run: ctest --test-dir build
+      - uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'default'
+          buildPreset: 'default'
+          testPreset: 'default'
+      - uses: mikepenz/action-junit-report@v3
+        if: success() || failure() # always run even if the previous step fails
+        with:
+          report_paths: 'build/junitreport.xml'
+      - run: cat build/Testing/Temporary/LastTest.log
       - name: Upload files
         uses: actions/upload-artifact@v3
         with:
