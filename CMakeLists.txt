@@ -52,7 +52,7 @@ add_test(
 
 add_test(
   NAME run_learn
-  COMMAND $<TARGET_FILE:stdp> learn --data-directory ./data --input-directory .. --seed 0 --step-number-learning 1000
+  COMMAND $<TARGET_FILE:stdp> learn --data-directory ./data --input-directory .. --seed 0 --step-number-learning 1000 --save-log-interval 500
 )
 set_tests_properties(
   run_learn PROPERTIES
@@ -119,6 +119,78 @@ add_test(
 )
 set_tests_properties(
   compare_lastnspikes PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_500
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/w_500.txt ./data/w_500.txt
+)
+set_tests_properties(
+  compare_weight_500 PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_500_data
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/w_500.dat ./data/w_500.dat
+)
+set_tests_properties(
+  compare_weight_500_data PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_feedforward_500
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/wff_500.txt ./data/wff_500.txt
+)
+set_tests_properties(
+  compare_weight_feedforward_500 PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_feedforward_500_data
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/wff_500.dat ./data/wff_500.dat
+)
+set_tests_properties(
+  compare_weight_feedforward_500_data PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_1000
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/w_1000.txt ./data/w_1000.txt
+)
+set_tests_properties(
+  compare_weight_1000 PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_1000_data
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/w_1000.dat ./data/w_1000.dat
+)
+set_tests_properties(
+  compare_weight_1000_data PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_feedforward_1000
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/wff_1000.txt ./data/wff_1000.txt
+)
+set_tests_properties(
+  compare_weight_feedforward_1000 PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_feedforward_1000_data
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/wff_1000.dat ./data/wff_1000.dat
+)
+set_tests_properties(
+  compare_weight_feedforward_1000_data PROPERTIES
   DEPENDS run_learn
 )
 
