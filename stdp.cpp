@@ -131,7 +131,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         int const NOLAT, int const NOELAT, double const initINPUTMULT,
         std::filesystem::path const inputDirectory,
         std::filesystem::path const saveDirectory,
-        std::filesystem::path const loadDirectory);
+        std::filesystem::path const loadDirectory, int const saveLogInterval);
 
 int main(int argc, char *argv[]) {
   // Parse command line arguments
@@ -165,6 +165,7 @@ int main(int argc, char *argv[]) {
      cxxopts::value<int>()->default_value(std::to_string(100)))
     ("stimulation-number-1", "Numbers of stimulation on mixing or pulse", cxxopts::value<int>())
     ("stimulation-number-2", "Numbers of stimulation on mixing", cxxopts::value<int>())
+    ("save-log-interval", "Interval to save log", cxxopts::value<int>()->default_value(std::to_string(50000)))
     ;
   // clang-format on
 
@@ -215,6 +216,9 @@ int main(int argc, char *argv[]) {
       parsedOptionsResult.count("load-directory")
           ? parsedOptionsResult["load-directory"].as<std::filesystem::path>()
           : dataDirectory;
+
+  auto const saveLogInterval =
+      parsedOptionsResult["save-log-interval"].as<int>();
 
   // -1 because of c++ zero-counting (the nth
   // pattern has location n-1 in the array)
@@ -386,7 +390,7 @@ int main(int argc, char *argv[]) {
   return run(LATCONNMULT, WIE_MAX, DELAYPARAM, WPENSCALE, ALTPMULT, PRESTIME,
              NBLASTSPIKESPRES, NBPRES, NONOISE, NOSPIKE, NBRESPS, NOINH, phase,
              STIM1, STIM2, PULSETIME, wff, w, NOLAT, NOELAT, INPUTMULT,
-             inputDirectory, saveDirectory, loadDirectory);
+             inputDirectory, saveDirectory, loadDirectory, saveLogInterval);
 }
 
 int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
@@ -398,7 +402,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         int const NOLAT, int const NOELAT, double const initINPUTMULT,
         std::filesystem::path const inputDirectory,
         std::filesystem::path const saveDirectory,
-        std::filesystem::path const loadDirectory) {
+        std::filesystem::path const loadDirectory, int const saveLogInterval) {
   // On the command line, you must specify one of 'learn', 'pulse', 'test',
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
   // number. IF using 'mix', you must specify two stimulus numbers.
@@ -1162,31 +1166,6 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
           myfile.close();
         }
 
-        if ((numpres + 1) % 50000 == 0) {
-          {
-            std::ofstream myfile(
-                saveDirectory / ("wff_" + std::to_string(numpres + 1) + ".txt"),
-                ios::trunc | ios::out);
-            myfile << endl << wff << endl;
-          }
-
-          {
-            std::ofstream myfile(
-                saveDirectory / ("w_" + std::to_string(numpres + 1) + ".txt"),
-                ios::trunc | ios::out);
-            myfile << endl << w << endl;
-          }
-
-          saveWeights(w,
-                      saveDirectory /
-                          ("w_" + std::to_string((long long int)(numpres + 1)) +
-                           ".dat"));
-          saveWeights(wff, saveDirectory /
-                               ("wff_" +
-                                std::to_string((long long int)(numpres + 1)) +
-                                ".dat"));
-        }
-
         {
           std::ofstream myfile(saveDirectory / "resps.txt",
                                ios::trunc | ios::out);
@@ -1213,6 +1192,30 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         saveWeights(w, saveDirectory / "w.dat");
         saveWeights(wff, saveDirectory / "wff.dat");
       }
+    }
+
+    if (phase == Phase::learning && (numpres + 1) % saveLogInterval == 0) {
+      {
+        std::ofstream myfile(
+            saveDirectory / ("wff_" + std::to_string(numpres + 1) + ".txt"),
+            ios::trunc | ios::out);
+        myfile << endl << wff << endl;
+      }
+
+      {
+        std::ofstream myfile(saveDirectory /
+                                 ("w_" + std::to_string(numpres + 1) + ".txt"),
+                             ios::trunc | ios::out);
+        myfile << endl << w << endl;
+      }
+
+      saveWeights(w, saveDirectory /
+                         ("w_" + std::to_string((long long int)(numpres + 1)) +
+                          ".dat"));
+      saveWeights(
+          wff,
+          saveDirectory /
+              ("wff_" + std::to_string((long long int)(numpres + 1)) + ".dat"));
     }
   }
 
