@@ -119,7 +119,7 @@ using namespace std;
 MatrixXd poissonMatrix(const MatrixXd &lambd);
 MatrixXd poissonMatrix2(const MatrixXd &lambd);
 int poissonScalar(const double lambd);
-void saveWeights(MatrixXd &wgt, std::filesystem::path);
+void saveWeights(MatrixXd const &wgt, std::filesystem::path);
 void readWeights(MatrixXd &wgt, std::filesystem::path);
 
 int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
@@ -1286,7 +1286,7 @@ int poissonScalar(const double lambd) {
   return (k - 1);
 }
 
-void saveWeights(MatrixXd &wgt, std::filesystem::path fname) {
+void saveWeights(MatrixXd const &wgt, std::filesystem::path const fname) {
   double wdata[wgt.rows() * wgt.cols()];
   int idx = 0;
   // cout << endl << "Saving weights..." << endl;
@@ -1300,7 +1300,7 @@ void saveWeights(MatrixXd &wgt, std::filesystem::path fname) {
   myfile.close();
 }
 
-void readWeights(MatrixXd &wgt, std::filesystem::path fname) {
+void readWeights(MatrixXd &wgt, std::filesystem::path const fname) {
   double wdata[wgt.cols() * wgt.rows()];
   int idx = 0;
   cout << endl << "Reading weights from file " << fname << endl;
