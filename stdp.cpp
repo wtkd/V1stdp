@@ -624,8 +624,38 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
   clock_t tic = clock();
   int numstep = 0;
 
+  auto const saveAllWeights = [](std::filesystem::path const &saveDirectory,
+                                 int const index, MatrixXd const &w,
+                                 MatrixXd const &wff) {
+    {
+      std::ofstream myfile(saveDirectory /
+                               ("wff_" + std::to_string(index) + ".txt"),
+                           ios::trunc | ios::out);
+      myfile << endl << wff << endl;
+    }
+
+    {
+      std::ofstream myfile(saveDirectory /
+                               ("w_" + std::to_string(index) + ".txt"),
+                           ios::trunc | ios::out);
+      myfile << endl << w << endl;
+    }
+
+    saveWeights(w,
+                saveDirectory /
+                    ("w_" + std::to_string((long long int)(index)) + ".dat"));
+    saveWeights(wff,
+                saveDirectory /
+                    ("wff_" + std::to_string((long long int)(index)) + ".dat"));
+  };
+
   // For each stimulus presentation...
   for (int numpres = 0; numpres < NBPRES; numpres++) {
+    // Save data
+    if (phase == Phase::learning && numpres % saveLogInterval == 0) {
+      saveAllWeights(saveDirectory, numpres, w, wff);
+    }
+
     // Where are we in the data file?
     int posindata = ((numpres % nbpatchesinfile) * FFRFSIZE / 2);
     if (phase == Phase::pulse)
@@ -1193,31 +1223,9 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         saveWeights(wff, saveDirectory / "wff.dat");
       }
     }
-
-    if (phase == Phase::learning && (numpres + 1) % saveLogInterval == 0) {
-      {
-        std::ofstream myfile(
-            saveDirectory / ("wff_" + std::to_string(numpres + 1) + ".txt"),
-            ios::trunc | ios::out);
-        myfile << endl << wff << endl;
-      }
-
-      {
-        std::ofstream myfile(saveDirectory /
-                                 ("w_" + std::to_string(numpres + 1) + ".txt"),
-                             ios::trunc | ios::out);
-        myfile << endl << w << endl;
-      }
-
-      saveWeights(w, saveDirectory /
-                         ("w_" + std::to_string((long long int)(numpres + 1)) +
-                          ".dat"));
-      saveWeights(
-          wff,
-          saveDirectory /
-              ("wff_" + std::to_string((long long int)(numpres + 1)) + ".dat"));
-    }
   }
+
+  saveAllWeights(saveDirectory, NBPRES, w, wff);
 
   return 0;
 }
