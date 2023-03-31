@@ -123,6 +123,42 @@ set_tests_properties(
 )
 
 add_test(
+  NAME compare_weight_0
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/w_0.txt ./data/w_0.txt
+)
+set_tests_properties(
+  compare_weight_0 PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_0_data
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/w_0.dat ./data/w_0.dat
+)
+set_tests_properties(
+  compare_weight_0_data PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_feedforward_0
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/wff_0.txt ./data/wff_0.txt
+)
+set_tests_properties(
+  compare_weight_feedforward_0 PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME compare_weight_feedforward_0_data
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/wff_0.dat ./data/wff_0.dat
+)
+set_tests_properties(
+  compare_weight_feedforward_0_data PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
   NAME compare_weight_500
   COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/w_500.txt ./data/w_500.txt
 )
