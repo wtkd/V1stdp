@@ -24,6 +24,7 @@ jobs:
       - run: cat build/Testing/Temporary/LastTest.log
       - name: Upload files
         uses: actions/upload-artifact@v3
+        if: failure()
         with:
           name: data
           path: ./build/data/
