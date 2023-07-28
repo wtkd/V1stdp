@@ -258,10 +258,12 @@ int main(int argc, char *argv[]) {
   bool const NONOISE = parsedOptionsResult["nonoise"].as<bool>();
   int NBLASTSPIKESSTEPS = 0;
   int NBLASTSPIKESPRES = 50;
-  int NBRESPS =
-      -1; // Number of resps (total nb of spike / total v for each presentation)
-          // to be stored in resps and respssumv. Must be set depending on the
-          // PHASE (learmning, testing, mixing, etc.)
+
+  // Number of resps (total nb of spike / total v for each presentation)
+  // to be stored in resps and respssumv. Must be set depending on the
+  // PHASE (learmning, testing, mixing, etc.)
+  int NBRESPS = -1;
+
   double const LATCONNMULT = parsedOptionsResult["latconnmult"].as<double>();
   double INPUTMULT = -1.0; // To be modified!
   double const DELAYPARAM = parsedOptionsResult["delayparam"].as<double>();
@@ -318,28 +320,30 @@ int main(int argc, char *argv[]) {
     w = MatrixXd::Zero(NBNEUR,
                        NBNEUR); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
     // w.fill(1.0);
-    w.bottomRows(NBI)
-        .leftCols(NBE)
-        .setRandom(); // Inhbitory neurons receive excitatory inputs from
-                      // excitatory neurons
-    w.rightCols(NBI).setRandom(); // Everybody receives inhibition (including
-                                  // inhibitory neurons)
+
+    // Inhbitory neurons receive excitatory inputs from excitatory neurons
+    w.bottomRows(NBI).leftCols(NBE).setRandom();
+
+    // Everybody receives inhibition (including inhibitory neurons)
+    w.rightCols(NBI).setRandom();
+
     w.bottomRows(NBI).rightCols(NBI) =
         -w.bottomRows(NBI).rightCols(NBI).cwiseAbs() * WII_MAX;
     w.topRows(NBE).rightCols(NBI) =
         -w.topRows(NBE).rightCols(NBI).cwiseAbs() * WIE_MAX;
     w.bottomRows(NBI).leftCols(NBE) =
         w.bottomRows(NBI).leftCols(NBE).cwiseAbs() * WEI_MAX;
-    w = w -
-        w.cwiseProduct(MatrixXd::Identity(
-            NBNEUR, NBNEUR)); // Diagonal lateral weights are 0 (no autapses !)
+
+    // Diagonal lateral weights are 0 (no autapses !)
+    w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
+
     wff =
         (WFFINITMIN + (WFFINITMAX - WFFINITMIN) *
                           MatrixXd::Random(NBNEUR, FFRFSIZE).cwiseAbs().array())
             .cwiseMin(MAXW); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
-    wff.bottomRows(NBI)
-        .setZero(); // Inhibitory neurons do not receive FF excitation from the
-                    // sensory RFs (should they? TRY LATER)
+    // Inhibitory neurons do not receive FF excitation from the
+    // sensory RFs (should they? TRY LATER)
+    wff.bottomRows(NBI).setZero();
   } else if (phase == Phase::pulse) {
     NBPATTERNS = NBPATTERNSPULSE;
     PRESTIME = PRESTIMEPULSE;
@@ -470,9 +474,9 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
   cout << "Data read!" << endl;
   // totaldatasize = fsize / sizeof(double); // To change depending on whether
   // the data is float/single (4) or double (8)
-  int const totaldatasize =
-      fsize / sizeof(int8_t); // To change depending on whether the data is
-                              // float/single (4) or double (8)
+
+  // To change depending on whether the data is float/single (4) or double (8)
+  int const totaldatasize = fsize / sizeof(int8_t);
   int const nbpatchesinfile =
       totaldatasize / (PATCHSIZE * PATCHSIZE) -
       1; // The -1 is just there to ignore the last patch (I think)
@@ -492,9 +496,10 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       poissonMatrix(dt *
                     MatrixXd::Constant(NBNEUR, NBNOISESTEPS, POSNOISERATE)) *
       VSTIM;
-  if (NONOISE || NOSPIKE) // If No-noise or no-spike, suppress the background
-                          // bombardment of random I and E spikes
-  {
+
+  // If No-noise or no-spike, suppress the background
+  // bombardment of random I and E spikes
+  if (NONOISE || NOSPIKE) {
     posnoisein.setZero();
     negnoisein.setZero();
   }
@@ -511,11 +516,9 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
   VectorXi incomingspikes[NBNEUR][NBNEUR];
   VectorXi incomingFFspikes[NBNEUR][FFRFSIZE];
 
-  VectorXd v = VectorXd::Constant(
-      NBNEUR, -70.5); // VectorXd::Zero(NBNEUR); // -70.5 is approximately the
-                      // resting potential of the Izhikevich neurons, as it is
-                      // of the AdEx neurons used in Clopath's experiments
-
+  // -70.5 is approximately the resting potential of the Izhikevich neurons, as
+  // it is of the AdEx neurons used in Clopath's experiments
+  VectorXd v = VectorXd::Constant(NBNEUR, -70.5); // VectorXd::Zero(NBNEUR);
   // Initializations.
   VectorXi firings = VectorXi::Zero(NBNEUR);
   VectorXi firingsprev = VectorXi::Zero(NBNEUR);
@@ -567,10 +570,8 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
 
   double mixvals[NBMIXES];
   for (int nn = 0; nn < NBMIXES; nn++)
-    mixvals[nn] =
-        (double)nn /
-        (double)(NBMIXES -
-                 1); // NBMIXES values equally spaced from 0 to 1 inclusive.
+    // NBMIXES values equally spaced from 0 to 1 inclusive.
+    mixvals[nn] = (double)nn / (double)(NBMIXES - 1);
 
   // fstream myfile;
 
@@ -602,8 +603,8 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       for (mydelay = 1; mydelay <= MAXDELAYDT; mydelay++) {
         if (val < crit)
           break;
-        val = DELAYPARAM * (val - crit) /
-              (DELAYPARAM - 1.0); // "Cutting" and "Stretching"
+        // "Cutting" and "Stretching"
+        val = DELAYPARAM * (val - crit) / (DELAYPARAM - 1.0);
       }
       if (mydelay > MAXDELAYDT)
         mydelay = 1;
@@ -696,9 +697,10 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
                          ? -MOD * (double)imagedata[posindata + nn]
                          : 0));
     }
-    lgnrates /=
-        lgnrates.maxCoeff(); // Scale by max! The inputs are scaled to have a
-                             // maximum of 1 (multiplied by INPUTMULT below)
+
+    // Scale by max! The inputs are scaled to have a
+    // maximum of 1 (multiplied by INPUTMULT below)
+    lgnrates /= lgnrates.maxCoeff();
 
     if (phase == Phase::mixing) {
       int posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
@@ -753,13 +755,13 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
     INPUTMULT = 150.0;
     INPUTMULT *= 2.0;
 
-    lgnrates *= INPUTMULT; // We put inputmult here to ensure that it is
-                           // reflected in the actual number of incoming spikes
+    // We put inputmult here to ensure that it is
+    // reflected in the actual number of incoming spikes
+    lgnrates *= INPUTMULT;
 
-    lgnrates *=
-        (dt /
-         1000.0); // LGN rates from the pattern file are expressed in Hz. We
-                  // want it in rate per dt, and dt itself is expressed in ms.
+    // LGN rates from the pattern file are expressed in Hz. We
+    // want it in rate per dt, and dt itself is expressed in ms.
+    lgnrates *= (dt / 1000.0);
 
     // At the beginning of every presentation, we reset everything ! (it is
     // important for the random-patches case which tends to generate epileptic
@@ -782,23 +784,20 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
 
       lgnfiringsprev = lgnfirings;
 
-      if (((phase == Phase::pulse) &&
+      if (
+          // In the PULSE case, inputs only fire for a short period of time
+          ((phase == Phase::pulse) &&
            (numstepthispres >= (double)(PULSESTART) / dt) &&
-           (numstepthispres < (double)(PULSESTART + PULSETIME) /
-                                  dt)) // In the PULSE case, inputs only fire
-                                       // for a short period of time
-          || ((phase != Phase::pulse) &&
-              (numstepthispres <
-               NBSTEPSPERPRES -
-                   ((double)TIMEZEROINPUT /
-                    dt)))) // Otherwise, inputs only fire until the 'relaxation'
-                           // period at the end of each presentation
+           (numstepthispres < (double)(PULSESTART + PULSETIME) / dt)) ||
+          // Otherwise, inputs only fire until the 'relaxation' period at the
+          // end of each presentation
+          ((phase != Phase::pulse) &&
+           (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt))))
         for (int nn = 0; nn < FFRFSIZE; nn++)
+          // Note that this may go non-poisson if the specified
+          // lgnrates are too high (i.e. not << 1.0)
           lgnfirings(nn) =
-              (rand() / (double)RAND_MAX < abs(lgnrates(nn))
-                   ? 1.0
-                   : 0.0); // Note that this may go non-poisson if the specified
-                           // lgnrates are too high (i.e. not << 1.0)
+              (rand() / (double)RAND_MAX < abs(lgnrates(nn)) ? 1.0 : 0.0);
       else
         lgnfirings.setZero();
 
@@ -900,12 +899,11 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       // input current is also included in the diff. eq. I believe that's not
       // the right way.
 
-      v = (isspiking.array() > 0)
-              .select(VPEAK - .001,
-                      v); // Currently-spiking neurons are clamped at VPEAK.
-      v = (isspiking.array() == 1)
-              .select(VRESET, v); //  Neurons that have finished their spiking
-                                  //  are set to VRESET.
+      // Currently-spiking neurons are clamped at VPEAK.
+      v = (isspiking.array() > 0).select(VPEAK - .001, v);
+
+      //  Neurons that have finished their spiking are set to VRESET.
+      v = (isspiking.array() == 1).select(VRESET, v);
 
       // Updating some AdEx / plasticity variables
       z = (isspiking.array() == 1).select(Isp, z);
@@ -1035,8 +1033,9 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
             if (spikesthisstep(nn, syn) > 0)
               w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
 
-        w = w - w.cwiseProduct(MatrixXd::Identity(
-                    NBNEUR, NBNEUR)); // Diagonal lateral weights are 0!
+        // Diagonal lateral weights are 0!
+        w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
+
         wff = wff.cwiseMax(0);
         w.leftCols(NBE) = w.leftCols(NBE).cwiseMax(0);
         w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
