@@ -26,7 +26,8 @@ enum class Phase {
 std::istream &operator>>(std::istream &is, Phase &p) {
   std::string s;
   is >> s;
-  p = (s == "learn"   ? Phase::learning
+  p =
+      (s == "learn"   ? Phase::learning
        : s == "test"  ? Phase::testing
        : s == "mix"   ? Phase::mixing
        : s == "spont" ? Phase::spontaneous
@@ -133,22 +134,39 @@ std::istream &operator>>(std::istream &is, Phase &p) {
 using namespace Eigen;
 using namespace std;
 
-MatrixXd poissonMatrix(const MatrixXd &lambd);
-MatrixXd poissonMatrix2(const MatrixXd &lambd);
-int poissonScalar(const double lambd);
+MatrixXd poissonMatrix(MatrixXd const &lambd);
+MatrixXd poissonMatrix2(MatrixXd const &lambd);
+int poissonScalar(double const lambd);
 void saveWeights(MatrixXd const &wgt, std::filesystem::path);
 void readWeights(MatrixXd &wgt, std::filesystem::path);
 
-int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
-        double const WPENSCALE, double const ALTPMULT, int const PRESTIME,
-        int const NBLASTSPIKESPRES, int const NBPRES, int const NONOISE,
-        int const NOSPIKE, int const NBRESPS, int const NOINH,
-        Phase const PHASE, int const STIM1, int const STIM2,
-        int const PULSETIME, MatrixXd const &initwff, MatrixXd const &initw,
-        int const NOLAT, int const NOELAT, double const initINPUTMULT,
-        std::filesystem::path const inputDirectory,
-        std::filesystem::path const saveDirectory,
-        std::filesystem::path const loadDirectory, int const saveLogInterval);
+int run(
+    double const LATCONNMULT,
+    double const WIE_MAX,
+    double const DELAYPARAM,
+    double const WPENSCALE,
+    double const ALTPMULT,
+    int const PRESTIME,
+    int const NBLASTSPIKESPRES,
+    int const NBPRES,
+    int const NONOISE,
+    int const NOSPIKE,
+    int const NBRESPS,
+    int const NOINH,
+    Phase const PHASE,
+    int const STIM1,
+    int const STIM2,
+    int const PULSETIME,
+    MatrixXd const &initwff,
+    MatrixXd const &initw,
+    int const NOLAT,
+    int const NOELAT,
+    double const initINPUTMULT,
+    std::filesystem::path const inputDirectory,
+    std::filesystem::path const saveDirectory,
+    std::filesystem::path const loadDirectory,
+    int const saveLogInterval
+);
 
 int main(int argc, char *argv[]) {
   // Parse command line arguments
@@ -186,8 +204,7 @@ int main(int argc, char *argv[]) {
     ;
   // clang-format on
 
-  options.parse_positional(
-      {"phase", "stimulation-number-1", "stimulation-number-2"});
+  options.parse_positional({"phase", "stimulation-number-1", "stimulation-number-2"});
 
   options.positional_help("");
   options.custom_help("learn|test|mix|spont|pulse [STIM1 STIM2 OPTIONS...]");
@@ -212,41 +229,31 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  int const NBPATTERNSLEARNING =
-      parsedOptionsResult["step-number-learning"].as<int>();
-  int const NBPATTERNSTESTING =
-      parsedOptionsResult["step-number-testing"].as<int>();
-  int const NBPATTERNSPULSE =
-      parsedOptionsResult["step-number-pulse"].as<int>();
+  int const NBPATTERNSLEARNING = parsedOptionsResult["step-number-learning"].as<int>();
+  int const NBPATTERNSTESTING = parsedOptionsResult["step-number-testing"].as<int>();
+  int const NBPATTERNSPULSE = parsedOptionsResult["step-number-pulse"].as<int>();
 
-  auto const dataDirectory =
-      parsedOptionsResult["data-directory"].as<std::filesystem::path>();
-  auto const inputDirectory =
-      parsedOptionsResult.count("input-directory")
-          ? parsedOptionsResult["input-directory"].as<std::filesystem::path>()
-          : dataDirectory;
-  auto const saveDirectory =
-      parsedOptionsResult.count("save-directory")
-          ? parsedOptionsResult["save-directory"].as<std::filesystem::path>()
-          : dataDirectory;
-  auto const loadDirectory =
-      parsedOptionsResult.count("load-directory")
-          ? parsedOptionsResult["load-directory"].as<std::filesystem::path>()
-          : dataDirectory;
+  auto const dataDirectory = parsedOptionsResult["data-directory"].as<std::filesystem::path>();
+  auto const inputDirectory = parsedOptionsResult.count("input-directory")
+                                  ? parsedOptionsResult["input-directory"].as<std::filesystem::path>()
+                                  : dataDirectory;
+  auto const saveDirectory = parsedOptionsResult.count("save-directory")
+                                 ? parsedOptionsResult["save-directory"].as<std::filesystem::path>()
+                                 : dataDirectory;
+  auto const loadDirectory = parsedOptionsResult.count("load-directory")
+                                 ? parsedOptionsResult["load-directory"].as<std::filesystem::path>()
+                                 : dataDirectory;
 
-  auto const saveLogInterval =
-      parsedOptionsResult["save-log-interval"].as<int>();
+  auto const saveLogInterval = parsedOptionsResult["save-log-interval"].as<int>();
 
   // -1 because of c++ zero-counting (the nth
   // pattern has location n-1 in the array)
-  int const STIM1 =
-      parsedOptionsResult.count("stimulation-number-1")
-          ? parsedOptionsResult["stimulation-number-1"].as<int>() - 1
-          : -1;
-  int const STIM2 =
-      parsedOptionsResult.count("stimulation-number-2")
-          ? parsedOptionsResult["stimulation-number-2"].as<int>() - 1
-          : -1;
+  int const STIM1 = parsedOptionsResult.count("stimulation-number-1")
+                        ? parsedOptionsResult["stimulation-number-1"].as<int>() - 1
+                        : -1;
+  int const STIM2 = parsedOptionsResult.count("stimulation-number-2")
+                        ? parsedOptionsResult["stimulation-number-2"].as<int>() - 1
+                        : -1;
 
   int const PRESTIMELEARNING = parsedOptionsResult["timepres"].as<int>(); // ms
   int const PRESTIMETESTING = parsedOptionsResult["timepres"].as<int>();
@@ -274,13 +281,10 @@ int main(int argc, char *argv[]) {
   // These constants are only used for learning:
   double const WPENSCALE = parsedOptionsResult["wpenscale"].as<double>();
   double const ALTPMULT = parsedOptionsResult["altpmult"].as<double>();
-  double const WEI_MAX =
-      parsedOptionsResult["wei"].as<double>() * 4.32 / LATCONNMULT; // 1.5
-  double const WIE_MAX =
-      parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
+  double const WEI_MAX = parsedOptionsResult["wei"].as<double>() * 4.32 / LATCONNMULT; // 1.5
+  double const WIE_MAX = parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
   // WII max is yoked to WIE max
-  double const WII_MAX =
-      parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
+  double const WII_MAX = parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
   int NBPATTERNS, PRESTIME, NBPRES, NBSTEPSPERPRES, NBSTEPS;
 
   std::cout << "stdp " << VERSION << std::endl;
@@ -306,8 +310,7 @@ int main(int argc, char *argv[]) {
     cout << "No E-E lateral connections! (E-I, I-I and I-E unaffected)" << endl;
   }
 
-  unsigned int const randomSeed =
-      parsedOptionsResult["seed"].as<unsigned int>();
+  unsigned int const randomSeed = parsedOptionsResult["seed"].as<unsigned int>();
   srand(randomSeed);
   cout << "RandomSeed: " << randomSeed << endl;
 
@@ -327,20 +330,15 @@ int main(int argc, char *argv[]) {
     // Everybody receives inhibition (including inhibitory neurons)
     w.rightCols(NBI).setRandom();
 
-    w.bottomRows(NBI).rightCols(NBI) =
-        -w.bottomRows(NBI).rightCols(NBI).cwiseAbs() * WII_MAX;
-    w.topRows(NBE).rightCols(NBI) =
-        -w.topRows(NBE).rightCols(NBI).cwiseAbs() * WIE_MAX;
-    w.bottomRows(NBI).leftCols(NBE) =
-        w.bottomRows(NBI).leftCols(NBE).cwiseAbs() * WEI_MAX;
+    w.bottomRows(NBI).rightCols(NBI) = -w.bottomRows(NBI).rightCols(NBI).cwiseAbs() * WII_MAX;
+    w.topRows(NBE).rightCols(NBI) = -w.topRows(NBE).rightCols(NBI).cwiseAbs() * WIE_MAX;
+    w.bottomRows(NBI).leftCols(NBE) = w.bottomRows(NBI).leftCols(NBE).cwiseAbs() * WEI_MAX;
 
     // Diagonal lateral weights are 0 (no autapses !)
     w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
 
-    wff =
-        (WFFINITMIN + (WFFINITMAX - WFFINITMIN) *
-                          MatrixXd::Random(NBNEUR, FFRFSIZE).cwiseAbs().array())
-            .cwiseMin(MAXW); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
+    wff = (WFFINITMIN + (WFFINITMAX - WFFINITMIN) * MatrixXd::Random(NBNEUR, FFRFSIZE).cwiseAbs().array())
+              .cwiseMin(MAXW); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
     // Inhibitory neurons do not receive FF excitation from the
     // sensory RFs (should they? TRY LATER)
     wff.bottomRows(NBI).setZero();
@@ -408,29 +406,68 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  return run(LATCONNMULT, WIE_MAX, DELAYPARAM, WPENSCALE, ALTPMULT, PRESTIME,
-             NBLASTSPIKESPRES, NBPRES, NONOISE, NOSPIKE, NBRESPS, NOINH, phase,
-             STIM1, STIM2, PULSETIME, wff, w, NOLAT, NOELAT, INPUTMULT,
-             inputDirectory, saveDirectory, loadDirectory, saveLogInterval);
+  return run(
+      LATCONNMULT,
+      WIE_MAX,
+      DELAYPARAM,
+      WPENSCALE,
+      ALTPMULT,
+      PRESTIME,
+      NBLASTSPIKESPRES,
+      NBPRES,
+      NONOISE,
+      NOSPIKE,
+      NBRESPS,
+      NOINH,
+      phase,
+      STIM1,
+      STIM2,
+      PULSETIME,
+      wff,
+      w,
+      NOLAT,
+      NOELAT,
+      INPUTMULT,
+      inputDirectory,
+      saveDirectory,
+      loadDirectory,
+      saveLogInterval
+  );
 }
 
-int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
-        double const WPENSCALE, double const ALTPMULT, int const PRESTIME,
-        int const NBLASTSPIKESPRES, int const NBPRES, int const NONOISE,
-        int const NOSPIKE, int const NBRESPS, int const NOINH,
-        Phase const phase, int const STIM1, int const STIM2,
-        int const PULSETIME, MatrixXd const &initwff, MatrixXd const &initw,
-        int const NOLAT, int const NOELAT, double const initINPUTMULT,
-        std::filesystem::path const inputDirectory,
-        std::filesystem::path const saveDirectory,
-        std::filesystem::path const loadDirectory, int const saveLogInterval) {
+int run(
+    double const LATCONNMULT,
+    double const WIE_MAX,
+    double const DELAYPARAM,
+    double const WPENSCALE,
+    double const ALTPMULT,
+    int const PRESTIME,
+    int const NBLASTSPIKESPRES,
+    int const NBPRES,
+    int const NONOISE,
+    int const NOSPIKE,
+    int const NBRESPS,
+    int const NOINH,
+    Phase const phase,
+    int const STIM1,
+    int const STIM2,
+    int const PULSETIME,
+    MatrixXd const &initwff,
+    MatrixXd const &initw,
+    int const NOLAT,
+    int const NOELAT,
+    double const initINPUTMULT,
+    std::filesystem::path const inputDirectory,
+    std::filesystem::path const saveDirectory,
+    std::filesystem::path const loadDirectory,
+    int const saveLogInterval
+) {
   // On the command line, you must specify one of 'learn', 'pulse', 'test',
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
   // number. IF using 'mix', you must specify two stimulus numbers.
 
   cout << "Lat. conn.: " << LATCONNMULT << endl;
-  cout << "WIE_MAX: " << WIE_MAX << " / " << WIE_MAX * LATCONNMULT / 4.32
-       << endl;
+  cout << "WIE_MAX: " << WIE_MAX << " / " << WIE_MAX * LATCONNMULT / 4.32 << endl;
   cout << "DELAYPARAM: " << DELAYPARAM << endl;
   cout << "WPENSCALE: " << WPENSCALE << endl;
   cout << "ALTPMULT: " << ALTPMULT << endl;
@@ -454,10 +491,10 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
     // makepatchesImageNetInt8.m
 
     ifstream DataFile(
-        inputDirectory /
-            std::filesystem::path("patchesCenteredScaledBySumTo126"
-                                  "ImageNetONOFFRotatedNewInt8.bin.dat"),
-        ios::in | ios::binary | ios::ate);
+        inputDirectory / std::filesystem::path("patchesCenteredScaledBySumTo126"
+                                               "ImageNetONOFFRotatedNewInt8.bin.dat"),
+        ios::in | ios::binary | ios::ate
+    );
     if (!DataFile.is_open()) {
       throw ios_base::failure("Failed to open the binary data file!");
       exit(1);
@@ -478,24 +515,16 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
   // To change depending on whether the data is float/single (4) or double (8)
   int const totaldatasize = fsize / sizeof(int8_t);
   int const nbpatchesinfile =
-      totaldatasize / (PATCHSIZE * PATCHSIZE) -
-      1; // The -1 is just there to ignore the last patch (I think)
-  cout << "Total data size (number of values): " << totaldatasize
-       << ", number of patches in file: " << nbpatchesinfile << endl;
-  cout << imagedata[5654] << " " << imagedata[6546] << " " << imagedata[9000]
+      totaldatasize / (PATCHSIZE * PATCHSIZE) - 1; // The -1 is just there to ignore the last patch (I think)
+  cout << "Total data size (number of values): " << totaldatasize << ", number of patches in file: " << nbpatchesinfile
        << endl;
+  cout << imagedata[5654] << " " << imagedata[6546] << " " << imagedata[9000] << endl;
 
   // The noise excitatory input is a Poisson process (separate for each cell)
   // with a constant rate (in KHz / per ms) We store it as "frozen noise" to
   // save time.
-  MatrixXd negnoisein =
-      -poissonMatrix(dt *
-                     MatrixXd::Constant(NBNEUR, NBNOISESTEPS, NEGNOISERATE)) *
-      VSTIM;
-  MatrixXd posnoisein =
-      poissonMatrix(dt *
-                    MatrixXd::Constant(NBNEUR, NBNOISESTEPS, POSNOISERATE)) *
-      VSTIM;
+  MatrixXd negnoisein = -poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, NEGNOISERATE)) * VSTIM;
+  MatrixXd posnoisein = poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, POSNOISERATE)) * VSTIM;
 
   // If No-noise or no-spike, suppress the background
   // bombardment of random I and E spikes
@@ -642,30 +671,21 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
   clock_t tic = clock();
   int numstep = 0;
 
-  auto const saveAllWeights = [](std::filesystem::path const &saveDirectory,
-                                 int const index, MatrixXd const &w,
-                                 MatrixXd const &wff) {
-    {
-      std::ofstream myfile(saveDirectory /
-                               ("wff_" + std::to_string(index) + ".txt"),
-                           ios::trunc | ios::out);
-      myfile << endl << wff << endl;
-    }
+  auto const saveAllWeights =
+      [](std::filesystem::path const &saveDirectory, int const index, MatrixXd const &w, MatrixXd const &wff) {
+        {
+          std::ofstream myfile(saveDirectory / ("wff_" + std::to_string(index) + ".txt"), ios::trunc | ios::out);
+          myfile << endl << wff << endl;
+        }
 
-    {
-      std::ofstream myfile(saveDirectory /
-                               ("w_" + std::to_string(index) + ".txt"),
-                           ios::trunc | ios::out);
-      myfile << endl << w << endl;
-    }
+        {
+          std::ofstream myfile(saveDirectory / ("w_" + std::to_string(index) + ".txt"), ios::trunc | ios::out);
+          myfile << endl << w << endl;
+        }
 
-    saveWeights(w,
-                saveDirectory /
-                    ("w_" + std::to_string((long long int)(index)) + ".dat"));
-    saveWeights(wff,
-                saveDirectory /
-                    ("wff_" + std::to_string((long long int)(index)) + ".dat"));
-  };
+        saveWeights(w, saveDirectory / ("w_" + std::to_string((long long int)(index)) + ".dat"));
+        saveWeights(wff, saveDirectory / ("wff_" + std::to_string((long long int)(index)) + ".dat"));
+      };
 
   // For each stimulus presentation...
   for (int numpres = 0; numpres < NBPRES; numpres++) {
@@ -689,13 +709,9 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
     // LGN / FF output rates (notice the log-transform):
 
     for (int nn = 0; nn < FFRFSIZE / 2; nn++) {
-      lgnrates(nn) = log(1.0 + ((double)imagedata[posindata + nn] > 0
-                                    ? MOD * (double)imagedata[posindata + nn]
-                                    : 0));
+      lgnrates(nn) = log(1.0 + ((double)imagedata[posindata + nn] > 0 ? MOD * (double)imagedata[posindata + nn] : 0));
       lgnrates(nn + FFRFSIZE / 2) =
-          log(1.0 + ((double)imagedata[posindata + nn] < 0
-                         ? -MOD * (double)imagedata[posindata + nn]
-                         : 0));
+          log(1.0 + ((double)imagedata[posindata + nn] < 0 ? -MOD * (double)imagedata[posindata + nn] : 0));
     }
 
     // Scale by max! The inputs are scaled to have a
@@ -723,20 +739,12 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         mixval1 = 0;
 
       for (int nn = 0; nn < FFRFSIZE / 2; nn++) {
-        lgnratesS1(nn) = log(1.0 + ((double)imagedata[posindata1 + nn] > 0
-                                        ? (double)imagedata[posindata1 + nn]
-                                        : 0));
+        lgnratesS1(nn) = log(1.0 + ((double)imagedata[posindata1 + nn] > 0 ? (double)imagedata[posindata1 + nn] : 0));
         lgnratesS1(nn + FFRFSIZE / 2) =
-            log(1.0 + ((double)imagedata[posindata1 + nn] < 0
-                           ? -(double)imagedata[posindata1 + nn]
-                           : 0));
-        lgnratesS2(nn) = log(1.0 + ((double)imagedata[posindata2 + nn] > 0
-                                        ? (double)imagedata[posindata2 + nn]
-                                        : 0));
+            log(1.0 + ((double)imagedata[posindata1 + nn] < 0 ? -(double)imagedata[posindata1 + nn] : 0));
+        lgnratesS2(nn) = log(1.0 + ((double)imagedata[posindata2 + nn] > 0 ? (double)imagedata[posindata2 + nn] : 0));
         lgnratesS2(nn + FFRFSIZE / 2) =
-            log(1.0 + ((double)imagedata[posindata2 + nn] < 0
-                           ? -(double)imagedata[posindata2 + nn]
-                           : 0));
+            log(1.0 + ((double)imagedata[posindata2 + nn] < 0 ? -(double)imagedata[posindata2 + nn] : 0));
         // No log-transform:
         // lgnratesS1(nn) = ( (imagedata[posindata1+nn] > 0 ?
         // imagedata[posindata1+nn] : 0));  lgnratesS1(nn + FFRFSIZE / 2) = (
@@ -777,8 +785,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         incomingspikes[ni][nj].fill(0);
 
     // Stimulus presentation
-    for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES;
-         numstepthispres++) {
+    for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES; numstepthispres++) {
 
       // We determine FF spikes, based on the specified lgnrates:
 
@@ -786,18 +793,15 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
 
       if (
           // In the PULSE case, inputs only fire for a short period of time
-          ((phase == Phase::pulse) &&
-           (numstepthispres >= (double)(PULSESTART) / dt) &&
+          ((phase == Phase::pulse) && (numstepthispres >= (double)(PULSESTART) / dt) &&
            (numstepthispres < (double)(PULSESTART + PULSETIME) / dt)) ||
           // Otherwise, inputs only fire until the 'relaxation' period at the
           // end of each presentation
-          ((phase != Phase::pulse) &&
-           (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt))))
+          ((phase != Phase::pulse) && (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt))))
         for (int nn = 0; nn < FFRFSIZE; nn++)
           // Note that this may go non-poisson if the specified
           // lgnrates are too high (i.e. not << 1.0)
-          lgnfirings(nn) =
-              (rand() / (double)RAND_MAX < abs(lgnrates(nn)) ? 1.0 : 0.0);
+          lgnfirings(nn) = (rand() / (double)RAND_MAX < abs(lgnrates(nn)) ? 1.0 : 0.0);
       else
         lgnfirings.setZero();
 
@@ -860,8 +864,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
           // add it to the lateral input for this neuron
           if (incomingspikes[ni][nj](numstep % delays[nj][ni]) > 0) {
 
-            LatInput(ni) +=
-                w(ni, nj) * incomingspikes[ni][nj](numstep % delays[nj][ni]);
+            LatInput(ni) += w(ni, nj) * incomingspikes[ni][nj](numstep % delays[nj][ni]);
             spikesthisstep(ni, nj) = 1;
             // We erase any incoming spikes for this synapse/timestep
             incomingspikes[ni][nj](numstep % delays[nj][ni]) = 0;
@@ -875,8 +878,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         Ilat.setZero();
 
       // Total input (FF + lateral + frozen noise):
-      I = Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) +
-          negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
+      I = Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
 
       vprev = v;
       vprevprev = vprev;
@@ -884,15 +886,12 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       // AdEx  neurons:
       if (NOSPIKE) {
         for (int nn = 0; nn < NBNEUR; nn++)
-          v(nn) +=
-              (dt / C) * (-Gleak * (v(nn) - Eleak) + z(nn) - wadap(nn)) + I(nn);
+          v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + z(nn) - wadap(nn)) + I(nn);
       } else {
         for (int nn = 0; nn < NBNEUR; nn++)
-          v(nn) +=
-              (dt / C) * (-Gleak * (v(nn) - Eleak) +
-                          Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) +
-                          z(nn) - wadap(nn)) +
-              I(nn);
+          v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
+                               wadap(nn)) +
+                   I(nn);
       }
       // v(nn) += (dt/C) * (-Gleak * (v(nn)-Eleak) + Gleak * DELTAT * exp(
       // (v(nn)-vthresh(nn)) / DELTAT ) + z(nn) - wadap(nn)  + I(nn));  // The
@@ -924,11 +923,12 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       if (!NOSPIKE) {
         firings = (v.array() > VPEAK).select(OneV, ZeroV);
         v = (firings.array() > 0).select(VPEAK, v);
-        refractime =
-            (firings.array() > 0)
-                .select(REFRACTIME,
-                        refractime); // In practice, REFRACTIME is set to 0 for
-                                     // all current experiments.
+        refractime = (firings.array() > 0)
+                         .select(
+                             REFRACTIME,
+                             refractime
+                         ); // In practice, REFRACTIME is set to 0 for
+                            // all current experiments.
         isspiking = (firings.array() > 0).select(NBSPIKINGSTEPS, isspiking);
 
         // Send the spike through the network. Remember that incomingspikes is a
@@ -937,8 +937,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
           if (!firings[ni])
             continue;
           for (int nj = 0; nj < NBNEUR; nj++) {
-            incomingspikes[nj][ni]((numstep + delays[ni][nj]) %
-                                   delays[ni][nj]) = 1;
+            incomingspikes[nj][ni]((numstep + delays[ni][nj]) % delays[ni][nj]) = 1;
           }
         }
       }
@@ -953,11 +952,9 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       // wadap = (isspiking.array() > 0).select(wadap.array(), wadap.array() +
       // (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array())); //
       // clopathlike (while spiking, don't modify wadap.
-      wadap = wadap.array() +
-              (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array());
+      wadap = wadap.array() + (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array());
       z = z + (dt / TAUZ) * -1.0 * z;
-      vthresh = vthresh.array() +
-                (dt / TAUVTHRESH) * (-1.0 * vthresh.array() + VTREST);
+      vthresh = vthresh.array() + (dt / TAUVTHRESH) * (-1.0 * vthresh.array() + VTREST);
 
       // Wrong - using the raw v rather than "depolarization" v-vleak (or
       // v-vthresh)
@@ -965,10 +962,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
 
       // Correct: using depolarization (or more precisely depolarization above
       // THETAVLONGTRACE))
-      vlongtrace +=
-          (dt / TAUVLONGTRACE) *
-          ((vprevprev.array() - THETAVLONGTRACE).cwiseMax(0).matrix() -
-           vlongtrace);
+      vlongtrace += (dt / TAUVLONGTRACE) * ((vprevprev.array() - THETAVLONGTRACE).cwiseMax(0).matrix() - vlongtrace);
       vlongtrace = vlongtrace.cwiseMax(0); // Just in case.
 
       // This is also wrong - the dt/tau should not apply to the increments
@@ -987,10 +981,8 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
 
       // Clopath-like version - the firings are also divided by tauxplast. Might
       // cause trouble if dt is modified?
-      xplast_lat = xplast_lat + firings.cast<double>() / TAUXPLAST -
-                   (dt / TAUXPLAST) * xplast_lat;
-      xplast_ff =
-          xplast_ff + lgnfirings / TAUXPLAST - (dt / TAUXPLAST) * xplast_ff;
+      xplast_lat = xplast_lat + firings.cast<double>() / TAUXPLAST - (dt / TAUXPLAST) * xplast_lat;
+      xplast_ff = xplast_ff + lgnfirings / TAUXPLAST - (dt / TAUXPLAST) * xplast_ff;
 
       vneg = vneg + (dt / TAUVNEG) * (vprevprev - vneg);
       vpos = vpos + (dt / TAUVPOS) * (vprevprev - vpos);
@@ -1005,14 +997,11 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         // reaching this given neuron should be modified, if the synapse's
         // firing / recent activity (xplast) commands modification.
         for (int nn = 0; nn < NBE; nn++)
-          EachNeurLTD(nn) =
-              dt * (-ALTDS[nn] / VREF2) * vlongtrace(nn) * vlongtrace(nn) *
-              ((vneg(nn) - THETAVNEG) < 0 ? 0 : (vneg(nn) - THETAVNEG));
+          EachNeurLTD(nn) = dt * (-ALTDS[nn] / VREF2) * vlongtrace(nn) * vlongtrace(nn) *
+                            ((vneg(nn) - THETAVNEG) < 0 ? 0 : (vneg(nn) - THETAVNEG));
         for (int nn = 0; nn < NBE; nn++)
-          EachNeurLTP(nn) =
-              dt * ALTP * ALTPMULT *
-              ((vpos(nn) - THETAVNEG) < 0 ? 0 : (vpos(nn) - THETAVNEG)) *
-              ((v(nn) - THETAVPOS) < 0 ? 0 : (v(nn) - THETAVPOS));
+          EachNeurLTP(nn) = dt * ALTP * ALTPMULT * ((vpos(nn) - THETAVNEG) < 0 ? 0 : (vpos(nn) - THETAVNEG)) *
+                            ((v(nn) - THETAVPOS) < 0 ? 0 : (v(nn) - THETAVPOS));
 
         // Feedforward synapses, then lateral synapses.
         for (int syn = 0; syn < FFRFSIZE; syn++)
@@ -1022,8 +1011,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
           if (lgnfirings(syn) > 1e-10)
             for (int nn = 0; nn < NBE; nn++)
               // if (spikesthisstepFF(nn, syn) > 0)
-              wff(nn, syn) +=
-                  EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
+              wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
         for (int syn = 0; syn < NBE; syn++)
           for (int nn = 0; nn < NBE; nn++)
             w(nn, syn) += xplast_lat(syn) * EachNeurLTP(nn);
@@ -1050,8 +1038,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       resps.col(numpres % NBRESPS) += firings;
       // respssumv.col(numpres % NBRESPS) += v.cwiseMin(vthresh); // We only
       // record subthreshold potentials !
-      respssumv.col(numpres % NBRESPS) +=
-          v.cwiseMin(VTMAX); // We only record subthreshold potentials !
+      respssumv.col(numpres % NBRESPS) += v.cwiseMin(VTMAX); // We only record subthreshold potentials !
       lastnspikes.col(numstep % NBLASTSPIKESSTEPS) = firings;
       lastnv.col(numstep % NBLASTSPIKESSTEPS) = v;
 
@@ -1063,17 +1050,14 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
     sumw(numpres) = w.sum();
     if (numpres % 100 == 0) {
       cout << "Presentation " << numpres << " / " << NBPRES << endl;
-      cout << "TIME: " << (double)(clock() - tic) / (double)CLOCKS_PER_SEC
-           << endl;
+      cout << "TIME: " << (double)(clock() - tic) / (double)CLOCKS_PER_SEC << endl;
       tic = clock();
-      cout << "Total spikes for each neuron for this presentation: "
-           << resps.col(numpres % NBRESPS).transpose() << endl;
-      cout << "Vlongtraces: " << vlongtrace.transpose() << endl;
-      cout << " Max LGN rate (should be << 1.0): " << lgnrates.maxCoeff()
+      cout << "Total spikes for each neuron for this presentation: " << resps.col(numpres % NBRESPS).transpose()
            << endl;
+      cout << "Vlongtraces: " << vlongtrace.transpose() << endl;
+      cout << " Max LGN rate (should be << 1.0): " << lgnrates.maxCoeff() << endl;
     }
-    if (((numpres + 1) % 10000 == 0) || (numpres == 0) ||
-        (numpres + 1 == NBPRES)) {
+    if (((numpres + 1) % 10000 == 0) || (numpres == 0) || (numpres + 1 == NBPRES)) {
       std::string nolatindicator("");
       std::string noinhindicator("");
       std::string nospikeindicator("");
@@ -1086,15 +1070,12 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       if (NOELAT)
         nolatindicator = "_noelat";
       {
-        std::ofstream myfile(saveDirectory /
-                                 ("lastnspikes" + nolatindicator + ".txt"),
-                             ios::trunc | ios::out);
+        std::ofstream myfile(saveDirectory / ("lastnspikes" + nolatindicator + ".txt"), ios::trunc | ios::out);
         myfile << endl << lastnspikes << endl;
       }
       if (phase == Phase::testing) {
         {
-          std::ofstream myfile(saveDirectory / "resps_test.txt",
-                               ios::trunc | ios::out);
+          std::ofstream myfile(saveDirectory / "resps_test.txt", ios::trunc | ios::out);
           myfile << endl << resps << endl;
         }
 
@@ -1102,9 +1083,9 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         // endl << respssumv << endl; myfile.close();
 
         {
-          std::ofstream myfile(saveDirectory / ("lastnv_test" + nolatindicator +
-                                                noinhindicator + ".txt"),
-                               ios::trunc | ios::out);
+          std::ofstream myfile(
+              saveDirectory / ("lastnv_test" + nolatindicator + noinhindicator + ".txt"), ios::trunc | ios::out
+          );
           myfile << endl << lastnv << endl;
         }
 
@@ -1114,43 +1095,40 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
       }
 
       if (phase == Phase::spontaneous) {
-        std::ofstream myfile(saveDirectory /
-                                 ("lastnspikes_spont" + nolatindicator +
-                                  noinhindicator + ".txt"),
-                             ios::trunc | ios::out);
+        std::ofstream myfile(
+            saveDirectory / ("lastnspikes_spont" + nolatindicator + noinhindicator + ".txt"), ios::trunc | ios::out
+        );
         myfile << endl << lastnspikes << endl;
       }
 
       if (phase == Phase::pulse) {
         {
-          std::ofstream myfile(saveDirectory / ("resps_pulse" + nolatindicator +
-                                                noinhindicator + ".txt"),
-                               ios::trunc | ios::out);
+          std::ofstream myfile(
+              saveDirectory / ("resps_pulse" + nolatindicator + noinhindicator + ".txt"), ios::trunc | ios::out
+          );
           myfile << endl << resps << endl;
         }
 
         {
           std::ofstream myfile(
-              saveDirectory / ("resps_pulse_" +
-                               std::to_string((long long int)STIM1) + ".txt"),
-              ios::trunc | ios::out);
+              saveDirectory / ("resps_pulse_" + std::to_string((long long int)STIM1) + ".txt"), ios::trunc | ios::out
+          );
           myfile << endl << resps << endl;
         }
 
         {
-          std::ofstream myfile(saveDirectory /
-                                   ("lastnspikes_pulse" + nolatindicator +
-                                    noinhindicator + ".txt"),
-                               ios::trunc | ios::out);
+          std::ofstream myfile(
+              saveDirectory / ("lastnspikes_pulse" + nolatindicator + noinhindicator + ".txt"), ios::trunc | ios::out
+          );
           myfile << endl << lastnspikes << endl;
         }
 
         {
-          std::ofstream myfile(saveDirectory /
-                                   ("lastnspikes_pulse_" +
-                                    std::to_string((long long int)STIM1) +
-                                    nolatindicator + noinhindicator + ".txt"),
-                               ios::trunc | ios::out);
+          std::ofstream myfile(
+              saveDirectory / ("lastnspikes_pulse_" + std::to_string((long long int)STIM1) + nolatindicator +
+                               noinhindicator + ".txt"),
+              ios::trunc | ios::out
+          );
           myfile << endl << lastnspikes << endl;
         }
 
@@ -1161,38 +1139,38 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
 
       if (phase == Phase::mixing) {
         {
-          std::ofstream myfile(saveDirectory /
-                                   ("respssumv_mix" + nolatindicator +
-                                    noinhindicator + nospikeindicator + ".txt"),
-                               ios::trunc | ios::out);
+          std::ofstream myfile(
+              saveDirectory / ("respssumv_mix" + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
+              ios::trunc | ios::out
+          );
           myfile << endl << respssumv << endl;
         }
 
         {
-          std::ofstream myfile(saveDirectory /
-                                   ("resps_mix" + nolatindicator +
-                                    noinhindicator + nospikeindicator + ".txt"),
-                               ios::trunc | ios::out);
+          std::ofstream myfile(
+              saveDirectory / ("resps_mix" + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
+              ios::trunc | ios::out
+          );
           myfile << endl << resps << endl;
         }
 
         {
           std::ofstream myfile(
               saveDirectory /
-                  ("respssumv_mix" + std::to_string((long long int)STIM1) +
-                   "_" + std::to_string((long long int)STIM2) + nolatindicator +
-                   noinhindicator + nospikeindicator + ".txt"),
-              ios::trunc | ios::out);
+                  ("respssumv_mix" + std::to_string((long long int)STIM1) + "_" + std::to_string((long long int)STIM2) +
+                   nolatindicator + noinhindicator + nospikeindicator + ".txt"),
+              ios::trunc | ios::out
+          );
           myfile << endl << respssumv << endl;
         }
 
         {
           std::ofstream myfile(
               saveDirectory /
-                  ("resps_mix_" + std::to_string((long long int)STIM1) + "_" +
-                   std::to_string((long long int)STIM2) + nolatindicator +
-                   noinhindicator + nospikeindicator + ".txt"),
-              ios::trunc | ios::out);
+                  ("resps_mix_" + std::to_string((long long int)STIM1) + "_" + std::to_string((long long int)STIM2) +
+                   nolatindicator + noinhindicator + nospikeindicator + ".txt"),
+              ios::trunc | ios::out
+          );
           myfile << endl << resps << endl;
         }
       }
@@ -1206,15 +1184,13 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
         }
 
         {
-          std::ofstream myfile(saveDirectory / "wff.txt",
-                               ios::trunc | ios::out);
+          std::ofstream myfile(saveDirectory / "wff.txt", ios::trunc | ios::out);
           myfile << endl << wff << endl;
           myfile.close();
         }
 
         {
-          std::ofstream myfile(saveDirectory / "resps.txt",
-                               ios::trunc | ios::out);
+          std::ofstream myfile(saveDirectory / "resps.txt", ios::trunc | ios::out);
           myfile << endl << resps << endl;
         }
 
@@ -1250,7 +1226,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
  *  Utility functions
  */
 
-MatrixXd poissonMatrix2(const MatrixXd &lambd) {
+MatrixXd poissonMatrix2(MatrixXd const &lambd) {
   MatrixXd k = MatrixXd::Zero(lambd.rows(), lambd.cols());
   for (int nr = 0; nr < lambd.rows(); nr++)
     for (int nc = 0; nc < lambd.cols(); nc++)
@@ -1258,7 +1234,7 @@ MatrixXd poissonMatrix2(const MatrixXd &lambd) {
   return k;
 }
 
-MatrixXd poissonMatrix(const MatrixXd &lambd) {
+MatrixXd poissonMatrix(MatrixXd const &lambd) {
   // MatrixXd lambd = MatrixXd::Random(SIZ,SIZ).cwiseAbs();
   // MatrixXd lambd = MatrixXd::Random(SIZ,SIZ).cwiseMax(0);
   // MatrixXd lambd = MatrixXd::Constant(SIZ,SIZ, .5);
@@ -1269,11 +1245,9 @@ MatrixXd poissonMatrix(const MatrixXd &lambd) {
   MatrixXd matselect = MatrixXd::Constant(lambd.rows(), lambd.cols(), 1.0);
 
   while ((matselect.array() > 0).any()) {
-    k = (matselect.array() > 0)
-            .select(k.array() + 1, k); // wherever p > L (after the first loop,
-                                       // otherwise everywhere), k += 1
-    p = p.cwiseProduct(
-        MatrixXd::Random(p.rows(), p.cols()).cwiseAbs()); // p = p * random[0,1]
+    k = (matselect.array() > 0).select(k.array() + 1, k);                // wherever p > L (after the first loop,
+                                                                         // otherwise everywhere), k += 1
+    p = p.cwiseProduct(MatrixXd::Random(p.rows(), p.cols()).cwiseAbs()); // p = p * random[0,1]
     matselect = (p.array() > L.array()).select(matselect, -1.0);
   }
 
@@ -1299,7 +1273,7 @@ MatrixXd poissonMatrix(const MatrixXd &lambd) {
     cout << dd << endl;
 */
 
-int poissonScalar(const double lambd) {
+int poissonScalar(double const lambd) {
   double L = exp(-1 * lambd);
   int k = 0;
   double p = 1.0;
