@@ -38,9 +38,9 @@ std::istream &operator>>(std::istream &is, Phase &p) {
 // #define MOD (70.0 / 126.0)
 #define MOD (1.0 / 126.0)
 
-#define dt                                                                     \
-  1.0 // NOTE: Don't attempt to just modify the dt without reading the code
-      // below, as it will likely break things.
+// NOTE: Don't attempt to just modify the dt without reading the code
+// below, as it will likely break things.
+#define dt 1.0
 
 #define BASEALTD (14e-5 * 1.5 * 1.0)
 #define RANDALTD 0.0
@@ -72,15 +72,17 @@ std::istream &operator>>(std::istream &is, Phase &p) {
 #define FFRFSIZE (2 * PATCHSIZE * PATCHSIZE)
 
 // Inhibition parameters
-#define TAUINHIB 10   // in ms
-#define ALPHAINHIB .6 // .6
+// in ms
+#define TAUINHIB 10
+#define ALPHAINHIB .6
 
-#define NEGNOISERATE                                                           \
-  0.0 // in KHz (expected number of thousands of VSTIM received per second
-      // through noise)
-#define POSNOISERATE                                                           \
-  1.8 // in KHz (expected number of thousands of VSTIM received per second
-      // through noise)
+// in KHz (expected number of thousands of VSTIM received per second
+// through noise)
+#define NEGNOISERATE 0.0
+
+// in KHz (expected number of thousands of VSTIM received per second
+// through noise)
+#define POSNOISERATE 1.8
 
 #define A 4
 #define B .0805
@@ -91,25 +93,40 @@ std::istream &operator>>(std::istream &is, Phase &p) {
 #define C 281.0
 #define Gleak 30.0
 #define Eleak -70.6
-#define DELTAT 2.0 // in mV
+
+// in mV
+#define DELTAT 2.0
+
 #define VTMAX -30.4
 #define VTREST -50.4
-#define VPEAK 20 // Also in mV
+
+// Also in mV
+#define VPEAK 20
+
 #define VRESET Eleak
 
-#define THETAVLONGTRACE -45.3 // -45.3 //MINV // Eleak // VTMAX
+// -45.3 //MINV // Eleak // VTMAX
+#define THETAVLONGTRACE -45.3
 
 #define MAXDELAYDT 20
-#define NBSPIKINGSTEPS                                                         \
-  1 // (3.0 / dt) // Number of steps that a spike should take - i.e. spiking
-    // time (in ms) / dt.
-#define REFRACTIME 0 // (dt-.001)
+
+// (3.0 / dt) // Number of steps that a spike should take - i.e. spiking
+#define NBSPIKINGSTEPS 1
+
+// time (in ms) / dt.
+// (dt-.001)
+#define REFRACTIME 0
+
 #define THETAVPOS -45.3
 #define THETAVNEG Eleak
-#define TAUXPLAST 15.0 // all 'tau' constants are in ms
+
+// all 'tau' constants are in ms
+#define TAUXPLAST 15.0
 #define TAUVNEG 10.0
 #define TAUVPOS 7.0
-#define VREF2 50 // 70  // in mV^2
+
+// 70  // in mV^2
+#define VREF2 50
 
 #define NBNOISESTEPS 73333
 
