@@ -1,5 +1,5 @@
 name: Build and run
-on: [push, pull_request]
+on: [push]
 
 permissions:
   contents: read
@@ -28,3 +28,11 @@ jobs:
         with:
           name: data
           path: ./build/data/
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: jidicula/clang-format-action@v4.11.0
+        with:
+          clang-format-version: '15'
