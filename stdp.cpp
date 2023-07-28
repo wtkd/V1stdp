@@ -39,8 +39,7 @@ std::istream &operator>>(std::istream &is, Phase &p) {
 // #define MOD (70.0 / 126.0)
 #define MOD (1.0 / 126.0)
 
-// NOTE: Don't attempt to just modify the dt without reading the code
-// below, as it will likely break things.
+// NOTE: Don't attempt to just modify the dt without reading the code below, as it will likely break things.
 #define dt 1.0
 
 #define BASEALTD (14e-5 * 1.5 * 1.0)
@@ -77,12 +76,10 @@ std::istream &operator>>(std::istream &is, Phase &p) {
 #define TAUINHIB 10
 #define ALPHAINHIB .6
 
-// in KHz (expected number of thousands of VSTIM received per second
-// through noise)
+// in KHz (expected number of thousands of VSTIM received per second through noise)
 #define NEGNOISERATE 0.0
 
-// in KHz (expected number of thousands of VSTIM received per second
-// through noise)
+// in KHz (expected number of thousands of VSTIM received per second through noise)
 #define POSNOISERATE 1.8
 
 #define A 4
@@ -246,8 +243,7 @@ int main(int argc, char *argv[]) {
 
   auto const saveLogInterval = parsedOptionsResult["save-log-interval"].as<int>();
 
-  // -1 because of c++ zero-counting (the nth
-  // pattern has location n-1 in the array)
+  // -1 because of c++ zero-counting (the nth pattern has location n-1 in the array)
   int const STIM1 = parsedOptionsResult.count("stimulation-number-1")
                         ? parsedOptionsResult["stimulation-number-1"].as<int>() - 1
                         : -1;
@@ -266,9 +262,8 @@ int main(int argc, char *argv[]) {
   int NBLASTSPIKESSTEPS = 0;
   int NBLASTSPIKESPRES = 50;
 
-  // Number of resps (total nb of spike / total v for each presentation)
-  // to be stored in resps and respssumv. Must be set depending on the
-  // PHASE (learmning, testing, mixing, etc.)
+  // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
+  // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
   int NBRESPS = -1;
 
   double const LATCONNMULT = parsedOptionsResult["latconnmult"].as<double>();
@@ -339,8 +334,7 @@ int main(int argc, char *argv[]) {
 
     wff = (WFFINITMIN + (WFFINITMAX - WFFINITMIN) * MatrixXd::Random(NBNEUR, FFRFSIZE).cwiseAbs().array())
               .cwiseMin(MAXW); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
-    // Inhibitory neurons do not receive FF excitation from the
-    // sensory RFs (should they? TRY LATER)
+    // Inhibitory neurons do not receive FF excitation from the sensory RFs (should they? TRY LATER)
     wff.bottomRows(NBI).setZero();
   } else if (phase == Phase::pulse) {
     NBPATTERNS = NBPATTERNSPULSE;
@@ -371,10 +365,8 @@ int main(int argc, char *argv[]) {
     cout << "First row of w (lateral weights): " << w.row(0) << endl;
     cout << "w(1,2) and w(2,1): " << w(1, 2) << " " << w(2, 1) << endl;
 
-    // w.bottomRows(NBI).leftCols(NBE).fill(1.0); // Inhbitory neurons receive
-    // excitatory inputs from excitatory neurons w.rightCols(NBI).fill(-1.0); //
-    // Everybody receives fixed, negative inhibition (including inhibitory
-    // neurons)
+    // w.bottomRows(NBI).leftCols(NBE).fill(1.0); // Inhbitory neurons receive excitatory inputs from excitatory neurons
+    // w.rightCols(NBI).fill(-1.0); // Everybody receives fixed, negative inhibition (including inhibitory neurons)
   } else if (phase == Phase::spontaneous) {
     NBPATTERNS = NBPATTERNSSPONT;
     PRESTIME = PRESTIMESPONT;
@@ -520,33 +512,29 @@ int run(
        << endl;
   cout << imagedata[5654] << " " << imagedata[6546] << " " << imagedata[9000] << endl;
 
-  // The noise excitatory input is a Poisson process (separate for each cell)
-  // with a constant rate (in KHz / per ms) We store it as "frozen noise" to
-  // save time.
+  // The noise excitatory input is a Poisson process (separate for each cell) with a constant rate (in KHz / per ms)
+  // We store it as "frozen noise" to save time.
   MatrixXd negnoisein = -poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, NEGNOISERATE)) * VSTIM;
   MatrixXd posnoisein = poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, POSNOISERATE)) * VSTIM;
 
-  // If No-noise or no-spike, suppress the background
-  // bombardment of random I and E spikes
+  // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
   if (NONOISE || NOSPIKE) {
     posnoisein.setZero();
     negnoisein.setZero();
   }
 
-  // Note that delays indices are arranged in "from"-"to" order (different from
-  // incomingspikes[i][j]. where i is the target neuron and j is the source
-  // synapse)
+  // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
+  // target neuron and j is the source synapse)
   int delays[NBNEUR][NBNEUR];
   int delaysFF[FFRFSIZE][NBNEUR];
 
-  // The incoming spikes (both lateral and FF) are stored in an array of vectors
-  // (one per neuron/incoming synapse); each vector is used as a circular array,
-  // containing the incoming spikes at this synapse at successive timesteps:
+  // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming synapse); each
+  // vector is used as a circular array, containing the incoming spikes at this synapse at successive timesteps:
   VectorXi incomingspikes[NBNEUR][NBNEUR];
   VectorXi incomingFFspikes[NBNEUR][FFRFSIZE];
 
-  // -70.5 is approximately the resting potential of the Izhikevich neurons, as
-  // it is of the AdEx neurons used in Clopath's experiments
+  // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
+  // Clopath's experiments
   VectorXd v = VectorXd::Constant(NBNEUR, -70.5); // VectorXd::Zero(NBNEUR);
   // Initializations.
   VectorXi firings = VectorXi::Zero(NBNEUR);
@@ -610,19 +598,14 @@ int run(
 
   // We generate the delays:
 
-  // We use a trick to generate an exponential distribution, median should be
-  // small (maybe 2-4ms) The mental image is that you pick a uniform value in
-  // the unit line,
-  // repeatedly check if it falls below a certain threshold - if not, you cut
-  // out the portion of the unit line below that threshold and stretch the
-  // remainder (including the random value) to fill the unit line again. Each
-  // time you increase a counter, stopping when the value finally falls below
-  // the threshold. The counter at the end of this process has exponential
-  // distribution.
-  // There's very likely simpler ways to do it.
+  // We use a trick to generate an exponential distribution, median should be small (maybe 2-4ms) The mental image is
+  // that you pick a uniform value in the unit line, repeatedly check if it falls below a certain threshold - if not,
+  // you cut out the portion of the unit line below that threshold and stretch the remainder (including the random
+  // value) to fill the unit line again. Each time you increase a counter, stopping when the value finally falls below
+  // the threshold. The counter at the end of this process has exponential distribution. There's very likely simpler
+  // ways to do it.
 
-  // DELAYPARAM should be a small value (3 to 6). It controls the median of the
-  // exponential.
+  // DELAYPARAM should be a small value (3 to 6). It controls the median of the exponential.
   for (int ni = 0; ni < NBNEUR; ni++) {
     for (int nj = 0; nj < NBNEUR; nj++) {
 
@@ -643,8 +626,7 @@ int run(
     }
   }
 
-  // NOTE: We implement the machinery for feedforward delays, but they are NOT
-  // used (see below).
+  // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
   // myfile.open("delays.txt", ios::trunc | ios::out);
   for (int ni = 0; ni < NBNEUR; ni++) {
     for (int nj = 0; nj < FFRFSIZE; nj++) {
@@ -705,8 +687,8 @@ int run(
 
     // cout << posindata << endl;
 
-    // Extracting the image data for this frame presentation, and preparing the
-    // LGN / FF output rates (notice the log-transform):
+    // Extracting the image data for this frame presentation, and preparing the LGN / FF output rates (notice the
+    // log-transform):
 
     for (int nn = 0; nn < FFRFSIZE / 2; nn++) {
       lgnrates(nn) = log(1.0 + ((double)imagedata[posindata + nn] > 0 ? MOD * (double)imagedata[posindata + nn] : 0));
@@ -714,8 +696,7 @@ int run(
           log(1.0 + ((double)imagedata[posindata + nn] < 0 ? -MOD * (double)imagedata[posindata + nn] : 0));
     }
 
-    // Scale by max! The inputs are scaled to have a
-    // maximum of 1 (multiplied by INPUTMULT below)
+    // Scale by max! The inputs are scaled to have a maximum of 1 (multiplied by INPUTMULT below)
     lgnrates /= lgnrates.maxCoeff();
 
     if (phase == Phase::mixing) {
@@ -763,17 +744,14 @@ int run(
     INPUTMULT = 150.0;
     INPUTMULT *= 2.0;
 
-    // We put inputmult here to ensure that it is
-    // reflected in the actual number of incoming spikes
+    // We put inputmult here to ensure that it is reflected in the actual number of incoming spikes
     lgnrates *= INPUTMULT;
 
-    // LGN rates from the pattern file are expressed in Hz. We
-    // want it in rate per dt, and dt itself is expressed in ms.
+    // LGN rates from the pattern file are expressed in Hz. We want it in rate per dt, and dt itself is expressed in ms.
     lgnrates *= (dt / 1000.0);
 
-    // At the beginning of every presentation, we reset everything ! (it is
-    // important for the random-patches case which tends to generate epileptic
-    // self-sustaining firing; 'normal' learning doesn't need it.)
+    // At the beginning of every presentation, we reset everything ! (it is important for the random-patches case which
+    // tends to generate epileptic self-sustaining firing; 'normal' learning doesn't need it.)
     v.fill(Eleak);
     resps.col(numpres % NBRESPS).setZero();
     lgnfirings.setZero();
@@ -795,12 +773,10 @@ int run(
           // In the PULSE case, inputs only fire for a short period of time
           ((phase == Phase::pulse) && (numstepthispres >= (double)(PULSESTART) / dt) &&
            (numstepthispres < (double)(PULSESTART + PULSETIME) / dt)) ||
-          // Otherwise, inputs only fire until the 'relaxation' period at the
-          // end of each presentation
+          // Otherwise, inputs only fire until the 'relaxation' period at the end of each presentation
           ((phase != Phase::pulse) && (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt))))
         for (int nn = 0; nn < FFRFSIZE; nn++)
-          // Note that this may go non-poisson if the specified
-          // lgnrates are too high (i.e. not << 1.0)
+          // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
           lgnfirings(nn) = (rand() / (double)RAND_MAX < abs(lgnrates(nn)) ? 1.0 : 0.0);
       else
         lgnfirings.setZero();
@@ -860,8 +836,8 @@ int run(
           // No autapses
           if (ni == nj)
             continue;
-          // If there is a spike at that synapse for the current timestep, we
-          // add it to the lateral input for this neuron
+          // If there is a spike at that synapse for the current timestep, we add it to the lateral input for this
+          // neuron
           if (incomingspikes[ni][nj](numstep % delays[nj][ni]) > 0) {
 
             LatInput(ni) += w(ni, nj) * incomingspikes[ni][nj](numstep % delays[nj][ni]);
@@ -893,10 +869,9 @@ int run(
                                wadap(nn)) +
                    I(nn);
       }
-      // v(nn) += (dt/C) * (-Gleak * (v(nn)-Eleak) + Gleak * DELTAT * exp(
-      // (v(nn)-vthresh(nn)) / DELTAT ) + z(nn) - wadap(nn)  + I(nn));  // The
-      // input current is also included in the diff. eq. I believe that's not
-      // the right way.
+      // // The input current is also included in the diff. eq. I believe that's not the right way.
+      // v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
+      //                      wadap(nn) + I(nn));
 
       // Currently-spiking neurons are clamped at VPEAK.
       v = (isspiking.array() > 0).select(VPEAK - .001, v);
@@ -909,30 +884,24 @@ int run(
       vthresh = (isspiking.array() == 1).select(VTMAX, vthresh);
       wadap = (isspiking.array() == 1).select(wadap.array() + B, wadap.array());
 
-      // Spiking period elapsing... (in paractice, this is not really needed
-      // since the spiking period NBSPIKINGSTEPS is set to 1 for all current
-      // experiments)
+      // Spiking period elapsing... (in paractice, this is not really needed since the spiking period NBSPIKINGSTEPS is
+      // set to 1 for all current experiments)
       isspiking = (isspiking.array() - 1).cwiseMax(0);
 
       v = v.cwiseMax(MINV);
       refractime = (refractime.array() - dt).cwiseMax(0);
 
-      // "correct" version: Firing neurons are crested / clamped at VPEAK, will
-      // be reset to VRESET  after the spiking time has elapsed.
+      // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
+      // time has elapsed.
       firingsprev = firings;
       if (!NOSPIKE) {
         firings = (v.array() > VPEAK).select(OneV, ZeroV);
         v = (firings.array() > 0).select(VPEAK, v);
-        refractime = (firings.array() > 0)
-                         .select(
-                             REFRACTIME,
-                             refractime
-                         ); // In practice, REFRACTIME is set to 0 for
-                            // all current experiments.
+        // In practice, REFRACTIME is set to 0 for all current experiments.
+        refractime = (firings.array() > 0).select(REFRACTIME, refractime);
         isspiking = (firings.array() > 0).select(NBSPIKINGSTEPS, isspiking);
 
-        // Send the spike through the network. Remember that incomingspikes is a
-        // circular array.
+        // Send the spike through the network. Remember that incomingspikes is a circular array.
         for (int ni = 0; ni < NBNEUR; ni++) {
           if (!firings[ni])
             continue;
@@ -1245,8 +1214,8 @@ MatrixXd poissonMatrix(MatrixXd const &lambd) {
   MatrixXd matselect = MatrixXd::Constant(lambd.rows(), lambd.cols(), 1.0);
 
   while ((matselect.array() > 0).any()) {
-    k = (matselect.array() > 0).select(k.array() + 1, k);                // wherever p > L (after the first loop,
-                                                                         // otherwise everywhere), k += 1
+    // wherever p > L (after the first loop, otherwise everywhere), k += 1
+    k = (matselect.array() > 0).select(k.array() + 1, k);
     p = p.cwiseProduct(MatrixXd::Random(p.rows(), p.cols()).cwiseAbs()); // p = p * random[0,1]
     matselect = (p.array() > L.array()).select(matselect, -1.0);
   }
