@@ -447,7 +447,7 @@ int run(double const LATCONNMULT, double const WIE_MAX, double const DELAYPARAM,
     DataFile.read(reinterpret_cast<char *>(membuf.get()), fsize);
     DataFile.close();
 
-    return tuple{move(membuf), fsize};
+    return tuple{std::move(membuf), fsize};
     // double* imagedata = (double*) membuf;
   }();
   cout << "Data read!" << endl;
