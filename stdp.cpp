@@ -477,29 +477,27 @@ int run(
 
   cout << "Reading input data...." << endl;
 
-  auto const [imagedata, fsize] = [&]() {
+  auto const imagedata = [&]() {
     // The stimulus patches are 17x17x2 in length, arranged linearly. See below
     // for the setting of feedforward firing rates based on patch data. See also
     // makepatchesImageNetInt8.m
 
     ifstream DataFile(
-        inputDirectory / std::filesystem::path("patchesCenteredScaledBySumTo126"
-                                               "ImageNetONOFFRotatedNewInt8.bin.dat"),
-        ios::in | ios::binary | ios::ate
+        inputDirectory / std::filesystem::path("patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat"),
+        ios::binary
     );
     if (!DataFile.is_open()) {
       throw ios_base::failure("Failed to open the binary data file!");
       exit(1);
     }
-    auto const fsize = DataFile.tellg();
-    auto membuf = make_unique<int8_t[]>(fsize);
-    DataFile.seekg(0, ios::beg);
-    DataFile.read(reinterpret_cast<char *>(membuf.get()), fsize);
+    std::vector<int8_t> const v((std::istreambuf_iterator<char>(DataFile)), std::istreambuf_iterator<char>());
     DataFile.close();
 
-    return tuple{std::move(membuf), fsize};
+    return v;
     // double* imagedata = (double*) membuf;
   }();
+  auto const fsize = imagedata.size();
+
   cout << "Data read!" << endl;
   // totaldatasize = fsize / sizeof(double); // To change depending on whether
   // the data is float/single (4) or double (8)
