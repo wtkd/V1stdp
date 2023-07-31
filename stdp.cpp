@@ -1184,7 +1184,9 @@ int run(
     }
   }
 
-  saveAllWeights(saveDirectory, NBPRES, w, wff);
+  if (phase == Phase::learning) {
+    saveAllWeights(saveDirectory, NBPRES, w, wff);
+  }
 
   return 0;
 }
