@@ -88,7 +88,7 @@ set_tests_properties(
 
 add_test(
   NAME run_spontaneous
-  COMMAND $<TARGET_FILE:stdp> spont --data-directory ./data --input-directory .. --seed 0
+  COMMAND $<TARGET_FILE:stdp> spontaneous --data-directory ./data --input-directory .. --seed 0
 )
 set_tests_properties(
   run_spontaneous PROPERTIES
