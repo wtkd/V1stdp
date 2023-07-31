@@ -1042,6 +1042,11 @@ int run(
       }
       if (phase == Phase::testing) {
         {
+          std::ofstream myfile(saveDirectory / ("lastnspikes_test" + nolatindicator + ".txt"), ios::trunc | ios::out);
+          myfile << endl << lastnspikes << endl;
+        }
+
+        {
           std::ofstream myfile(saveDirectory / "resps_test.txt", ios::trunc | ios::out);
           myfile << endl << resps << endl;
         }

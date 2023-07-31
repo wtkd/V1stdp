@@ -115,7 +115,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_lastnspikes
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnspikes.txt ./data/lastnspikes.txt
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnspikes_test.txt ./data/lastnspikes_test.txt
 )
 set_tests_properties(
   compare_lastnspikes PROPERTIES
