@@ -68,11 +68,10 @@ set_tests_properties(
   DEPENDS run_learn
 )
 
-# Test outputs of phase "learn"
-
 add_test(
   NAME run_pulse
-  COMMAND $<TARGET_FILE:stdp> pulse --data-directory ./data --input-directory .. --seed 0 --stimulation-number-1 50)
+  COMMAND $<TARGET_FILE:stdp> pulse --data-directory ./data --input-directory .. --seed 0 50
+)
 set_tests_properties(
   run_pulse PROPERTIES
   DEPENDS run_learn
@@ -80,7 +79,7 @@ set_tests_properties(
 
 add_test(
   NAME run_mix
-  COMMAND $<TARGET_FILE:stdp> mix --data-directory ./data --input-directory .. --seed 0 --stimulation-number-1 50 --stimulation-number-2 100
+  COMMAND $<TARGET_FILE:stdp> mix --data-directory ./data --input-directory .. --seed 0 50 100
 )
 set_tests_properties(
   run_mix PROPERTIES
@@ -95,6 +94,8 @@ set_tests_properties(
   run_spontaneous PROPERTIES
   DEPENDS run_learn
 )
+
+# Test outputs of phase "learn"
 
 add_test(
   NAME compare_weight
