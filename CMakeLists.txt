@@ -68,6 +68,34 @@ set_tests_properties(
   DEPENDS run_learn
 )
 
+# Test outputs of phase "learn"
+
+add_test(
+  NAME run_pulse
+  COMMAND $<TARGET_FILE:stdp> pulse --data-directory ./data --input-directory .. --seed 0 --stimulation-number-1 50)
+set_tests_properties(
+  run_pulse PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME run_mix
+  COMMAND $<TARGET_FILE:stdp> mix --data-directory ./data --input-directory .. --seed 0 --stimulation-number-1 50 --stimulation-number-2 100
+)
+set_tests_properties(
+  run_mix PROPERTIES
+  DEPENDS run_learn
+)
+
+add_test(
+  NAME run_spontaneous
+  COMMAND $<TARGET_FILE:stdp> spont --data-directory ./data --input-directory .. --seed 0
+)
+set_tests_properties(
+  run_spontaneous PROPERTIES
+  DEPENDS run_learn
+)
+
 add_test(
   NAME compare_weight
   COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/w.txt ./data/w.txt
@@ -110,15 +138,6 @@ add_test(
 )
 set_tests_properties(
   compare_response PROPERTIES
-  DEPENDS run_learn
-)
-
-add_test(
-  NAME compare_lastnspikes
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnspikes_test.txt ./data/lastnspikes_test.txt
-)
-set_tests_properties(
-  compare_lastnspikes PROPERTIES
   DEPENDS run_learn
 )
 
@@ -230,6 +249,17 @@ set_tests_properties(
   DEPENDS run_learn
 )
 
+# Test outputs of phase "test"
+
+add_test(
+  NAME compare_lastnspikes_test
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnspikes_test.txt ./data/lastnspikes_test.txt
+)
+set_tests_properties(
+  compare_lastnspikes_test PROPERTIES
+  DEPENDS run_test
+)
+
 add_test(
   NAME compare_response_test
   COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt ./data/resps_test.txt
@@ -246,4 +276,55 @@ add_test(
 set_tests_properties(
   compare_lastnv_test PROPERTIES
   DEPENDS run_test
+)
+
+# Test outputs of phase "pulse"
+
+add_test(
+  NAME compare_lastnspikes_pulse
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnspikes_pulse.txt ./data/lastnspikes_pulse.txt
+)
+set_tests_properties(
+  compare_lastnspikes_pulse PROPERTIES
+  DEPENDS run_pulse
+)
+
+add_test(
+  NAME compare_response_pulse
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/resps_pulse.txt ./data/resps_pulse.txt
+)
+set_tests_properties(
+  compare_response_pulse PROPERTIES
+  DEPENDS run_pulse
+)
+
+# Test outputs of phase "spont"
+
+add_test(
+  NAME compare_lastnspikes_spont
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnspikes_spont.txt ./data/lastnspikes_spont.txt
+)
+set_tests_properties(
+  compare_lastnspikes_spont PROPERTIES
+  DEPENDS run_spont
+)
+
+# Test outputs of phase "mix"
+
+add_test(
+  NAME compare_response_mix
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/resps_mix.txt ./data/resps_mix.txt
+)
+set_tests_properties(
+  compare_response_mix PROPERTIES
+  DEPENDS run_mix
+)
+
+add_test(
+  NAME compare_respssumv_mix
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/respssumv_mix.txt ./data/respssumv_mix.txt
+)
+set_tests_properties(
+  compare_respssumv_mix PROPERTIES
+  DEPENDS run_mix
 )
