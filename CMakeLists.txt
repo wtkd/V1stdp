@@ -19,10 +19,10 @@ add_executable(stdp
   )
 
 find_package(Eigen3 REQUIRED)
-find_package(cxxopts REQUIRED)
+find_package(CLI11 CONFIG REQUIRED)
 
 target_link_libraries(stdp Eigen3::Eigen)
-target_link_libraries(stdp cxxopts::cxxopts)
+target_link_libraries(stdp CLI11::CLI11)
 
 target_compile_features(stdp PRIVATE cxx_std_20)
 
@@ -61,7 +61,7 @@ set_tests_properties(
 
 add_test(
   NAME run_test
-  COMMAND $<TARGET_FILE:stdp> test --data-directory ./data --input-directory .. --seed 0 --step-number-learning 100
+  COMMAND $<TARGET_FILE:stdp> test --data-directory ./data --input-directory .. --seed 0 --step-number-testing 1000
 )
 set_tests_properties(
   run_test PROPERTIES
