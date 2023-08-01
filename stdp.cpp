@@ -4,13 +4,14 @@
 #include <Eigen/Dense>
 #include <cstdlib>
 #include <ctime>
-#include <cxxopts.hpp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <tuple>
+
+#include <CLI/CLI.hpp>
 
 #include "config.hpp"
 
@@ -135,7 +136,7 @@ MatrixXd poissonMatrix(MatrixXd const &lambd);
 MatrixXd poissonMatrix2(MatrixXd const &lambd);
 int poissonScalar(double const lambd);
 void saveWeights(MatrixXd const &wgt, std::filesystem::path);
-void readWeights(MatrixXd &wgt, std::filesystem::path);
+MatrixXd readWeights(Eigen::Index, Eigen::Index, std::filesystem::path);
 
 int run(
     double const LATCONNMULT,
@@ -158,273 +159,630 @@ int run(
     MatrixXd const &initw,
     int const NOLAT,
     int const NOELAT,
-    double const initINPUTMULT,
     std::filesystem::path const inputDirectory,
     std::filesystem::path const saveDirectory,
-    std::filesystem::path const loadDirectory,
     int const saveLogInterval
 );
 
+struct Model {
+  bool nonoise = false;
+  bool nospike = false;
+  bool noinh = false;
+  bool nolat = false;
+  bool noelat = false;
+  int delayparam = 5.0;
+  int latconnmult = LATCONNMULTINIT;
+  double wpenscale = 0.33;
+  int timepres = 350;
+  double altpmult = 0.75;
+  double wie = 0.5;
+  double wei = 20.0;
+};
+
+void setupModel(CLI::App &app, Model &model) {
+  app.add_option("--nonoise", model.nonoise, "No noise");
+  app.add_option("--nospike", model.nospike, "No spike");
+  app.add_option("--noinh", model.noinh, "No inhibitary connection");
+  app.add_option("--nolat", model.nolat, "No latetal connection");
+  app.add_option("--noelat", model.noelat, "No excitatory lateral connection");
+  app.add_option("--delayparam", model.delayparam, "Delay parameter");
+  app.add_option("--latconnmult", model.latconnmult, "Lateral connection multiplication");
+  app.add_option("--wpenscale", model.wpenscale, "Wpenscale");
+  app.add_option("--timepres", model.timepres, "Timepres");
+  app.add_option("--altpmult", model.altpmult, "Altpmult");
+  app.add_option("--wie", model.wie, "Weight on I-E");
+  app.add_option("--wei", model.wei, "Weight on E-I");
+}
+
+void printModelInfo(Model const &model) {
+  // Command line parameters handling
+  if (model.nonoise) {
+    cout << "No noise!" << endl;
+  }
+  if (model.nospike) {
+    cout << "No spiking! !" << endl;
+  }
+  if (model.noinh) {
+    cout << "No inhibition!" << endl;
+  }
+  if (model.nolat) {
+    cout << "No lateral connections! (Either E or I)" << endl;
+  }
+  if (model.noelat) {
+    cout << "No E-E lateral connections! (E-I, I-I and I-E unaffected)" << endl;
+  }
+}
+
+struct LearnOptions {
+  Model model;
+  int randomSeed = 0;
+  int step = 500'000;
+  std::filesystem::path dataDirectory = ".";
+  std::filesystem::path inputDirectory;
+  std::filesystem::path saveDirectory;
+  int saveLogInterval = 50'000;
+};
+
+void setupLearn(CLI::App &app) {
+  auto opt = std::make_shared<LearnOptions>();
+  auto sub = app.add_subcommand("learn", "Learn the model with image");
+
+  setupModel(*sub, opt->model);
+
+  sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
+  sub->add_option("-N,--step,--step-number-learning", opt->step, "Step number of times on learning");
+  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
+  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
+  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+
+  sub->callback([opt]() {
+    Model const &model = opt->model;
+    printModelInfo(model);
+
+    auto const &randomSeed = opt->randomSeed;
+    srand(randomSeed);
+    cout << "RandomSeed: " << randomSeed << endl;
+
+    auto const &step = opt->step;
+
+    auto const &dataDirectory = opt->dataDirectory;
+    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+
+    auto const &saveLogInterval = opt->saveLogInterval;
+
+    auto const &timepres = model.timepres; // ms
+
+    auto const &NOLAT = model.nolat;
+    auto const &NOELAT = model.noelat;
+    auto const &NOINH = model.noinh;
+    auto const &NOSPIKE = model.nospike;
+    auto const &NONOISE = model.nonoise;
+
+    // NOTE: At first, it was initialized 50 but became 30 soon, so I squashed it.
+    int const NBLASTSPIKESPRES = 30;
+
+    // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
+    // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
+    int const &NBRESPS = 2000;
+
+    auto const &LATCONNMULT = model.latconnmult;
+
+    auto const &DELAYPARAM = model.delayparam;
+
+    double const &WPENSCALE = model.wpenscale;
+    double const &ALTPMULT = model.altpmult;
+
+    double const &wei = model.wei;
+    double const &wie = model.wie;
+    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
+    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
+    // WII max is yoked to WIE max
+    double const WII_MAX = wie * 4.32 / LATCONNMULT;
+
+    MatrixXd const w = [&]() {
+      MatrixXd w = MatrixXd::Zero(NBNEUR, NBNEUR); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
+      // w.fill(1.0);
+
+      // Inhbitory neurons receive excitatory inputs from excitatory neurons
+      w.bottomRows(NBI).leftCols(NBE).setRandom();
+
+      // Everybody receives inhibition (including inhibitory neurons)
+      w.rightCols(NBI).setRandom();
+
+      w.bottomRows(NBI).rightCols(NBI) = -w.bottomRows(NBI).rightCols(NBI).cwiseAbs() * WII_MAX;
+      w.topRows(NBE).rightCols(NBI) = -w.topRows(NBE).rightCols(NBI).cwiseAbs() * WIE_MAX;
+      w.bottomRows(NBI).leftCols(NBE) = w.bottomRows(NBI).leftCols(NBE).cwiseAbs() * WEI_MAX;
+
+      // Diagonal lateral weights are 0 (no autapses !)
+      w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
+
+      return w;
+    }();
+
+    MatrixXd const wff = [&]() {
+      MatrixXd wff = MatrixXd::Zero(NBNEUR, FFRFSIZE);
+      wff = (WFFINITMIN + (WFFINITMAX - WFFINITMIN) * MatrixXd::Random(NBNEUR, FFRFSIZE).cwiseAbs().array())
+                .cwiseMin(MAXW); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
+      // Inhibitory neurons do not receive FF excitation from the sensory RFs (should they? TRY LATER)
+      wff.bottomRows(NBI).setZero();
+
+      return wff;
+    }();
+
+    run(LATCONNMULT,
+        WIE_MAX,
+        DELAYPARAM,
+        WPENSCALE,
+        ALTPMULT,
+        timepres,
+        NBLASTSPIKESPRES,
+        step,
+        NONOISE,
+        NOSPIKE,
+        NBRESPS,
+        NOINH,
+        Phase::learning,
+        -1, // STIM1 is not used
+        -1, // STIM2 is not used
+        -1, // PULSETIME is not used
+        wff,
+        w,
+        NOLAT,
+        NOELAT,
+        inputDirectory,
+        saveDirectory,
+        saveLogInterval);
+  });
+}
+
+struct TestOptions {
+  Model model;
+  int randomSeed = 0;
+  int step = 1'000;
+  std::filesystem::path dataDirectory = ".";
+  std::filesystem::path inputDirectory;
+  std::filesystem::path saveDirectory;
+  std::filesystem::path loadDirectory;
+  int saveLogInterval = 50'000;
+};
+
+void setupTest(CLI::App &app) {
+  auto opt = std::make_shared<TestOptions>();
+  auto sub = app.add_subcommand("test", "Test the model with image");
+
+  setupModel(*sub, opt->model);
+
+  sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
+  sub->add_option("-N,--step-number-testing", opt->step, "Step number of times on testing");
+  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
+  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
+  sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
+  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+
+  sub->callback([opt]() {
+    Model const &model = opt->model;
+    printModelInfo(model);
+
+    auto const &randomSeed = opt->randomSeed;
+    srand(randomSeed);
+    cout << "RandomSeed: " << randomSeed << endl;
+
+    auto const &step = opt->step;
+
+    auto const &dataDirectory = opt->dataDirectory;
+    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+    auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
+
+    auto const &saveLogInterval = opt->saveLogInterval;
+
+    int const PRESTIMETESTING = model.timepres; // ms
+
+    auto const &NOLAT = model.nolat;
+    auto const &NOELAT = model.noelat;
+    auto const &NOINH = model.noinh;
+    auto const &NOSPIKE = model.nospike;
+    auto const &NONOISE = model.nonoise;
+
+    int const NBLASTSPIKESPRES = 30;
+
+    int const PRESTIME = PRESTIMETESTING;
+    int const NBPRES = step; //* NBPRESPERPATTERNTESTING;
+
+    // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
+    // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
+    int const NBRESPS = NBPRES;
+
+    double const &LATCONNMULT = model.latconnmult;
+    double const &DELAYPARAM = model.delayparam;
+
+    // These are not used actually in the `run` function.
+    double const &WPENSCALE = model.wpenscale;
+    double const &ALTPMULT = model.altpmult;
+    double const &wei = model.wei;
+    double const &wie = model.wie;
+    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
+    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
+    // WII max is yoked to WIE max
+    double const WII_MAX = wie * 4.32 / LATCONNMULT;
+
+    MatrixXd const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
+    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
+
+    cout << "First row of w (lateral weights): " << w.row(0) << endl;
+    cout << "w(1,2) and w(2,1): " << w(1, 2) << " " << w(2, 1) << endl;
+
+    // w.bottomRows(NBI).leftCols(NBE).fill(1.0); // Inhbitory neurons receive excitatory inputs from excitatory neurons
+    // w.rightCols(NBI).fill(-1.0); // Everybody receives fixed, negative inhibition (including inhibitory neurons)
+
+    run(LATCONNMULT,
+        WIE_MAX,
+        DELAYPARAM,
+        WPENSCALE,
+        ALTPMULT,
+        PRESTIME,
+        NBLASTSPIKESPRES,
+        step,
+        NONOISE,
+        NOSPIKE,
+        NBRESPS,
+        NOINH,
+        Phase::testing,
+        -1, // STIM1 is not used
+        -1, // STIM2 is not used
+        -1, // PULSETIME is not used
+        wff,
+        w,
+        NOLAT,
+        NOELAT,
+        inputDirectory,
+        saveDirectory,
+        saveLogInterval);
+  });
+}
+
+struct MixOptions {
+  Model model;
+  int randomSeed = 0;
+  std::filesystem::path dataDirectory = ".";
+  std::filesystem::path inputDirectory;
+  std::filesystem::path saveDirectory;
+  std::filesystem::path loadDirectory;
+  int saveLogInterval = 50'000;
+  std::pair<int, int> stimulationNumbers;
+};
+
+void setupMix(CLI::App &app) {
+  auto opt = std::make_shared<MixOptions>();
+  auto sub = app.add_subcommand("mix", "Test the model with mixed images");
+
+  setupModel(*sub, opt->model);
+
+  sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
+  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
+  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
+  sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
+  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+  sub->add_option("stimulation-number", opt->stimulationNumbers, "Two numbers of stimulation to mix")->required();
+
+  sub->callback([opt]() {
+    Model const &model = opt->model;
+    printModelInfo(model);
+
+    auto const &randomSeed = opt->randomSeed;
+    srand(randomSeed);
+    cout << "RandomSeed: " << randomSeed << endl;
+
+    auto const &dataDirectory = opt->dataDirectory;
+    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+    auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
+
+    auto const &saveLogInterval = opt->saveLogInterval;
+
+    auto const &stimulationNumbers = opt->stimulationNumbers;
+
+    // -1 because of c++ zero-counting (the nth pattern has location n-1 in the array)
+    int const &STIM1 = stimulationNumbers.first - 1;
+    int const &STIM2 = stimulationNumbers.second - 1;
+
+    auto const &NOLAT = model.nolat;
+    auto const &NOELAT = model.noelat;
+    auto const &NOINH = model.noinh;
+    auto const &NOSPIKE = model.nospike;
+    auto const &NONOISE = model.nonoise;
+
+    int const NBLASTSPIKESPRES = 30;
+
+    int const NBPRES = NBMIXES * 3; //* NBPRESPERPATTERNTESTING;
+
+    // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
+    // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
+    int const NBRESPS = NBPRES;
+
+    double const &LATCONNMULT = model.latconnmult;
+    double const &DELAYPARAM = model.delayparam;
+
+    // These constants are only used for learning:
+    // These are not used actually in the `run` function.
+    double const &WPENSCALE = model.wpenscale;
+    double const &ALTPMULT = model.altpmult;
+    double const &wei = model.wei;
+    double const &wie = model.wie;
+    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
+    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
+    // WII max is yoked to WIE max
+    double const WII_MAX = wie * 4.32 / LATCONNMULT;
+
+    int const PRESTIME = PRESTIMEMIXING;
+
+    auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
+    auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
+
+    cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << endl;
+
+    run(LATCONNMULT,
+        WIE_MAX,
+        DELAYPARAM,
+        WPENSCALE,
+        ALTPMULT,
+        PRESTIME,
+        NBLASTSPIKESPRES,
+        NBPRES,
+        NONOISE,
+        NOSPIKE,
+        NBRESPS,
+        NOINH,
+        Phase::mixing,
+        STIM1,
+        STIM2,
+        -1, // PULSETIME is not used
+        wff,
+        w,
+        NOLAT,
+        NOELAT,
+        inputDirectory,
+        saveDirectory,
+        saveLogInterval);
+  });
+}
+
+struct PulseOptions {
+  Model model;
+  int randomSeed = 0;
+  int step = 50;
+  std::filesystem::path dataDirectory = ".";
+  std::filesystem::path inputDirectory;
+  std::filesystem::path saveDirectory;
+  std::filesystem::path loadDirectory;
+  int saveLogInterval = 50'000;
+  int stimulationNumber;
+  int pulsetime = 100;
+};
+
+void setupPulse(CLI::App &app) {
+  auto opt = std::make_shared<PulseOptions>();
+  auto sub = app.add_subcommand("pulse", "Test the model with pulse input image");
+
+  setupModel(*sub, opt->model);
+
+  sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
+  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
+  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
+  sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
+  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+  sub->add_option("stimulation-number", opt->stimulationNumber, "Numbers of stimulation")->required();
+  sub->add_option(
+      "pulsetime",
+      opt->pulsetime,
+      "This is the time during which stimulus is active during PULSE trials "
+      "(different from PRESTIMEPULSE which is total trial time)"
+  );
+
+  sub->callback([opt]() {
+    Model const &model = opt->model;
+    printModelInfo(model);
+
+    auto const &randomSeed = opt->randomSeed;
+    srand(randomSeed);
+    cout << "RandomSeed: " << randomSeed << endl;
+
+    int const &NBPATTERNSPULSE = opt->step;
+
+    auto const &dataDirectory = opt->dataDirectory;
+    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+    auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
+
+    auto const &saveLogInterval = opt->saveLogInterval;
+
+    // -1 because of c++ zero-counting (the nth pattern has location n-1 in the array)
+    int const &STIM1 = opt->stimulationNumber - 1;
+
+    int const &PULSETIME = opt->pulsetime;
+
+    auto const &NOLAT = model.nolat;
+    auto const &NOELAT = model.noelat;
+    auto const &NOINH = model.noinh;
+    auto const &NOSPIKE = model.nospike;
+    auto const &NONOISE = model.nonoise;
+
+    double const &LATCONNMULT = model.latconnmult;
+    double const &DELAYPARAM = model.delayparam;
+
+    // These constants are only used for learning:
+    // These are not used actually in the `run` function.
+    double const &WPENSCALE = model.wpenscale;
+    double const &ALTPMULT = model.altpmult;
+    double const &wei = model.wei;
+    double const &wie = model.wie;
+    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
+    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
+    // WII max is yoked to WIE max
+    double const WII_MAX = wie * 4.32 / LATCONNMULT;
+
+    int const NBPATTERNS = NBPATTERNSPULSE;
+    int const PRESTIME = PRESTIMEPULSE;
+    int const NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
+
+    int const NBLASTSPIKESPRES = NBPATTERNS;
+    // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
+    // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
+    int const NBRESPS = NBPRES;
+
+    cout << "Stim1: " << STIM1 << endl;
+    cout << "Pulse input time: " << PULSETIME << " ms" << endl;
+
+    auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
+    auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
+
+    run(LATCONNMULT,
+        WIE_MAX,
+        DELAYPARAM,
+        WPENSCALE,
+        ALTPMULT,
+        PRESTIME,
+        NBLASTSPIKESPRES,
+        NBPRES,
+        NONOISE,
+        NOSPIKE,
+        NBRESPS,
+        NOINH,
+        Phase::pulse,
+        STIM1,
+        -1, // STIM2 is not used
+        PULSETIME,
+        wff,
+        w,
+        NOLAT,
+        NOELAT,
+        inputDirectory,
+        saveDirectory,
+        saveLogInterval);
+  });
+}
+
+struct SpontaneousOptions {
+  Model model;
+  int randomSeed = 0;
+  std::filesystem::path dataDirectory = ".";
+  std::filesystem::path inputDirectory;
+  std::filesystem::path saveDirectory;
+  std::filesystem::path loadDirectory;
+  int saveLogInterval = 50'000;
+};
+
+void setupSpontaneous(CLI::App &app) {
+  auto opt = std::make_shared<SpontaneousOptions>();
+  auto sub = app.add_subcommand("spontaneous", "Test the model without images");
+
+  setupModel(*sub, opt->model);
+
+  sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
+  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
+  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
+  sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
+  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+
+  sub->callback([opt]() {
+    Model const &model = opt->model;
+    printModelInfo(model);
+
+    auto const &randomSeed = opt->randomSeed;
+    srand(randomSeed);
+    cout << "RandomSeed: " << randomSeed << endl;
+    auto const &dataDirectory = opt->dataDirectory;
+    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+    auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
+
+    auto const &saveLogInterval = opt->saveLogInterval;
+
+    auto const &NOLAT = model.nolat;
+    auto const &NOELAT = model.noelat;
+    auto const &NOINH = model.noinh;
+    auto const &NOSPIKE = model.nospike;
+    auto const &NONOISE = model.nonoise;
+
+    double const &LATCONNMULT = model.latconnmult;
+    double const &DELAYPARAM = model.delayparam;
+
+    // These constants are only used for learning:
+    // These are not used actually in the `run` function.
+    double const &WPENSCALE = model.wpenscale;
+    double const &ALTPMULT = model.altpmult;
+    double const &wei = model.wei;
+    double const &wie = model.wie;
+    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
+    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
+    // WII max is yoked to WIE max
+    double const WII_MAX = wie * 4.32 / LATCONNMULT;
+
+    int const NBPATTERNS = NBPATTERNSSPONT;
+    int const PRESTIME = PRESTIMESPONT;
+    int const NBPRES = NBPATTERNS;
+    int const NBLASTSPIKESPRES = NBPATTERNS;
+    // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
+    // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
+    int const NBRESPS = NBPRES;
+    cout << "Spontaneous activity - no stimulus !" << endl;
+
+    auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
+    auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
+
+    run(LATCONNMULT,
+        WIE_MAX,
+        DELAYPARAM,
+        WPENSCALE,
+        ALTPMULT,
+        PRESTIME,
+        NBLASTSPIKESPRES,
+        NBPRES,
+        NONOISE,
+        NOSPIKE,
+        NBRESPS,
+        NOINH,
+        Phase::spontaneous,
+        -1, // STIM1 is not used
+        -1, // STIM2 is not used
+        -1, // PULSE is not used
+        wff,
+        w,
+        NOLAT,
+        NOELAT,
+        inputDirectory,
+        saveDirectory,
+        saveLogInterval);
+  });
+}
+
 int main(int argc, char *argv[]) {
-  // Parse command line arguments
-  cxxopts::Options options("stdp", "Caluculate with V1 developing model");
-
-  // clang-format off
-  options.add_options()
-    ("phase", "Which phase to do", cxxopts::value<Phase>())
-    ("h,help", "Print help")
-    ("s,seed", "Seed for pseudorandom", cxxopts::value<unsigned int>()->default_value("0"))
-    ("step-number-learning", "Step number of times on learning", cxxopts::value<int>()->default_value(std::to_string(500'000)))
-    ("step-number-testing", "Step number of times on testing", cxxopts::value<int>()->default_value(std::to_string(1'000)))
-    ("step-number-pulse", "Step number of times on pulse", cxxopts::value<int>()->default_value(std::to_string(50)))
-    ("d,data-directory", "Directory to load and save data", cxxopts::value<std::filesystem::path>()->default_value("."))
-    ("I,input-directory", "Directory to input image data", cxxopts::value<std::filesystem::path>())
-    ("S,save-directory", "Directory to save weight data", cxxopts::value<std::filesystem::path>())
-    ("L,load-directory", "Directory to load weight data", cxxopts::value<std::filesystem::path>())
-    ("nonoise", "No noise", cxxopts::value<bool>()->default_value("false"))
-    ("nospike", "No spike", cxxopts::value<bool>()->default_value("false"))
-    ("noinh", "No inhibitary connection", cxxopts::value<bool>()->default_value("false"))
-    ("nolat", "No latetal connection", cxxopts::value<bool>()->default_value("false"))
-    ("noelat", "No excitatory lateral connection", cxxopts::value<bool>()->default_value("false"))
-    ("delayparam", "Delay parameter", cxxopts::value<double>()->default_value(std::to_string(5.0)))
-    ("latconnmult", "Lateral connection multiplication", cxxopts::value<double>()->default_value(std::to_string(LATCONNMULTINIT)))
-    ("wpenscale", "Wpenscale", cxxopts::value<double>()->default_value(std::to_string(.33)))
-    ("timepres", "Timepres", cxxopts::value<int>()->default_value(std::to_string(350)))
-    ("altpmult", "Altpmult", cxxopts::value<double>()->default_value(std::to_string(.75)))
-    ("wie", "Weight on I-E", cxxopts::value<double>()->default_value(std::to_string(.5)))
-    ("wei", "Weight on E-I", cxxopts::value<double>()->default_value(std::to_string(20.0)))
-    ("pulsetime", "This is the time during which stimulus is active during PULSE trials (different from PRESTIMEPULSE which is total trial time)",
-     cxxopts::value<int>()->default_value(std::to_string(100)))
-    ("stimulation-number-1", "Numbers of stimulation on mixing or pulse", cxxopts::value<int>())
-    ("stimulation-number-2", "Numbers of stimulation on mixing", cxxopts::value<int>())
-    ("save-log-interval", "Interval to save log", cxxopts::value<int>()->default_value(std::to_string(50000)))
-    ;
-  // clang-format on
-
-  options.parse_positional({"phase", "stimulation-number-1", "stimulation-number-2"});
-
-  options.positional_help("");
-  options.custom_help("learn|test|mix|spont|pulse [STIM1 STIM2 OPTIONS...]");
-
-  auto const parsedOptionsResult = options.parse(argc, argv);
-
-  // Show help
-  if (parsedOptionsResult.count("help")) {
-    std::cerr << "stdp " << VERSION << std::endl;
-    std::cerr << options.help() << std::endl;
-
-    return 0;
-  }
-
-  Phase const phase = parsedOptionsResult["phase"].as<Phase>();
-
-  if (phase == Phase::unspecified) {
-    cerr << endl
-         << "Error: You must provide at least one argument - 'learn', 'mix', "
-            "'pulse' or 'test'."
-         << endl;
-    return -1;
-  }
-
-  int const NBPATTERNSLEARNING = parsedOptionsResult["step-number-learning"].as<int>();
-  int const NBPATTERNSTESTING = parsedOptionsResult["step-number-testing"].as<int>();
-  int const NBPATTERNSPULSE = parsedOptionsResult["step-number-pulse"].as<int>();
-
-  auto const dataDirectory = parsedOptionsResult["data-directory"].as<std::filesystem::path>();
-  auto const inputDirectory = parsedOptionsResult.count("input-directory")
-                                  ? parsedOptionsResult["input-directory"].as<std::filesystem::path>()
-                                  : dataDirectory;
-  auto const saveDirectory = parsedOptionsResult.count("save-directory")
-                                 ? parsedOptionsResult["save-directory"].as<std::filesystem::path>()
-                                 : dataDirectory;
-  auto const loadDirectory = parsedOptionsResult.count("load-directory")
-                                 ? parsedOptionsResult["load-directory"].as<std::filesystem::path>()
-                                 : dataDirectory;
-
-  auto const saveLogInterval = parsedOptionsResult["save-log-interval"].as<int>();
-
-  // -1 because of c++ zero-counting (the nth pattern has location n-1 in the array)
-  int const STIM1 = parsedOptionsResult.count("stimulation-number-1")
-                        ? parsedOptionsResult["stimulation-number-1"].as<int>() - 1
-                        : -1;
-  int const STIM2 = parsedOptionsResult.count("stimulation-number-2")
-                        ? parsedOptionsResult["stimulation-number-2"].as<int>() - 1
-                        : -1;
-
-  int const PRESTIMELEARNING = parsedOptionsResult["timepres"].as<int>(); // ms
-  int const PRESTIMETESTING = parsedOptionsResult["timepres"].as<int>();
-  int const PULSETIME = parsedOptionsResult["pulsetime"].as<int>();
-  bool const NOLAT = parsedOptionsResult["nolat"].as<bool>();
-  bool const NOELAT = parsedOptionsResult["noelat"].as<bool>();
-  bool const NOINH = parsedOptionsResult["noinh"].as<bool>();
-  bool const NOSPIKE = parsedOptionsResult["nospike"].as<bool>();
-  bool const NONOISE = parsedOptionsResult["nonoise"].as<bool>();
-  int NBLASTSPIKESSTEPS = 0;
-  int NBLASTSPIKESPRES = 50;
-
-  // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
-  // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
-  int NBRESPS = -1;
-
-  double const LATCONNMULT = parsedOptionsResult["latconnmult"].as<double>();
-  double INPUTMULT = -1.0; // To be modified!
-  double const DELAYPARAM = parsedOptionsResult["delayparam"].as<double>();
-
-  MatrixXd w = MatrixXd::Zero(NBNEUR, NBNEUR);
-  MatrixXd wff = MatrixXd::Zero(NBNEUR, FFRFSIZE);
-
-  // These constants are only used for learning:
-  double const WPENSCALE = parsedOptionsResult["wpenscale"].as<double>();
-  double const ALTPMULT = parsedOptionsResult["altpmult"].as<double>();
-  double const WEI_MAX = parsedOptionsResult["wei"].as<double>() * 4.32 / LATCONNMULT; // 1.5
-  double const WIE_MAX = parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
-  // WII max is yoked to WIE max
-  double const WII_MAX = parsedOptionsResult["wie"].as<double>() * 4.32 / LATCONNMULT;
-  int NBPATTERNS, PRESTIME, NBPRES, NBSTEPSPERPRES, NBSTEPS;
-
   std::cout << "stdp " << VERSION << std::endl;
   for (int i = 0; i < argc; ++i) {
     cout << (i == 0 ? "" : " ") << argv[i];
   }
   cout << endl;
 
-  // Command line parameters handling
-  if (NONOISE) {
-    cout << "No noise!" << endl;
-  }
-  if (NOSPIKE) {
-    cout << "No spiking! !" << endl;
-  }
-  if (NOINH) {
-    cout << "No inhibition!" << endl;
-  }
-  if (NOLAT) {
-    cout << "No lateral connections! (Either E or I)" << endl;
-  }
-  if (NOELAT) {
-    cout << "No E-E lateral connections! (E-I, I-I and I-E unaffected)" << endl;
-  }
+  CLI::App app{"Caluculate with V1 developing model"};
+  app.set_config("--config");
+  app.set_version_flag("--version", std::string(VERSION));
+  app.set_help_all_flag("--help-all");
 
-  unsigned int const randomSeed = parsedOptionsResult["seed"].as<unsigned int>();
-  srand(randomSeed);
-  cout << "RandomSeed: " << randomSeed << endl;
+  setupLearn(app);
+  setupTest(app);
+  setupMix(app);
+  setupPulse(app);
+  setupSpontaneous(app);
 
-  if (phase == Phase::learning) {
-    NBPATTERNS = NBPATTERNSLEARNING;
-    PRESTIME = PRESTIMELEARNING;
-    NBPRES = NBPATTERNS; //* NBPRESPERPATTERNLEARNING;
-    NBLASTSPIKESPRES = 30;
-    NBRESPS = 2000;
-    w = MatrixXd::Zero(NBNEUR,
-                       NBNEUR); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
-    // w.fill(1.0);
+  CLI11_PARSE(app, argc, argv);
 
-    // Inhbitory neurons receive excitatory inputs from excitatory neurons
-    w.bottomRows(NBI).leftCols(NBE).setRandom();
-
-    // Everybody receives inhibition (including inhibitory neurons)
-    w.rightCols(NBI).setRandom();
-
-    w.bottomRows(NBI).rightCols(NBI) = -w.bottomRows(NBI).rightCols(NBI).cwiseAbs() * WII_MAX;
-    w.topRows(NBE).rightCols(NBI) = -w.topRows(NBE).rightCols(NBI).cwiseAbs() * WIE_MAX;
-    w.bottomRows(NBI).leftCols(NBE) = w.bottomRows(NBI).leftCols(NBE).cwiseAbs() * WEI_MAX;
-
-    // Diagonal lateral weights are 0 (no autapses !)
-    w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
-
-    wff = (WFFINITMIN + (WFFINITMAX - WFFINITMIN) * MatrixXd::Random(NBNEUR, FFRFSIZE).cwiseAbs().array())
-              .cwiseMin(MAXW); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
-    // Inhibitory neurons do not receive FF excitation from the sensory RFs (should they? TRY LATER)
-    wff.bottomRows(NBI).setZero();
-  } else if (phase == Phase::pulse) {
-    NBPATTERNS = NBPATTERNSPULSE;
-    PRESTIME = PRESTIMEPULSE;
-    NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
-    if (STIM1 == -1) {
-      cerr << endl
-           << "Error: When using 'pulse', you must provide the number of the "
-              "stimulus you want to pulse."
-           << endl;
-      return -1;
-    }
-
-    NBLASTSPIKESPRES = NBPATTERNS;
-    NBRESPS = NBPRES;
-    cout << "Stim1: " << STIM1 << endl;
-    readWeights(w, loadDirectory / "w.dat");
-    readWeights(wff, loadDirectory / "wff.dat");
-    cout << "Pulse input time: " << PULSETIME << " ms" << endl;
-  } else if (phase == Phase::testing) {
-    NBPATTERNS = NBPATTERNSTESTING;
-    PRESTIME = PRESTIMETESTING;
-    NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
-    NBLASTSPIKESPRES = 30;
-    NBRESPS = NBPRES;
-    readWeights(w, loadDirectory / "w.dat");
-    readWeights(wff, loadDirectory / "wff.dat");
-    cout << "First row of w (lateral weights): " << w.row(0) << endl;
-    cout << "w(1,2) and w(2,1): " << w(1, 2) << " " << w(2, 1) << endl;
-
-    // w.bottomRows(NBI).leftCols(NBE).fill(1.0); // Inhbitory neurons receive excitatory inputs from excitatory neurons
-    // w.rightCols(NBI).fill(-1.0); // Everybody receives fixed, negative inhibition (including inhibitory neurons)
-  } else if (phase == Phase::spontaneous) {
-    NBPATTERNS = NBPATTERNSSPONT;
-    PRESTIME = PRESTIMESPONT;
-    NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
-    NBLASTSPIKESPRES = NBPATTERNS;
-    NBRESPS = NBPRES;
-    readWeights(w, loadDirectory / "w.dat");
-    readWeights(wff, loadDirectory / "wff.dat");
-    cout << "Spontaneous activity - no stimulus !" << endl;
-  } else if (phase == Phase::mixing) {
-    NBPATTERNS = 2;
-    PRESTIME = PRESTIMEMIXING;
-    NBPRES = NBMIXES * 3; //* NBPRESPERPATTERNTESTING;
-    NBLASTSPIKESPRES = 30;
-    NBRESPS = NBPRES;
-    readWeights(w, loadDirectory / "w.dat");
-    readWeights(wff, loadDirectory / "wff.dat");
-    if (STIM1 == -1 || STIM2 == -1) {
-      cerr << endl
-           << "Error: When using 'mix', you must provide the numbers of the 2 "
-              "stimuli you want to mix."
-           << endl;
-      return -1;
-    }
-
-    cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << endl;
-  } else {
-    cerr << "Which phase?\n";
-    return -1;
-  }
-
-  return run(
-      LATCONNMULT,
-      WIE_MAX,
-      DELAYPARAM,
-      WPENSCALE,
-      ALTPMULT,
-      PRESTIME,
-      NBLASTSPIKESPRES,
-      NBPRES,
-      NONOISE,
-      NOSPIKE,
-      NBRESPS,
-      NOINH,
-      phase,
-      STIM1,
-      STIM2,
-      PULSETIME,
-      wff,
-      w,
-      NOLAT,
-      NOELAT,
-      INPUTMULT,
-      inputDirectory,
-      saveDirectory,
-      loadDirectory,
-      saveLogInterval
-  );
+  return 0;
 }
 
 int run(
@@ -448,10 +806,8 @@ int run(
     MatrixXd const &initw,
     int const NOLAT,
     int const NOELAT,
-    double const initINPUTMULT,
     std::filesystem::path const inputDirectory,
     std::filesystem::path const saveDirectory,
-    std::filesystem::path const loadDirectory,
     int const saveLogInterval
 ) {
   // On the command line, you must specify one of 'learn', 'pulse', 'test',
@@ -470,7 +826,7 @@ int run(
   MatrixXd wff = initwff;
   MatrixXd w = initw;
 
-  double INPUTMULT = initINPUTMULT;
+  double INPUTMULT = -1;
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
   MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
@@ -1272,16 +1628,21 @@ void saveWeights(MatrixXd const &wgt, std::filesystem::path const fname) {
   myfile.close();
 }
 
-void readWeights(MatrixXd &wgt, std::filesystem::path const fname) {
-  double wdata[wgt.cols() * wgt.rows()];
+MatrixXd readWeights(Eigen::Index rowSize, Eigen::Index colSize, std::filesystem::path const fname) {
+  double wdata[colSize * rowSize];
+
   int idx = 0;
   cout << endl << "Reading weights from file " << fname << endl;
   ifstream myfile(fname, ios::binary);
-  if (!myfile.read((char *)wdata, wgt.cols() * wgt.rows() * sizeof(double)))
+  if (!myfile.read((char *)wdata, rowSize * colSize * sizeof(double)))
     throw std::runtime_error("Error while reading matrix of weights.\n");
   myfile.close();
+
+  MatrixXd wgt(rowSize, colSize);
   for (int cc = 0; cc < wgt.cols(); cc++)
     for (int rr = 0; rr < wgt.rows(); rr++)
       wgt(rr, cc) = wdata[idx++];
   cout << "Done!" << endl;
+
+  return wgt;
 }

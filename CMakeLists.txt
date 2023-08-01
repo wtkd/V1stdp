@@ -19,10 +19,10 @@ add_executable(stdp
   )
 
 find_package(Eigen3 REQUIRED)
-find_package(cxxopts REQUIRED)
+find_package(CLI11 CONFIG REQUIRED)
 
 target_link_libraries(stdp Eigen3::Eigen)
-target_link_libraries(stdp cxxopts::cxxopts)
+target_link_libraries(stdp CLI11::CLI11)
 
 target_compile_features(stdp PRIVATE cxx_std_20)
 
@@ -61,18 +61,17 @@ set_tests_properties(
 
 add_test(
   NAME run_test
-  COMMAND $<TARGET_FILE:stdp> test --data-directory ./data --input-directory .. --seed 0 --step-number-learning 100
+  COMMAND $<TARGET_FILE:stdp> test --data-directory ./data --input-directory .. --seed 0 --step-number-testing 1000
 )
 set_tests_properties(
   run_test PROPERTIES
   DEPENDS run_learn
 )
 
-# Test outputs of phase "learn"
-
 add_test(
   NAME run_pulse
-  COMMAND $<TARGET_FILE:stdp> pulse --data-directory ./data --input-directory .. --seed 0 --stimulation-number-1 50)
+  COMMAND $<TARGET_FILE:stdp> pulse --data-directory ./data --input-directory .. --seed 0 50
+)
 set_tests_properties(
   run_pulse PROPERTIES
   DEPENDS run_learn
@@ -80,7 +79,7 @@ set_tests_properties(
 
 add_test(
   NAME run_mix
-  COMMAND $<TARGET_FILE:stdp> mix --data-directory ./data --input-directory .. --seed 0 --stimulation-number-1 50 --stimulation-number-2 100
+  COMMAND $<TARGET_FILE:stdp> mix --data-directory ./data --input-directory .. --seed 0 50 100
 )
 set_tests_properties(
   run_mix PROPERTIES
@@ -89,12 +88,14 @@ set_tests_properties(
 
 add_test(
   NAME run_spontaneous
-  COMMAND $<TARGET_FILE:stdp> spont --data-directory ./data --input-directory .. --seed 0
+  COMMAND $<TARGET_FILE:stdp> spontaneous --data-directory ./data --input-directory .. --seed 0
 )
 set_tests_properties(
   run_spontaneous PROPERTIES
   DEPENDS run_learn
 )
+
+# Test outputs of phase "learn"
 
 add_test(
   NAME compare_weight
