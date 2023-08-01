@@ -887,11 +887,12 @@ delaysFF[ni][nj] ) = 1;  // Yeah, (x+y) mod y = x mod y.
       }
     }
 
-  VectorXd Ilat(NOLAT ? VectorXd::Zero(NBNEUR) : VectorXd(LATCONNMULT * VSTIM * LatInput));
-
-  // This disables all lateral connections - Inhibitory and excitatory
-  if (NOLAT)
-    Ilat.setZero();
+  VectorXd const Ilat(
+      NOLAT ?
+            // This disables all lateral connections - Inhibitory and excitatory
+          VectorXd::Zero(NBNEUR)
+            : VectorXd(LATCONNMULT * VSTIM * LatInput)
+  );
 
   // Total input (FF + lateral + frozen noise):
   MatrixXd const I =
@@ -944,6 +945,7 @@ delaysFF[ni][nj] ) = 1;  // Yeah, (x+y) mod y = x mod y.
 
   // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
   // time has elapsed.
+  // NOTE: Unneeded?
   auto firingsprev = firings;
   if (!NOSPIKE) {
     firings = (v.array() > VPEAK).select(OneV, ZeroV);
@@ -1164,9 +1166,6 @@ int run(
 
   VectorXd const ZeroLGN = VectorXd::Zero(FFRFSIZE);
   VectorXd const OneLGN = VectorXd::Constant(FFRFSIZE, 1.0);
-
-  MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
-  MatrixXi spikesthisstep(NBNEUR, NBNEUR);
 
   std::vector<double> ALTDS(NBNEUR);
   for (int nn = 0; nn < NBNEUR; nn++) {
@@ -1426,7 +1425,6 @@ int run(
       lastnspikes.col(numstep % NBLASTSPIKESSTEPS) = firings;
       lastnv.col(numstep % NBLASTSPIKESSTEPS) = v;
 
-      // We compute the feedforward input:
       // Tempus fugit.
       numstep++;
     }
