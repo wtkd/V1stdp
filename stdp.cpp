@@ -775,7 +775,7 @@ struct ModelState {
   VectorXi isspiking;
   VectorXd EachNeurLTD;
   VectorXd EachNeurLTP;
-  VectorXd lgnfireing;
+  VectorXd lgnfireings;
 };
 
 void calculate(
@@ -823,7 +823,7 @@ void calculate(
 
   // We determine FF spikes, based on the specified lgnrates:
 
-  auto const &lgnfirings = modelState.lgnfireing;
+  auto const &lgnfirings = modelState.lgnfireings;
 
   // We compute the feedforward input:
 
@@ -897,9 +897,17 @@ delaysFF[ni][nj] ) = 1;  // Yeah, (x+y) mod y = x mod y.
   MatrixXd const I =
       Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
 
-  auto const vprevprevPtr = std::move(modelState.vprev);
-  auto const &vprevprev = *vprevprevPtr;
+  // XXX: This is a bug of the original program. vprev, vprevprev and v all have same value.
+  // vprev = v;
+  // vprevprev = vprev;
+  // NOTE: Here is fixed code:
+  // auto const vprevprevPtr = std::move(modelState.vprev);
+  // auto const &vprevprev = *vprevprevPtr;
+  // modelState.vprev = std::make_unique<VectorXd>(modelState.v);
+  // auto &v = modelState.v;
+  // NOTE: Use code which has a bug for reproductibity
   modelState.vprev = std::make_unique<VectorXd>(modelState.v);
+  auto const vprevprev = *modelState.vprev;
   auto &v = modelState.v;
 
   // AdEx  neurons:
@@ -1167,7 +1175,7 @@ int run(
   VectorXd lgnrates = VectorXd::Zero(FFRFSIZE);
   VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
   VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
-  auto &lgnfirings = modelState.lgnfireing;
+  auto &lgnfirings = modelState.lgnfireings;
 
   VectorXd sumwff = VectorXd::Zero(NBPRES);
   VectorXd sumw = VectorXd::Zero(NBPRES);
