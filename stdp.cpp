@@ -771,6 +771,8 @@ int main(int argc, char *argv[]) {
 
   CLI::App app{"Caluculate with V1 developing model"};
   app.set_config("--config");
+  app.set_version_flag("--version", std::string(VERSION));
+  app.set_help_all_flag("--help-all");
 
   setupLearn(app);
   setupTest(app);
