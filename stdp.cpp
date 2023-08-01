@@ -787,6 +787,17 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
+auto importRawData(std::filesystem::path const &path) {
+  std::ifstream file(path, std::ios::binary);
+  if (!file.is_open()) {
+    throw std::ios_base::failure("Failed to open the binary data file!");
+  }
+  std::vector<int8_t> const rawData((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  file.close();
+
+  return rawData;
+}
+
 int run(
     double const LATCONNMULT,
     double const WIE_MAX,
@@ -835,24 +846,9 @@ int run(
 
   std::cout << "Reading input data...." << std::endl;
 
-  auto const imagedata = [&]() {
-    // The stimulus patches are 17x17x2 in length, arranged linearly. See below
-    // for the setting of feedforward firing rates based on patch data. See also
-    // makepatchesImageNetInt8.m
-    std::ifstream DataFile(
-        inputDirectory / std::filesystem::path("patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat"),
-        std::ios::binary
-    );
-    if (!DataFile.is_open()) {
-      throw std::ios_base::failure("Failed to open the binary data file!");
-      exit(1);
-    }
-    std::vector<int8_t> const v((std::istreambuf_iterator<char>(DataFile)), std::istreambuf_iterator<char>());
-    DataFile.close();
-
-    return v;
-    // double* imagedata = (double*) membuf;
-  }();
+  auto const imagedata = importRawData(
+      inputDirectory / std::filesystem::path("patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat")
+  );
   auto const fsize = imagedata.size();
 
   std::cout << "Data read!" << std::endl;
