@@ -137,32 +137,6 @@ int poissonScalar(double const lambd);
 void saveWeights(MatrixXd const &wgt, std::filesystem::path);
 MatrixXd readWeights(Eigen::Index, Eigen::Index, std::filesystem::path);
 
-int run(
-    double const LATCONNMULT,
-    double const WIE_MAX,
-    double const DELAYPARAM,
-    double const WPENSCALE,
-    double const ALTPMULT,
-    int const PRESTIME,
-    int const NBLASTSPIKESPRES,
-    int const NBPRES,
-    int const NONOISE,
-    int const NOSPIKE,
-    int const NBRESPS,
-    int const NOINH,
-    Phase const PHASE,
-    int const STIM1,
-    int const STIM2,
-    int const PULSETIME,
-    MatrixXd const &initwff,
-    MatrixXd const &initw,
-    int const NOLAT,
-    int const NOELAT,
-    std::filesystem::path const inputDirectory,
-    std::filesystem::path const saveDirectory,
-    int const saveLogInterval
-);
-
 struct Model {
   bool nonoise = false;
   bool nospike = false;
@@ -177,6 +151,33 @@ struct Model {
   double wie = 0.5;
   double wei = 20.0;
 };
+
+int run(
+    Model const &model,
+    int const NBLASTSPIKESPRES,
+    int const NBPRES,
+    int const NBRESPS,
+    Phase const PHASE,
+    int const STIM1,
+    int const STIM2,
+    int const PULSETIME,
+    MatrixXd const &initwff,
+    MatrixXd const &initw,
+    std::vector<int8_t> rawData,
+    std::filesystem::path const saveDirectory,
+    int const saveLogInterval
+);
+
+auto importRawData(std::filesystem::path const &path) {
+  std::ifstream file(path, std::ios::binary);
+  if (!file.is_open()) {
+    throw std::ios_base::failure("Failed to open the binary data file!");
+  }
+  std::vector<int8_t> const rawData((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  file.close();
+
+  return rawData;
+}
 
 void setupModel(CLI::App &app, Model &model) {
   app.add_option("--nonoise", model.nonoise, "No noise");
@@ -210,6 +211,11 @@ void printModelInfo(Model const &model) {
   if (model.noelat) {
     std::cout << "No E-E lateral connections! (E-I, I-I and I-E unaffected)" << std::endl;
   }
+  std::cout << "Lat. conn.: " << model.latconnmult << std::endl;
+  // std::cout << "WIE_MAX: " << WIE_MAX << " / " << WIE_MAX * LATCONNMULT / 4.32 << std::endl;
+  std::cout << "DELAYPARAM: " << model.delayparam << std::endl;
+  std::cout << "WPENSCALE: " << model.wpenscale << std::endl;
+  std::cout << "ALTPMULT: " << model.altpmult << std::endl;
 }
 
 void setAndPrintRandomSeed(int const randomSeed) {
@@ -223,6 +229,7 @@ struct LearnOptions {
   int step = 500'000;
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
   std::filesystem::path saveDirectory;
   int saveLogInterval = 50'000;
 };
@@ -237,6 +244,7 @@ void setupLearn(CLI::App &app) {
   sub->add_option("-N,--step,--step-number-learning", opt->step, "Step number of times on learning");
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
   sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("--input-file", opt->inputFile, "File including input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
 
@@ -253,17 +261,13 @@ void setupLearn(CLI::App &app) {
     auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
 
+    auto const &inputFile = opt->inputFile;
+    auto const rawData = importRawData(inputDirectory / inputFile);
+
     auto const &saveLogInterval = opt->saveLogInterval;
 
     auto const &timepres = model.timepres; // ms
 
-    auto const &NOLAT = model.nolat;
-    auto const &NOELAT = model.noelat;
-    auto const &NOINH = model.noinh;
-    auto const &NOSPIKE = model.nospike;
-    auto const &NONOISE = model.nonoise;
-
-    // NOTE: At first, it was initialized 50 but became 30 soon, so I squashed it.
     int const NBLASTSPIKESPRES = 30;
 
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
@@ -271,11 +275,6 @@ void setupLearn(CLI::App &app) {
     int const &NBRESPS = 2000;
 
     auto const &LATCONNMULT = model.latconnmult;
-
-    auto const &DELAYPARAM = model.delayparam;
-
-    double const &WPENSCALE = model.wpenscale;
-    double const &ALTPMULT = model.altpmult;
 
     double const &wei = model.wei;
     double const &wie = model.wie;
@@ -314,27 +313,17 @@ void setupLearn(CLI::App &app) {
       return wff;
     }();
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
-        timepres,
+    run(model,
         NBLASTSPIKESPRES,
         step,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::learning,
         -1, // STIM1 is not used
         -1, // STIM2 is not used
         -1, // PULSETIME is not used
         wff,
         w,
-        NOLAT,
-        NOELAT,
-        inputDirectory,
+        rawData,
         saveDirectory,
         saveLogInterval);
   });
@@ -346,8 +335,10 @@ struct TestOptions {
   int step = 1'000;
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
   std::filesystem::path saveDirectory;
   std::filesystem::path loadDirectory;
+
   int saveLogInterval = 50'000;
 };
 
@@ -378,6 +369,9 @@ void setupTest(CLI::App &app) {
     auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
     auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
+
+    auto const &inputFile = opt->inputFile;
+    auto const rawData = importRawData(inputDirectory / inputFile);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -420,27 +414,17 @@ void setupTest(CLI::App &app) {
     // w.bottomRows(NBI).leftCols(NBE).fill(1.0); // Inhbitory neurons receive excitatory inputs from excitatory neurons
     // w.rightCols(NBI).fill(-1.0); // Everybody receives fixed, negative inhibition (including inhibitory neurons)
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
-        PRESTIME,
+    run(model,
         NBLASTSPIKESPRES,
         step,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::testing,
         -1, // STIM1 is not used
         -1, // STIM2 is not used
         -1, // PULSETIME is not used
         wff,
         w,
-        NOLAT,
-        NOELAT,
-        inputDirectory,
+        rawData,
         saveDirectory,
         saveLogInterval);
   });
@@ -451,6 +435,7 @@ struct MixOptions {
   int randomSeed = 0;
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
   std::filesystem::path saveDirectory;
   std::filesystem::path loadDirectory;
   int saveLogInterval = 50'000;
@@ -482,6 +467,9 @@ void setupMix(CLI::App &app) {
     auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
     auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
+
+    auto const &inputFile = opt->inputFile;
+    auto const rawData = importRawData(inputDirectory / inputFile);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -526,27 +514,17 @@ void setupMix(CLI::App &app) {
 
     std::cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << std::endl;
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
-        PRESTIME,
+    run(model,
         NBLASTSPIKESPRES,
         NBPRES,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::mixing,
         STIM1,
         STIM2,
         -1, // PULSETIME is not used
         wff,
         w,
-        NOLAT,
-        NOELAT,
-        inputDirectory,
+        rawData,
         saveDirectory,
         saveLogInterval);
   });
@@ -558,6 +536,7 @@ struct PulseOptions {
   int step = 50;
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
   std::filesystem::path saveDirectory;
   std::filesystem::path loadDirectory;
   int saveLogInterval = 50'000;
@@ -598,6 +577,9 @@ void setupPulse(CLI::App &app) {
     auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
     auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
+
+    auto const &inputFile = opt->inputFile;
+    auto const rawData = importRawData(inputDirectory / inputFile);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -641,27 +623,17 @@ void setupPulse(CLI::App &app) {
     auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
     auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
-        PRESTIME,
+    run(model,
         NBLASTSPIKESPRES,
         NBPRES,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::pulse,
         STIM1,
         -1, // STIM2 is not used
         PULSETIME,
         wff,
         w,
-        NOLAT,
-        NOELAT,
-        inputDirectory,
+        rawData,
         saveDirectory,
         saveLogInterval);
   });
@@ -672,6 +644,7 @@ struct SpontaneousOptions {
   int randomSeed = 0;
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
   std::filesystem::path saveDirectory;
   std::filesystem::path loadDirectory;
   int saveLogInterval = 50'000;
@@ -701,6 +674,9 @@ void setupSpontaneous(CLI::App &app) {
     auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
     auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
+
+    auto const &inputFile = opt->inputFile;
+    auto const rawData = importRawData(inputDirectory / inputFile);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -736,27 +712,17 @@ void setupSpontaneous(CLI::App &app) {
     auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
     auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
-        PRESTIME,
+    run(model,
         NBLASTSPIKESPRES,
         NBPRES,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::spontaneous,
         -1, // STIM1 is not used
         -1, // STIM2 is not used
         -1, // PULSE is not used
         wff,
         w,
-        NOLAT,
-        NOELAT,
-        inputDirectory,
+        rawData,
         saveDirectory,
         saveLogInterval);
   });
@@ -787,73 +753,335 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-auto importRawData(std::filesystem::path const &path) {
-  std::ifstream file(path, std::ios::binary);
-  if (!file.is_open()) {
-    throw std::ios_base::failure("Failed to open the binary data file!");
-  }
-  std::vector<int8_t> const rawData((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-  file.close();
+struct ModelState {
+  MatrixXd w;
+  MatrixXd wff;
+  VectorXd v;
+  std::unique_ptr<VectorXd> vprev;
+  std::vector<std::vector<int>> delays;
+  std::vector<std::vector<int>> delaysFF;
+  std::vector<std::vector<VectorXi>> incomingspikes;
+  std::vector<std::vector<VectorXi>> incomingFFspikes;
+  VectorXi firings;
+  VectorXd xplast_lat;
+  VectorXd xplast_ff;
+  VectorXd vneg;
+  VectorXd vpos;
+  VectorXd vlongtrace;
+  VectorXd z;
+  VectorXd wadap;
+  VectorXd vthresh;
+  VectorXd refractime;
+  VectorXi isspiking;
+  VectorXd EachNeurLTD;
+  VectorXd EachNeurLTP;
+  VectorXd lgnfireing;
+};
 
-  return rawData;
+void calculate(
+    Model const &model,
+    ModelState &modelState,
+    std::vector<double> const &ALTDS,
+
+    int const numstep,
+
+    MatrixXd const &posnoisein,
+    MatrixXd const &negnoisein,
+
+    bool const plasticity
+) {
+
+  VectorXi const ZeroV = VectorXi::Zero(NBNEUR);
+  VectorXi const OneV = VectorXi::Constant(NBNEUR, 1);
+
+  VectorXd &z = modelState.z;
+  VectorXd &wadap = modelState.wadap;
+  VectorXd &vthresh = modelState.vthresh;
+  VectorXi &isspiking = modelState.isspiking;
+  VectorXd &refractime = modelState.refractime;
+  VectorXi &firings = modelState.firings;
+  VectorXd &vlongtrace = modelState.vlongtrace;
+  VectorXd &xplast_lat = modelState.xplast_lat;
+  VectorXd &xplast_ff = modelState.xplast_ff;
+  VectorXd &vneg = modelState.vneg;
+  VectorXd &vpos = modelState.vpos;
+  VectorXd &EachNeurLTP = modelState.EachNeurLTP;
+  VectorXd &EachNeurLTD = modelState.EachNeurLTD;
+  std::vector<std::vector<int>> &delays = modelState.delays;
+
+  auto &w = modelState.w;
+  auto &wff = modelState.wff;
+
+  bool const NOLAT = model.nolat;
+  bool const NOELAT = model.noelat;
+  bool const NOSPIKE = model.nospike;
+  double const LATCONNMULT = model.latconnmult;
+  double const ALTPMULT = model.altpmult;
+  double const WPENSCALE = model.wpenscale;
+
+  auto &incomingspikes = modelState.incomingspikes;
+
+  // We determine FF spikes, based on the specified lgnrates:
+
+  auto const &lgnfirings = modelState.lgnfireing;
+
+  // We compute the feedforward input:
+
+  // Using delays for FF connections from LGN makes the system MUCH slower,
+  // and doesn't change much. So we don't.
+  /*
+  // Compute the FF input from incoming spikes from LGN... as set in the
+*previous* timestep...
+  // SLOW !
+spikesthisstepFF.setZero();
+for (int ni=0; ni< NBE; ni++) // Inhibitory cells don't receive FF input...
+  for (int nj=0; nj< FFRFSIZE; nj++)
+  {
+      if (incomingFFspikes[ni][nj](numstep % delaysFF[nj][ni]) > 0){
+          Iff(ni) += wff(ni, nj) ;
+          spikesthisstepFF(ni, nj) = 1;
+          incomingFFspikes[ni][nj](numstep % delaysFF[nj][ni]) = 0;
+      }
+  }
+
+Iff *= VSTIM;
+  // Send the spike through the FF connections
+  // Note: ni is the source LGN cell (and therefore the synapse number on
+neuron nj), nj is the destination neuron for (int ni=0; ni < FFRFSIZE; ni++){
+      if (!lgnfirings[ni]) continue;
+      for (int nj=0; nj < NBNEUR; nj++){
+          incomingFFspikes[nj][ni]( (numstep + delaysFF[ni][nj]) %
+delaysFF[ni][nj] ) = 1;  // Yeah, (x+y) mod y = x mod y.
+
+      }
+  }
+  */
+
+  // This, which ignores FF delays, is much faster.... MAtrix
+  // multiplications courtesy of the Eigen library.
+  MatrixXd const Iff = wff * lgnfirings * VSTIM;
+
+  // Now we compute the lateral inputs. Remember that incomingspikes is a
+  // circular array.
+
+  VectorXd LatInput = VectorXd::Zero(NBNEUR);
+
+  MatrixXi spikesthisstep = MatrixXi::Zero(NBNEUR, NBNEUR);
+
+  for (int ni = 0; ni < NBNEUR; ni++)
+    for (int nj = 0; nj < NBNEUR; nj++) {
+      // If NOELAT, E-E synapses are disabled.
+      if (NOELAT && (nj < 100) && (ni < 100))
+        continue;
+      // No autapses
+      if (ni == nj)
+        continue;
+      // If there is a spike at that synapse for the current timestep, we add it to the lateral input for this
+      // neuron
+      if (incomingspikes[ni][nj](numstep % delays[nj][ni]) > 0) {
+
+        LatInput(ni) += w(ni, nj) * incomingspikes[ni][nj](numstep % delays[nj][ni]);
+        spikesthisstep(ni, nj) = 1;
+        // We erase any incoming spikes for this synapse/timestep
+        incomingspikes[ni][nj](numstep % delays[nj][ni]) = 0;
+      }
+    }
+
+  VectorXd Ilat(NOLAT ? VectorXd::Zero(NBNEUR) : VectorXd(LATCONNMULT * VSTIM * LatInput));
+
+  // This disables all lateral connections - Inhibitory and excitatory
+  if (NOLAT)
+    Ilat.setZero();
+
+  // Total input (FF + lateral + frozen noise):
+  MatrixXd const I =
+      Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
+
+  auto const vprevprevPtr = std::move(modelState.vprev);
+  auto const &vprevprev = *vprevprevPtr;
+  modelState.vprev = std::make_unique<VectorXd>(modelState.v);
+  auto &v = modelState.v;
+
+  // AdEx  neurons:
+  if (NOSPIKE) {
+    for (int nn = 0; nn < NBNEUR; nn++)
+      v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + z(nn) - wadap(nn)) + I(nn);
+  } else {
+    for (int nn = 0; nn < NBNEUR; nn++)
+      v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
+                           wadap(nn)) +
+               I(nn);
+  }
+  // // The input current is also included in the diff. eq. I believe that's not the right way.
+  // v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
+  //                      wadap(nn) + I(nn));
+
+  // Currently-spiking neurons are clamped at VPEAK.
+  v = (isspiking.array() > 0).select(VPEAK - .001, v);
+
+  //  Neurons that have finished their spiking are set to VRESET.
+  v = (isspiking.array() == 1).select(VRESET, v);
+
+  // Updating some AdEx / plasticity variables
+  z = (isspiking.array() == 1).select(Isp, z);
+  vthresh = (isspiking.array() == 1).select(VTMAX, vthresh);
+  wadap = (isspiking.array() == 1).select(wadap.array() + B, wadap.array());
+
+  // Spiking period elapsing... (in paractice, this is not really needed since the spiking period NBSPIKINGSTEPS is
+  // set to 1 for all current experiments)
+  isspiking = (isspiking.array() - 1).cwiseMax(0);
+
+  v = v.cwiseMax(MINV);
+  refractime = (refractime.array() - dt).cwiseMax(0);
+
+  // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
+  // time has elapsed.
+  auto firingsprev = firings;
+  if (!NOSPIKE) {
+    firings = (v.array() > VPEAK).select(OneV, ZeroV);
+    v = (firings.array() > 0).select(VPEAK, v);
+    // In practice, REFRACTIME is set to 0 for all current experiments.
+    refractime = (firings.array() > 0).select(REFRACTIME, refractime);
+    isspiking = (firings.array() > 0).select(NBSPIKINGSTEPS, isspiking);
+
+    // Send the spike through the network. Remember that incomingspikes is a circular array.
+    for (int ni = 0; ni < NBNEUR; ni++) {
+      if (!firings[ni])
+        continue;
+      for (int nj = 0; nj < NBNEUR; nj++) {
+        incomingspikes[nj][ni]((numstep + delays[ni][nj]) % delays[ni][nj]) = 1;
+      }
+    }
+  }
+
+  // "Wrong" version: firing if above threshold, immediately reset at
+  // Vreset.
+  // firings = (v.array() > vthresh.array()).select(OneV, ZeroV);
+  // v = (firings.array() > 0).select(VRESET, v);
+
+  // AdEx variables update:
+
+  // wadap = (isspiking.array() > 0).select(wadap.array(), wadap.array() +
+  // (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array())); //
+  // clopathlike (while spiking, don't modify wadap.
+  wadap = wadap.array() + (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array());
+  z = z + (dt / TAUZ) * -1.0 * z;
+  vthresh = vthresh.array() + (dt / TAUVTHRESH) * (-1.0 * vthresh.array() + VTREST);
+
+  // Wrong - using the raw v rather than "depolarization" v-vleak (or
+  // v-vthresh)
+  // vlongtrace = vlongtrace + (dt / TAUVLONGTRACE) * (v - vlongtrace);
+
+  // Correct: using depolarization (or more precisely depolarization above
+  // THETAVLONGTRACE))
+  vlongtrace += (dt / TAUVLONGTRACE) * ((vprevprev.array() - THETAVLONGTRACE).cwiseMax(0).matrix() - vlongtrace);
+  vlongtrace = vlongtrace.cwiseMax(0); // Just in case.
+
+  // This is also wrong - the dt/tau should not apply to the increments
+  // (firings / lgnfirings). However that should only be a strict constant
+  // multiplication, which could be included into the ALTP/ALTP constants.
+  /*
+  xplast_lat += (dt / TAUXPLAST) * (firings.cast<double>() - xplast_lat);
+  xplast_ff += (dt / TAUXPLAST) * (lgnfirings - xplast_ff);
+  vneg += (dt / TAUVNEG) * (v - vneg);
+  vpos += (dt / TAUVPOS) * (v - vpos);*/
+
+  // "Correct" version (I think):
+  // xplast_lat = xplast_lat + firings.cast<double>() - (dt / TAUXPLAST) *
+  // xplast_lat; xplast_ff = xplast_ff + lgnfirings - (dt / TAUXPLAST) *
+  // xplast_ff;
+
+  // Clopath-like version - the firings are also divided by tauxplast. Might
+  // cause trouble if dt is modified?
+  xplast_lat = xplast_lat + firings.cast<double>() / TAUXPLAST - (dt / TAUXPLAST) * xplast_lat;
+  xplast_ff = xplast_ff + lgnfirings / TAUXPLAST - (dt / TAUXPLAST) * xplast_ff;
+
+  vneg = vneg + (dt / TAUVNEG) * (vprevprev - vneg);
+  vpos = vpos + (dt / TAUVPOS) * (vprevprev - vpos);
+
+  if (plasticity) {
+
+    // Plasticity !
+
+    // For each neuron, we compute the quantities by which any synapse
+    // reaching this given neuron should be modified, if the synapse's
+    // firing / recent activity (xplast) commands modification.
+    for (int nn = 0; nn < NBE; nn++)
+      EachNeurLTD(nn) = dt * (-ALTDS[nn] / VREF2) * vlongtrace(nn) * vlongtrace(nn) *
+                        ((vneg(nn) - THETAVNEG) < 0 ? 0 : (vneg(nn) - THETAVNEG));
+    for (int nn = 0; nn < NBE; nn++)
+      EachNeurLTP(nn) = dt * ALTP * ALTPMULT * ((vpos(nn) - THETAVNEG) < 0 ? 0 : (vpos(nn) - THETAVNEG)) *
+                        ((v(nn) - THETAVPOS) < 0 ? 0 : (v(nn) - THETAVPOS));
+
+    // Feedforward synapses, then lateral synapses.
+    for (int syn = 0; syn < FFRFSIZE; syn++)
+      for (int nn = 0; nn < NBE; nn++)
+        wff(nn, syn) += xplast_ff(syn) * EachNeurLTP(nn);
+    for (int syn = 0; syn < FFRFSIZE; syn++)
+      if (lgnfirings(syn) > 1e-10)
+        for (int nn = 0; nn < NBE; nn++)
+          // if (spikesthisstepFF(nn, syn) > 0)
+          wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
+    for (int syn = 0; syn < NBE; syn++)
+      for (int nn = 0; nn < NBE; nn++)
+        w(nn, syn) += xplast_lat(syn) * EachNeurLTP(nn);
+    for (int syn = 0; syn < NBE; syn++)
+      //    if (firingsprev(syn) > 1e-10)
+      for (int nn = 0; nn < NBE; nn++)
+        if (spikesthisstep(nn, syn) > 0)
+          w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
+
+    // Diagonal lateral weights are 0!
+    w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
+
+    wff = wff.cwiseMax(0);
+    w.leftCols(NBE) = w.leftCols(NBE).cwiseMax(0);
+    w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
+    wff = wff.cwiseMin(MAXW);
+    w = w.cwiseMin(MAXW);
+  }
 }
 
 int run(
-    double const LATCONNMULT,
-    double const WIE_MAX,
-    double const DELAYPARAM,
-    double const WPENSCALE,
-    double const ALTPMULT,
-    int const PRESTIME,
+    Model const &model,
     int const NBLASTSPIKESPRES,
     int const NBPRES,
-    int const NONOISE,
-    int const NOSPIKE,
     int const NBRESPS,
-    int const NOINH,
     Phase const phase,
     int const STIM1,
     int const STIM2,
     int const PULSETIME,
     MatrixXd const &initwff,
     MatrixXd const &initw,
-    int const NOLAT,
-    int const NOELAT,
-    std::filesystem::path const inputDirectory,
+    std::vector<int8_t> imagedata,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval
 ) {
+  bool const &NONOISE = model.nonoise;
+  bool const &NOSPIKE = model.nospike;
+  bool const &NOINH = model.noinh;
+  bool const &NOLAT = model.nolat;
+  bool const &NOELAT = model.noelat;
+  int const &DELAYPARAM = model.delayparam;
+  int const &LATCONNMULT = model.latconnmult;
+  double const &WPENSCALE = model.wpenscale;
+  int const &PRESTIME = model.timepres;
+  double const &ALTPMULT = model.altpmult;
+
   // On the command line, you must specify one of 'learn', 'pulse', 'test',
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
   // number. IF using 'mix', you must specify two stimulus numbers.
 
-  std::cout << "Lat. conn.: " << LATCONNMULT << std::endl;
-  std::cout << "WIE_MAX: " << WIE_MAX << " / " << WIE_MAX * LATCONNMULT / 4.32 << std::endl;
-  std::cout << "DELAYPARAM: " << DELAYPARAM << std::endl;
-  std::cout << "WPENSCALE: " << WPENSCALE << std::endl;
-  std::cout << "ALTPMULT: " << ALTPMULT << std::endl;
-  int NBSTEPSPERPRES = (int)(PRESTIME / dt);
-  int NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
-  int NBSTEPS = NBSTEPSPERPRES * NBPRES;
-
-  MatrixXd wff = initwff;
-  MatrixXd w = initw;
+  int const NBSTEPSPERPRES = (int)(PRESTIME / dt);
+  int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
+  int const NBSTEPS = NBSTEPSPERPRES * NBPRES;
 
   double INPUTMULT = -1;
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
   MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
 
-  std::cout << "Reading input data...." << std::endl;
-
-  auto const imagedata = importRawData(
-      inputDirectory / std::filesystem::path("patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat")
-  );
   auto const fsize = imagedata.size();
-
-  std::cout << "Data read!" << std::endl;
-  // totaldatasize = fsize / sizeof(double); // To change depending on whether
-  // the data is float/single (4) or double (8)
 
   // To change depending on whether the data is float/single (4) or double (8)
   int const totaldatasize = fsize / sizeof(int8_t);
@@ -874,62 +1102,72 @@ int run(
     negnoisein.setZero();
   }
 
-  // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
-  // target neuron and j is the source synapse)
-  int delays[NBNEUR][NBNEUR];
-  int delaysFF[FFRFSIZE][NBNEUR];
-
-  // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming synapse); each
-  // vector is used as a circular array, containing the incoming spikes at this synapse at successive timesteps:
-  VectorXi incomingspikes[NBNEUR][NBNEUR];
-  VectorXi incomingFFspikes[NBNEUR][FFRFSIZE];
-
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
-  VectorXd v = VectorXd::Constant(NBNEUR, -70.5); // VectorXd::Zero(NBNEUR);
-  // Initializations.
-  VectorXi firings = VectorXi::Zero(NBNEUR);
-  VectorXi firingsprev = VectorXi::Zero(NBNEUR);
-  VectorXd Iff = VectorXd::Zero(NBNEUR);
-  VectorXd Ilat = VectorXd::Zero(NBNEUR);
-  VectorXd I;
-  VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
-  VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
-  VectorXd vneg = v;
-  VectorXd vpos = v;
-  VectorXd vprev = v;
-  VectorXd vprevprev = v;
+  auto const restingMembranePotential = VectorXd::Constant(NBNEUR, -70.5);
 
-  // Correct initialization for vlongtrace.
-  VectorXd vlongtrace = (v.array() - THETAVLONGTRACE).cwiseMax(0);
+  ModelState modelState{
+      initw,                                                // w
+      initwff,                                              // wff
+      restingMembranePotential,                             // v
+      std::make_unique<VectorXd>(restingMembranePotential), // vprev
+      // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is
+      // the target neuron and j is the source synapse)
+      std::vector<std::vector<int>>(NBNEUR, std::vector<int>(NBNEUR)),   // delays
+      std::vector<std::vector<int>>(FFRFSIZE, std::vector<int>(NBNEUR)), // delaysFF
+      // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming
+      // synapse); each vector is used as a circular array, containing the incoming spikes at this synapse at
+      // successive timesteps:
+      std::vector<std::vector<VectorXi>>(NBNEUR, std::vector<VectorXi>(NBNEUR)),   // incomingspikes
+      std::vector<std::vector<VectorXi>>(NBNEUR, std::vector<VectorXi>(FFRFSIZE)), // incomingFFspikes
+      VectorXi::Zero(NBNEUR),                                                      // firings
+      VectorXd::Zero(FFRFSIZE),                                                    // xplast_ff
+      VectorXd::Zero(NBNEUR),                                                      // xplast_lat
+      restingMembranePotential,                                                    // vneg
+      restingMembranePotential,                                                    // vpos
+      // Correct initialization for vlongtrace.
+      // Wrong:
+      // VectorXd vlongtrace = v;
+      (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0), // vlongtrace
+      VectorXd::Zero(NBNEUR),                                           // z
+      VectorXd::Zero(NBNEUR),                                           // wadap
+      VectorXd::Constant(NBNEUR, VTREST),                               // vthresh
+      VectorXd::Zero(NBNEUR),                                           // refractime
+      VectorXi::Zero(NBNEUR),                                           // isspiking
+      VectorXd::Zero(NBNEUR),                                           // EachNeurLTD
+      VectorXd::Zero(NBNEUR),                                           // EachNeurLTP
+      VectorXd::Zero(FFRFSIZE)                                          // lgnfirings
+  };
 
-  // Wrong:
-  // VectorXd vlongtrace = v;
+  MatrixXd &w = modelState.w;
+  MatrixXd &wff = modelState.wff;
 
-  VectorXi ZeroV = VectorXi::Zero(NBNEUR);
-  VectorXi OneV = VectorXi::Constant(NBNEUR, 1);
-  VectorXd ZeroLGN = VectorXd::Zero(FFRFSIZE);
-  VectorXd OneLGN = VectorXd::Constant(FFRFSIZE, 1.0);
-  VectorXd z = VectorXd::Zero(NBNEUR);
-  VectorXd wadap = VectorXd::Zero(NBNEUR);
-  VectorXd vthresh = VectorXd::Constant(NBNEUR, VTREST);
-  VectorXd refractime = VectorXd::Zero(NBNEUR);
-  VectorXi isspiking = VectorXi::Zero(NBNEUR);
-  VectorXd EachNeurLTD = VectorXd::Zero(NBNEUR);
-  VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
+  auto &v = modelState.v;
+
+  auto &delays = modelState.delays;
+  auto &delaysFF = modelState.delaysFF;
+
+  auto &incomingspikes = modelState.incomingspikes;
+  auto &incomingFFspikes = modelState.incomingFFspikes;
+
+  VectorXi &firings = modelState.firings;
+
+  auto &vlongtrace = modelState.vlongtrace;
+
+  VectorXd const ZeroLGN = VectorXd::Zero(FFRFSIZE);
+  VectorXd const OneLGN = VectorXd::Constant(FFRFSIZE, 1.0);
 
   MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
   MatrixXi spikesthisstep(NBNEUR, NBNEUR);
 
-  double ALTDS[NBNEUR];
-  for (int nn = 0; nn < NBNEUR; nn++)
+  std::vector<double> ALTDS(NBNEUR);
+  for (int nn = 0; nn < NBNEUR; nn++) {
     ALTDS[nn] = BASEALTD + RANDALTD * ((double)rand() / (double)RAND_MAX);
-
+  }
   VectorXd lgnrates = VectorXd::Zero(FFRFSIZE);
   VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
   VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
-  VectorXd lgnfirings = VectorXd::Zero(FFRFSIZE);
-  VectorXd lgnfiringsprev = VectorXd::Zero(FFRFSIZE);
+  auto &lgnfirings = modelState.lgnfireing;
 
   VectorXd sumwff = VectorXd::Zero(NBPRES);
   VectorXd sumw = VectorXd::Zero(NBPRES);
@@ -1108,9 +1346,8 @@ int run(
     v.fill(Eleak);
     resps.col(numpres % NBRESPS).setZero();
     lgnfirings.setZero();
-    lgnfiringsprev.setZero();
     firings.setZero();
-    firingsprev.setZero();
+
     for (int ni = 0; ni < NBNEUR; ni++)
       for (int nj = 0; nj < NBNEUR; nj++)
         incomingspikes[ni][nj].fill(0);
@@ -1120,238 +1357,55 @@ int run(
 
       // We determine FF spikes, based on the specified lgnrates:
 
-      lgnfiringsprev = lgnfirings;
-
       if (
           // In the PULSE case, inputs only fire for a short period of time
           ((phase == Phase::pulse) && (numstepthispres >= (double)(PULSESTART) / dt) &&
            (numstepthispres < (double)(PULSESTART + PULSETIME) / dt)) ||
           // Otherwise, inputs only fire until the 'relaxation' period at the end of each presentation
           ((phase != Phase::pulse) && (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt))))
-        for (int nn = 0; nn < FFRFSIZE; nn++)
+        for (int nn = 0; nn < FFRFSIZE; nn++) {
           // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
           lgnfirings(nn) = (rand() / (double)RAND_MAX < std::abs(lgnrates(nn)) ? 1.0 : 0.0);
+        }
       else
         lgnfirings.setZero();
 
       if (phase == Phase::spontaneous)
         lgnfirings.setZero();
 
-      // We compute the feedforward input:
+      // auto const generateFiring = [&]() {
+      //   VectorXd fireings(FFRFSIZE);
+      //   for (int nn = 0; nn < FFRFSIZE; nn++) {
+      //     // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
+      //     lgnfirings(nn) = (rand() / (double)RAND_MAX < std::abs(lgnrates(nn)) ? 1.0 : 0.0);
+      //   }
+      //   return fireings;
+      // };
 
-      Iff.setZero();
+      // VectorXd const newLgnFirings = [&]() -> VectorXd {
+      //   if (phase == Phase::spontaneous)
+      //     return VectorXd::Zero(FFRFSIZE);
 
-      // Using delays for FF connections from LGN makes the system MUCH slower,
-      // and doesn't change much. So we don't.
-      /*
-      // Compute the FF input from incoming spikes from LGN... as set in the
-  *previous* timestep...
-      // SLOW !
-  spikesthisstepFF.setZero();
-  for (int ni=0; ni< NBE; ni++) // Inhibitory cells don't receive FF input...
-      for (int nj=0; nj< FFRFSIZE; nj++)
-      {
-          if (incomingFFspikes[ni][nj](numstep % delaysFF[nj][ni]) > 0){
-              Iff(ni) += wff(ni, nj) ;
-              spikesthisstepFF(ni, nj) = 1;
-              incomingFFspikes[ni][nj](numstep % delaysFF[nj][ni]) = 0;
-          }
-      }
+      //   if (phase == Phase::pulse) {
+      //     // In the PULSE case, inputs only fire for a short period of time
+      //     if ((numstepthispres >= (double)(PULSESTART) / dt) &&
+      //         (numstepthispres < (double)(PULSESTART + PULSETIME) / dt)) {
+      //       return generateFiring();
+      //     }
+      //     return VectorXd::Zero(FFRFSIZE);
+      //   }
 
-  Iff *= VSTIM;
-      // Send the spike through the FF connections
-      // Note: ni is the source LGN cell (and therefore the synapse number on
-  neuron nj), nj is the destination neuron for (int ni=0; ni < FFRFSIZE; ni++){
-          if (!lgnfirings[ni]) continue;
-          for (int nj=0; nj < NBNEUR; nj++){
-              incomingFFspikes[nj][ni]( (numstep + delaysFF[ni][nj]) %
-  delaysFF[ni][nj] ) = 1;  // Yeah, (x+y) mod y = x mod y.
+      //   // Otherwise, inputs only fire until the 'relaxation' period at the end of each presentation
+      //   if (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)) {
+      //     return generateFiring();
+      //   }
 
-          }
-      }
-      */
+      //   return VectorXd::Zero(FFRFSIZE);
+      // }();
 
-      // This, which ignores FF delays, is much faster.... MAtrix
-      // multiplications courtesy of the Eigen library.
-      Iff = wff * lgnfirings * VSTIM;
-
-      // Now we compute the lateral inputs. Remember that incomingspikes is a
-      // circular array.
-
-      VectorXd LatInput = VectorXd::Zero(NBNEUR);
-
-      spikesthisstep.setZero();
-      for (int ni = 0; ni < NBNEUR; ni++)
-        for (int nj = 0; nj < NBNEUR; nj++) {
-          // If NOELAT, E-E synapses are disabled.
-          if (NOELAT && (nj < 100) && (ni < 100))
-            continue;
-          // No autapses
-          if (ni == nj)
-            continue;
-          // If there is a spike at that synapse for the current timestep, we add it to the lateral input for this
-          // neuron
-          if (incomingspikes[ni][nj](numstep % delays[nj][ni]) > 0) {
-
-            LatInput(ni) += w(ni, nj) * incomingspikes[ni][nj](numstep % delays[nj][ni]);
-            spikesthisstep(ni, nj) = 1;
-            // We erase any incoming spikes for this synapse/timestep
-            incomingspikes[ni][nj](numstep % delays[nj][ni]) = 0;
-          }
-        }
-
-      Ilat = LATCONNMULT * VSTIM * LatInput;
-
-      // This disables all lateral connections - Inhibitory and excitatory
-      if (NOLAT)
-        Ilat.setZero();
-
-      // Total input (FF + lateral + frozen noise):
-      I = Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
-
-      vprev = v;
-      vprevprev = vprev;
-
-      // AdEx  neurons:
-      if (NOSPIKE) {
-        for (int nn = 0; nn < NBNEUR; nn++)
-          v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + z(nn) - wadap(nn)) + I(nn);
-      } else {
-        for (int nn = 0; nn < NBNEUR; nn++)
-          v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
-                               wadap(nn)) +
-                   I(nn);
-      }
-      // // The input current is also included in the diff. eq. I believe that's not the right way.
-      // v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
-      //                      wadap(nn) + I(nn));
-
-      // Currently-spiking neurons are clamped at VPEAK.
-      v = (isspiking.array() > 0).select(VPEAK - .001, v);
-
-      //  Neurons that have finished their spiking are set to VRESET.
-      v = (isspiking.array() == 1).select(VRESET, v);
-
-      // Updating some AdEx / plasticity variables
-      z = (isspiking.array() == 1).select(Isp, z);
-      vthresh = (isspiking.array() == 1).select(VTMAX, vthresh);
-      wadap = (isspiking.array() == 1).select(wadap.array() + B, wadap.array());
-
-      // Spiking period elapsing... (in paractice, this is not really needed since the spiking period NBSPIKINGSTEPS is
-      // set to 1 for all current experiments)
-      isspiking = (isspiking.array() - 1).cwiseMax(0);
-
-      v = v.cwiseMax(MINV);
-      refractime = (refractime.array() - dt).cwiseMax(0);
-
-      // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
-      // time has elapsed.
-      firingsprev = firings;
-      if (!NOSPIKE) {
-        firings = (v.array() > VPEAK).select(OneV, ZeroV);
-        v = (firings.array() > 0).select(VPEAK, v);
-        // In practice, REFRACTIME is set to 0 for all current experiments.
-        refractime = (firings.array() > 0).select(REFRACTIME, refractime);
-        isspiking = (firings.array() > 0).select(NBSPIKINGSTEPS, isspiking);
-
-        // Send the spike through the network. Remember that incomingspikes is a circular array.
-        for (int ni = 0; ni < NBNEUR; ni++) {
-          if (!firings[ni])
-            continue;
-          for (int nj = 0; nj < NBNEUR; nj++) {
-            incomingspikes[nj][ni]((numstep + delays[ni][nj]) % delays[ni][nj]) = 1;
-          }
-        }
-      }
-
-      // "Wrong" version: firing if above threshold, immediately reset at
-      // Vreset.
-      // firings = (v.array() > vthresh.array()).select(OneV, ZeroV);
-      // v = (firings.array() > 0).select(VRESET, v);
-
-      // AdEx variables update:
-
-      // wadap = (isspiking.array() > 0).select(wadap.array(), wadap.array() +
-      // (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array())); //
-      // clopathlike (while spiking, don't modify wadap.
-      wadap = wadap.array() + (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array());
-      z = z + (dt / TAUZ) * -1.0 * z;
-      vthresh = vthresh.array() + (dt / TAUVTHRESH) * (-1.0 * vthresh.array() + VTREST);
-
-      // Wrong - using the raw v rather than "depolarization" v-vleak (or
-      // v-vthresh)
-      // vlongtrace = vlongtrace + (dt / TAUVLONGTRACE) * (v - vlongtrace);
-
-      // Correct: using depolarization (or more precisely depolarization above
-      // THETAVLONGTRACE))
-      vlongtrace += (dt / TAUVLONGTRACE) * ((vprevprev.array() - THETAVLONGTRACE).cwiseMax(0).matrix() - vlongtrace);
-      vlongtrace = vlongtrace.cwiseMax(0); // Just in case.
-
-      // This is also wrong - the dt/tau should not apply to the increments
-      // (firings / lgnfirings). However that should only be a strict constant
-      // multiplication, which could be included into the ALTP/ALTP constants.
-      /*
-      xplast_lat += (dt / TAUXPLAST) * (firings.cast<double>() - xplast_lat);
-      xplast_ff += (dt / TAUXPLAST) * (lgnfirings - xplast_ff);
-      vneg += (dt / TAUVNEG) * (v - vneg);
-      vpos += (dt / TAUVPOS) * (v - vpos);*/
-
-      // "Correct" version (I think):
-      // xplast_lat = xplast_lat + firings.cast<double>() - (dt / TAUXPLAST) *
-      // xplast_lat; xplast_ff = xplast_ff + lgnfirings - (dt / TAUXPLAST) *
-      // xplast_ff;
-
-      // Clopath-like version - the firings are also divided by tauxplast. Might
-      // cause trouble if dt is modified?
-      xplast_lat = xplast_lat + firings.cast<double>() / TAUXPLAST - (dt / TAUXPLAST) * xplast_lat;
-      xplast_ff = xplast_ff + lgnfirings / TAUXPLAST - (dt / TAUXPLAST) * xplast_ff;
-
-      vneg = vneg + (dt / TAUVNEG) * (vprevprev - vneg);
-      vpos = vpos + (dt / TAUVPOS) * (vprevprev - vpos);
-
-      if ((phase == Phase::learning) && (numpres >= 401))
-      // if (numpres >= 401)
-      {
-
-        // Plasticity !
-
-        // For each neuron, we compute the quantities by which any synapse
-        // reaching this given neuron should be modified, if the synapse's
-        // firing / recent activity (xplast) commands modification.
-        for (int nn = 0; nn < NBE; nn++)
-          EachNeurLTD(nn) = dt * (-ALTDS[nn] / VREF2) * vlongtrace(nn) * vlongtrace(nn) *
-                            ((vneg(nn) - THETAVNEG) < 0 ? 0 : (vneg(nn) - THETAVNEG));
-        for (int nn = 0; nn < NBE; nn++)
-          EachNeurLTP(nn) = dt * ALTP * ALTPMULT * ((vpos(nn) - THETAVNEG) < 0 ? 0 : (vpos(nn) - THETAVNEG)) *
-                            ((v(nn) - THETAVPOS) < 0 ? 0 : (v(nn) - THETAVPOS));
-
-        // Feedforward synapses, then lateral synapses.
-        for (int syn = 0; syn < FFRFSIZE; syn++)
-          for (int nn = 0; nn < NBE; nn++)
-            wff(nn, syn) += xplast_ff(syn) * EachNeurLTP(nn);
-        for (int syn = 0; syn < FFRFSIZE; syn++)
-          if (lgnfirings(syn) > 1e-10)
-            for (int nn = 0; nn < NBE; nn++)
-              // if (spikesthisstepFF(nn, syn) > 0)
-              wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
-        for (int syn = 0; syn < NBE; syn++)
-          for (int nn = 0; nn < NBE; nn++)
-            w(nn, syn) += xplast_lat(syn) * EachNeurLTP(nn);
-        for (int syn = 0; syn < NBE; syn++)
-          //    if (firingsprev(syn) > 1e-10)
-          for (int nn = 0; nn < NBE; nn++)
-            if (spikesthisstep(nn, syn) > 0)
-              w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
-
-        // Diagonal lateral weights are 0!
-        w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
-
-        wff = wff.cwiseMax(0);
-        w.leftCols(NBE) = w.leftCols(NBE).cwiseMax(0);
-        w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
-        wff = wff.cwiseMin(MAXW);
-        w = w.cwiseMin(MAXW);
-      }
+      calculate(
+          model, modelState, ALTDS, numstep, posnoisein, negnoisein, (phase == Phase::learning) && (numpres >= 401)
+      );
 
       // Storing some indicator variablkes...
 
@@ -1364,6 +1418,7 @@ int run(
       lastnspikes.col(numstep % NBLASTSPIKESSTEPS) = firings;
       lastnv.col(numstep % NBLASTSPIKESSTEPS) = v;
 
+      // We compute the feedforward input:
       // Tempus fugit.
       numstep++;
     }
