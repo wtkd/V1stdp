@@ -6,4 +6,4 @@
    "make"
    ;; Libraries
    "eigen"
-   "cxxopts"))
+   "cli11"))
