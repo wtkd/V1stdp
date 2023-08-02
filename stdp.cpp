@@ -911,14 +911,6 @@ int run(
   VectorXd const ZeroLGN = VectorXd::Zero(FFRFSIZE);
   VectorXd const OneLGN = VectorXd::Constant(FFRFSIZE, 1.0);
 
-  VectorXd z = VectorXd::Zero(NBNEUR);
-  VectorXd wadap = VectorXd::Zero(NBNEUR);
-  VectorXd vthresh = VectorXd::Constant(NBNEUR, VTREST);
-  VectorXd refractime = VectorXd::Zero(NBNEUR);
-  VectorXi isspiking = VectorXi::Zero(NBNEUR);
-  VectorXd EachNeurLTD = VectorXd::Zero(NBNEUR);
-  VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
-
   MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
   MatrixXi spikesthisstep(NBNEUR, NBNEUR);
 
@@ -1023,6 +1015,14 @@ int run(
 
   VectorXd vneg = restingMembranePotential;
   VectorXd vpos = restingMembranePotential;
+
+  VectorXd z = VectorXd::Zero(NBNEUR);
+  VectorXd wadap = VectorXd::Zero(NBNEUR);
+  VectorXd vthresh = VectorXd::Constant(NBNEUR, VTREST);
+  VectorXd refractime = VectorXd::Zero(NBNEUR);
+  VectorXi isspiking = VectorXi::Zero(NBNEUR);
+  VectorXd EachNeurLTD = VectorXd::Zero(NBNEUR);
+  VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
 
   // For each stimulus presentation...
   for (int numpres = 0; numpres < NBPRES; numpres++) {
