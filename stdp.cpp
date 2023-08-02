@@ -825,13 +825,7 @@ int run(
   int NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
   int NBSTEPS = NBSTEPSPERPRES * NBPRES;
 
-  MatrixXd wff = initwff;
-  MatrixXd w = initw;
-
   double INPUTMULT = -1;
-
-  MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
-  MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
 
   std::cout << "Reading input data...." << std::endl;
 
@@ -932,12 +926,6 @@ int run(
     // NBMIXES values equally spaced from 0 to 1 inclusive.
     mixvals[nn] = (double)nn / (double)(NBMIXES - 1);
 
-  // fstream myfile;
-
-  // If no-inhib mode, remove all inhibitory connections:
-  if (NOINH)
-    w.rightCols(NBI).setZero();
-
   // We generate the delays:
 
   // We use a trick to generate an exponential distribution, median should be small (maybe 2-4ms) The mental image is
@@ -1013,6 +1001,9 @@ int run(
     saveWeights(wff, saveDirectory / ("wff_" + std::to_string((long long int)(index)) + ".dat"));
   };
 
+  MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
+  MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
+
   VectorXd vneg = restingMembranePotential;
   VectorXd vpos = restingMembranePotential;
 
@@ -1023,6 +1014,12 @@ int run(
   VectorXi isspiking = VectorXi::Zero(NBNEUR);
   VectorXd EachNeurLTD = VectorXd::Zero(NBNEUR);
   VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
+
+  MatrixXd wff = initwff;
+  MatrixXd w = initw;
+  // If no-inhib mode, remove all inhibitory connections:
+  if (NOINH)
+    w.rightCols(NBI).setZero();
 
   // For each stimulus presentation...
   for (int numpres = 0; numpres < NBPRES; numpres++) {
