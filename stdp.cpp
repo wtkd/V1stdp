@@ -1190,11 +1190,10 @@ int run(
           }
         }
 
-      VectorXd Ilat = LATCONNMULT * VSTIM * LatInput;
-
-      // This disables all lateral connections - Inhibitory and excitatory
-      if (NOLAT)
-        Ilat.setZero();
+      VectorXd const Ilat = NOLAT
+                                // This disables all lateral connections - Inhibitory and excitatory
+                                ? VectorXd::Zero(NBNEUR)
+                                : VectorXd(LATCONNMULT * VSTIM * LatInput);
 
       // Total input (FF + lateral + frozen noise):
       VectorXd const &I =
