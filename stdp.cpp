@@ -903,11 +903,6 @@ int run(
   VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
   VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
 
-  VectorXd sumwff = VectorXd::Zero(NBPRES);
-  VectorXd sumw = VectorXd::Zero(NBPRES);
-  MatrixXi resps = MatrixXi::Zero(NBNEUR, NBRESPS);
-  MatrixXd respssumv = MatrixXd::Zero(NBNEUR, NBRESPS);
-
   double mixvals[NBMIXES];
   for (int nn = 0; nn < NBMIXES; nn++)
     // NBMIXES values equally spaced from 0 to 1 inclusive.
@@ -995,6 +990,10 @@ int run(
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
   MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
+  VectorXd sumwff = VectorXd::Zero(NBPRES);
+  VectorXd sumw = VectorXd::Zero(NBPRES);
+  MatrixXi resps = MatrixXi::Zero(NBNEUR, NBRESPS);
+  MatrixXd respssumv = MatrixXd::Zero(NBNEUR, NBRESPS);
 
   VectorXd vneg = restingMembranePotential;
   VectorXd vpos = restingMembranePotential;
