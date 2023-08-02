@@ -932,7 +932,6 @@ int run(
   VectorXd lgnrates = VectorXd::Zero(FFRFSIZE);
   VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
   VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
-  VectorXd lgnfirings = VectorXd::Zero(FFRFSIZE);
 
   VectorXd sumwff = VectorXd::Zero(NBPRES);
   VectorXd sumw = VectorXd::Zero(NBPRES);
@@ -1110,7 +1109,7 @@ int run(
     // tends to generate epileptic self-sustaining firing; 'normal' learning doesn't need it.)
     v.fill(Eleak);
     resps.col(numpres % NBRESPS).setZero();
-    lgnfirings.setZero();
+    VectorXd lgnfirings = VectorXd::Zero(FFRFSIZE);
     firings.setZero();
 
     for (int ni = 0; ni < NBNEUR; ni++)
