@@ -1008,8 +1008,6 @@ int run(
   VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
 
   // Initializations.
-  VectorXi firings = VectorXi::Zero(NBNEUR);
-  VectorXd Iff = VectorXd::Zero(NBNEUR);
   VectorXd Ilat = VectorXd::Zero(NBNEUR);
   VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
   VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
@@ -1107,7 +1105,7 @@ int run(
 
     resps.col(numpres % NBRESPS).setZero();
     VectorXd lgnfirings = VectorXd::Zero(FFRFSIZE);
-    firings.setZero();
+    VectorXi firings = VectorXi::Zero(NBNEUR);
 
     for (int ni = 0; ni < NBNEUR; ni++)
       for (int nj = 0; nj < NBNEUR; nj++)
@@ -1134,8 +1132,6 @@ int run(
         lgnfirings.setZero();
 
       // We compute the feedforward input:
-
-      Iff.setZero();
 
       // Using delays for FF connections from LGN makes the system MUCH slower,
       // and doesn't change much. So we don't.
@@ -1169,7 +1165,7 @@ int run(
 
       // This, which ignores FF delays, is much faster.... MAtrix
       // multiplications courtesy of the Eigen library.
-      Iff = wff * lgnfirings * VSTIM;
+      VectorXd const Iff = wff * lgnfirings * VSTIM;
 
       // Now we compute the lateral inputs. Remember that incomingspikes is a
       // circular array.
