@@ -890,7 +890,8 @@ int run(
 
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
-  VectorXd v = VectorXd::Constant(NBNEUR, -70.5); // VectorXd::Zero(NBNEUR);
+  auto const restingMembranePotential = VectorXd::Constant(NBNEUR, -70.5);
+
   // Initializations.
   VectorXi firings = VectorXi::Zero(NBNEUR);
   VectorXi firingsprev = VectorXi::Zero(NBNEUR);
@@ -899,13 +900,13 @@ int run(
   VectorXd I;
   VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
   VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
-  VectorXd vneg = v;
-  VectorXd vpos = v;
-  VectorXd vprev = v;
-  VectorXd vprevprev = v;
+  VectorXd vneg = restingMembranePotential;
+  VectorXd vpos = restingMembranePotential;
+  VectorXd vprev = restingMembranePotential;
+  VectorXd vprevprev = restingMembranePotential;
 
   // Correct initialization for vlongtrace.
-  VectorXd vlongtrace = (v.array() - THETAVLONGTRACE).cwiseMax(0);
+  VectorXd vlongtrace = (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0);
 
   // Wrong:
   // VectorXd vlongtrace = v;
@@ -1107,7 +1108,8 @@ int run(
 
     // At the beginning of every presentation, we reset everything ! (it is important for the random-patches case which
     // tends to generate epileptic self-sustaining firing; 'normal' learning doesn't need it.)
-    v.fill(Eleak);
+    VectorXd v = VectorXd::Constant(NBNEUR, Eleak); // VectorXd::Zero(NBNEUR);
+
     resps.col(numpres % NBRESPS).setZero();
     VectorXd lgnfirings = VectorXd::Zero(FFRFSIZE);
     firings.setZero();
