@@ -906,10 +906,11 @@ int run(
   // Wrong:
   // VectorXd vlongtrace = v;
 
-  VectorXi ZeroV = VectorXi::Zero(NBNEUR);
-  VectorXi OneV = VectorXi::Constant(NBNEUR, 1);
-  VectorXd ZeroLGN = VectorXd::Zero(FFRFSIZE);
-  VectorXd OneLGN = VectorXd::Constant(FFRFSIZE, 1.0);
+  VectorXi const ZeroV = VectorXi::Zero(NBNEUR);
+  VectorXi const OneV = VectorXi::Constant(NBNEUR, 1);
+  VectorXd const ZeroLGN = VectorXd::Zero(FFRFSIZE);
+  VectorXd const OneLGN = VectorXd::Constant(FFRFSIZE, 1.0);
+
   VectorXd z = VectorXd::Zero(NBNEUR);
   VectorXd wadap = VectorXd::Zero(NBNEUR);
   VectorXd vthresh = VectorXd::Constant(NBNEUR, VTREST);
