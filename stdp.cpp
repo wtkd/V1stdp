@@ -821,9 +821,9 @@ int run(
   std::cout << "DELAYPARAM: " << DELAYPARAM << std::endl;
   std::cout << "WPENSCALE: " << WPENSCALE << std::endl;
   std::cout << "ALTPMULT: " << ALTPMULT << std::endl;
-  int NBSTEPSPERPRES = (int)(PRESTIME / dt);
-  int NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
-  int NBSTEPS = NBSTEPSPERPRES * NBPRES;
+  int const NBSTEPSPERPRES = (int)(PRESTIME / dt);
+  int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
+  int const NBSTEPS = NBSTEPSPERPRES * NBPRES;
 
   double INPUTMULT = -1;
 
