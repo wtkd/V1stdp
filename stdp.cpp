@@ -1008,7 +1008,6 @@ int run(
   VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
 
   // Initializations.
-  VectorXd Ilat = VectorXd::Zero(NBNEUR);
   VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
   VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
 
@@ -1192,7 +1191,7 @@ int run(
           }
         }
 
-      Ilat = LATCONNMULT * VSTIM * LatInput;
+      VectorXd Ilat = LATCONNMULT * VSTIM * LatInput;
 
       // This disables all lateral connections - Inhibitory and excitatory
       if (NOLAT)
