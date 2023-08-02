@@ -900,10 +900,6 @@ int run(
   VectorXd I;
   VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
   VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
-  VectorXd vneg = restingMembranePotential;
-  VectorXd vpos = restingMembranePotential;
-  VectorXd vprev = restingMembranePotential;
-  VectorXd vprevprev = restingMembranePotential;
 
   // Correct initialization for vlongtrace.
   VectorXd vlongtrace = (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0);
@@ -1024,6 +1020,9 @@ int run(
     saveWeights(w, saveDirectory / ("w_" + std::to_string((long long int)(index)) + ".dat"));
     saveWeights(wff, saveDirectory / ("wff_" + std::to_string((long long int)(index)) + ".dat"));
   };
+
+  VectorXd vneg = restingMembranePotential;
+  VectorXd vpos = restingMembranePotential;
 
   // For each stimulus presentation...
   for (int numpres = 0; numpres < NBPRES; numpres++) {
@@ -1210,8 +1209,8 @@ int run(
       // Total input (FF + lateral + frozen noise):
       I = Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
 
-      vprev = v;
-      vprevprev = vprev;
+      VectorXd const vprev = v;
+      VectorXd const vprevprev = vprev;
 
       // AdEx  neurons:
       if (NOSPIKE) {
