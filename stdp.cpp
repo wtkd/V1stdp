@@ -933,7 +933,6 @@ int run(
   VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
   VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
   VectorXd lgnfirings = VectorXd::Zero(FFRFSIZE);
-  VectorXd lgnfiringsprev = VectorXd::Zero(FFRFSIZE);
 
   VectorXd sumwff = VectorXd::Zero(NBPRES);
   VectorXd sumw = VectorXd::Zero(NBPRES);
@@ -1112,9 +1111,8 @@ int run(
     v.fill(Eleak);
     resps.col(numpres % NBRESPS).setZero();
     lgnfirings.setZero();
-    lgnfiringsprev.setZero();
     firings.setZero();
-    firingsprev.setZero();
+
     for (int ni = 0; ni < NBNEUR; ni++)
       for (int nj = 0; nj < NBNEUR; nj++)
         incomingspikes[ni][nj].fill(0);
@@ -1123,8 +1121,6 @@ int run(
     for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES; numstepthispres++) {
 
       // We determine FF spikes, based on the specified lgnrates:
-
-      lgnfiringsprev = lgnfirings;
 
       if (
           // In the PULSE case, inputs only fire for a short period of time
