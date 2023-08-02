@@ -897,7 +897,6 @@ int run(
   VectorXi firingsprev = VectorXi::Zero(NBNEUR);
   VectorXd Iff = VectorXd::Zero(NBNEUR);
   VectorXd Ilat = VectorXd::Zero(NBNEUR);
-  VectorXd I;
   VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
   VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
 
@@ -1207,7 +1206,8 @@ int run(
         Ilat.setZero();
 
       // Total input (FF + lateral + frozen noise):
-      I = Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
+      VectorXd const &I =
+          Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
 
       VectorXd const vprev = v;
       VectorXd const vprevprev = vprev;
