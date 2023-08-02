@@ -886,14 +886,6 @@ int run(
   // Clopath's experiments
   auto const restingMembranePotential = VectorXd::Constant(NBNEUR, -70.5);
 
-  // Initializations.
-  VectorXi firings = VectorXi::Zero(NBNEUR);
-  VectorXi firingsprev = VectorXi::Zero(NBNEUR);
-  VectorXd Iff = VectorXd::Zero(NBNEUR);
-  VectorXd Ilat = VectorXd::Zero(NBNEUR);
-  VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
-  VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
-
   // Correct initialization for vlongtrace.
   VectorXd vlongtrace = (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0);
 
@@ -1014,6 +1006,13 @@ int run(
   VectorXi isspiking = VectorXi::Zero(NBNEUR);
   VectorXd EachNeurLTD = VectorXd::Zero(NBNEUR);
   VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
+
+  // Initializations.
+  VectorXi firings = VectorXi::Zero(NBNEUR);
+  VectorXd Iff = VectorXd::Zero(NBNEUR);
+  VectorXd Ilat = VectorXd::Zero(NBNEUR);
+  VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
+  VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
 
   MatrixXd wff = initwff;
   MatrixXd w = initw;
@@ -1244,7 +1243,6 @@ int run(
 
       // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
       // time has elapsed.
-      firingsprev = firings;
       if (!NOSPIKE) {
         firings = (v.array() > VPEAK).select(OneV, ZeroV);
         v = (firings.array() > 0).select(VPEAK, v);
