@@ -872,11 +872,6 @@ int run(
     negnoisein.setZero();
   }
 
-  // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
-  // target neuron and j is the source synapse)
-  int delays[NBNEUR][NBNEUR];
-  int delaysFF[FFRFSIZE][NBNEUR];
-
   // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming synapse); each
   // vector is used as a circular array, containing the incoming spikes at this synapse at successive timesteps:
   VectorXi incomingspikes[NBNEUR][NBNEUR];
@@ -917,6 +912,11 @@ int run(
   for (int nn = 0; nn < NBMIXES; nn++)
     // NBMIXES values equally spaced from 0 to 1 inclusive.
     mixvals[nn] = (double)nn / (double)(NBMIXES - 1);
+
+  // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
+  // target neuron and j is the source synapse)
+  std::vector<std::vector<int>> delays(NBNEUR, std::vector<int>(NBNEUR));
+  std::vector<std::vector<int>> delaysFF(FFRFSIZE, std::vector<int>(NBNEUR));
 
   // We generate the delays:
 
