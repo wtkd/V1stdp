@@ -872,17 +872,9 @@ int run(
     negnoisein.setZero();
   }
 
-  // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming synapse); each
-  // vector is used as a circular array, containing the incoming spikes at this synapse at successive timesteps:
-  VectorXi incomingspikes[NBNEUR][NBNEUR];
-  VectorXi incomingFFspikes[NBNEUR][FFRFSIZE];
-
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
   auto const restingMembranePotential = VectorXd::Constant(NBNEUR, -70.5);
-
-  // Correct initialization for vlongtrace.
-  VectorXd vlongtrace = (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0);
 
   // Wrong:
   // VectorXd vlongtrace = v;
@@ -912,6 +904,11 @@ int run(
   // target neuron and j is the source synapse)
   std::vector<std::vector<int>> delays(NBNEUR, std::vector<int>(NBNEUR));
   std::vector<std::vector<int>> delaysFF(FFRFSIZE, std::vector<int>(NBNEUR));
+
+  // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming synapse); each
+  // vector is used as a circular array, containing the incoming spikes at this synapse at successive timesteps:
+  std::vector<std::vector<VectorXi>> incomingspikes(NBNEUR, std::vector<VectorXi>(NBNEUR));
+  std::vector<std::vector<VectorXi>> incomingFFspikes(NBNEUR, std::vector<VectorXi>(FFRFSIZE));
 
   // We generate the delays:
 
@@ -1009,6 +1006,9 @@ int run(
   // Initializations.
   VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
   VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
+
+  // Correct initialization for vlongtrace.
+  VectorXd vlongtrace = (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0);
 
   MatrixXd wff = initwff;
   MatrixXd w = initw;
