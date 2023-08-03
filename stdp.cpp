@@ -1055,6 +1055,8 @@ int run(
   VectorXd &EachNeurLTD = modelState.EachNeurLTD;
   VectorXd &EachNeurLTP = modelState.EachNeurLTP;
 
+  Map<ArrayXX<int8_t> const> const imageVector(imagedata.data(), FFRFSIZE / 2, nbpatchesinfile);
+
   // For each stimulus presentation...
   for (int numpres = 0; numpres < NBPRES; numpres++) {
     // Save data
@@ -1076,69 +1078,68 @@ int run(
     // Extracting the image data for this frame presentation, and preparing the LGN / FF output rates (notice the
     // log-transform):
 
-    VectorXd lgnrates = VectorXd::Zero(FFRFSIZE);
-    VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
-    VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
-
-    for (int nn = 0; nn < FFRFSIZE / 2; nn++) {
-      lgnrates(nn) = log(1.0 + ((double)imagedata[posindata + nn] > 0 ? MOD * (double)imagedata[posindata + nn] : 0));
-      lgnrates(nn + FFRFSIZE / 2) =
-          log(1.0 + ((double)imagedata[posindata + nn] < 0 ? -MOD * (double)imagedata[posindata + nn] : 0));
-    }
-
-    // Scale by max! The inputs are scaled to have a maximum of 1 (multiplied by INPUTMULT below)
-    lgnrates /= lgnrates.maxCoeff();
-
-    if (phase == Phase::mixing) {
-      int posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
-      if (posindata1 >= totaldatasize - FFRFSIZE / 2) {
-        std::cerr << "Error: tried to read beyond data end.\n";
-        return -1;
-      }
-      int posindata2 = ((STIM2 % nbpatchesinfile) * FFRFSIZE / 2);
-      if (posindata2 >= totaldatasize - FFRFSIZE / 2) {
-        std::cerr << "Error: tried to read beyond data end.\n";
-        return -1;
-      }
-
-      double mixval1 = mixvals[numpres % NBMIXES];
-      double mixval2 = 1.0 - mixval1;
-      double mixedinput = 0;
-      if ((numpres / NBMIXES) == 1)
-        mixval2 = 0;
-      if ((numpres / NBMIXES) == 2)
-        mixval1 = 0;
-
-      for (int nn = 0; nn < FFRFSIZE / 2; nn++) {
-        lgnratesS1(nn) = log(1.0 + ((double)imagedata[posindata1 + nn] > 0 ? (double)imagedata[posindata1 + nn] : 0));
-        lgnratesS1(nn + FFRFSIZE / 2) =
-            log(1.0 + ((double)imagedata[posindata1 + nn] < 0 ? -(double)imagedata[posindata1 + nn] : 0));
-        lgnratesS2(nn) = log(1.0 + ((double)imagedata[posindata2 + nn] > 0 ? (double)imagedata[posindata2 + nn] : 0));
-        lgnratesS2(nn + FFRFSIZE / 2) =
-            log(1.0 + ((double)imagedata[posindata2 + nn] < 0 ? -(double)imagedata[posindata2 + nn] : 0));
-        // No log-transform:
-        // lgnratesS1(nn) = ( (imagedata[posindata1+nn] > 0 ?
-        // imagedata[posindata1+nn] : 0));  lgnratesS1(nn + FFRFSIZE / 2) = (
-        // (imagedata[posindata1+nn] < 0 ? -imagedata[posindata1+nn] : 0));
-        // lgnratesS2(nn) = ( (imagedata[posindata2+nn] > 0 ?
-        // imagedata[posindata2+nn] : 0));  lgnratesS2(nn + FFRFSIZE / 2) = (
-        // (imagedata[posindata2+nn] < 0 ? -imagedata[posindata2+nn] : 0));
-      }
-      lgnratesS1 /= lgnratesS1.maxCoeff(); // Scale by max!!
-      lgnratesS2 /= lgnratesS2.maxCoeff(); // Scale by max!!
-
-      for (int nn = 0; nn < FFRFSIZE; nn++)
-        lgnrates(nn) = mixval1 * lgnratesS1(nn) + mixval2 * lgnratesS2(nn);
-    }
-
     INPUTMULT = 150.0;
     INPUTMULT *= 2.0;
+    VectorXd s, t;
 
-    // We put inputmult here to ensure that it is reflected in the actual number of incoming spikes
-    lgnrates *= INPUTMULT;
+    ArrayXd const rawLgnrates =
+        [&]() {
+          ArrayXd result(FFRFSIZE);
+          result << log(1.0 + (MOD * (imageVector.col(posindata)).cast<double>()).cwiseMax(0)),
+              log(1.0 - (MOD * (imageVector.col(posindata)).cast<double>()).cwiseMin(0));
+          return result;
+        }()
+        // We put inputmult here to ensure that it is reflected in the actual number of incoming spikes
+        * INPUTMULT
+        // LGN rates from the pattern file are expressed in Hz. We want it in rate per dt, and dt itself is expressed in
+        // ms.
+        * (dt / 1000.0);
+    VectorXd const lgnrates = rawLgnrates / rawLgnrates.maxCoeff();
 
-    // LGN rates from the pattern file are expressed in Hz. We want it in rate per dt, and dt itself is expressed in ms.
-    lgnrates *= (dt / 1000.0);
+    // if (phase == Phase::mixing) {
+    //   VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
+    //   VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
+
+    //   int posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
+    //   if (posindata1 >= totaldatasize - FFRFSIZE / 2) {
+    //     std::cerr << "Error: tried to read beyond data end.\n";
+    //     return -1;
+    //   }
+    //   int posindata2 = ((STIM2 % nbpatchesinfile) * FFRFSIZE / 2);
+    //   if (posindata2 >= totaldatasize - FFRFSIZE / 2) {
+    //     std::cerr << "Error: tried to read beyond data end.\n";
+    //     return -1;
+    //   }
+
+    //   double mixval1 = mixvals[numpres % NBMIXES];
+    //   double mixval2 = 1.0 - mixval1;
+    //   double mixedinput = 0;
+    //   if ((numpres / NBMIXES) == 1)
+    //     mixval2 = 0;
+    //   if ((numpres / NBMIXES) == 2)
+    //     mixval1 = 0;
+
+    //   for (int nn = 0; nn < FFRFSIZE / 2; nn++) {
+    //     lgnratesS1(nn) = log(1.0 + ((double)imagedata[posindata1 + nn] > 0 ? (double)imagedata[posindata1 + nn] :
+    //     0)); lgnratesS1(nn + FFRFSIZE / 2) =
+    //         log(1.0 + ((double)imagedata[posindata1 + nn] < 0 ? -(double)imagedata[posindata1 + nn] : 0));
+    //     lgnratesS2(nn) = log(1.0 + ((double)imagedata[posindata2 + nn] > 0 ? (double)imagedata[posindata2 + nn] :
+    //     0)); lgnratesS2(nn + FFRFSIZE / 2) =
+    //         log(1.0 + ((double)imagedata[posindata2 + nn] < 0 ? -(double)imagedata[posindata2 + nn] : 0));
+    //     // No log-transform:
+    //     // lgnratesS1(nn) = ( (imagedata[posindata1+nn] > 0 ?
+    //     // imagedata[posindata1+nn] : 0));  lgnratesS1(nn + FFRFSIZE / 2) = (
+    //     // (imagedata[posindata1+nn] < 0 ? -imagedata[posindata1+nn] : 0));
+    //     // lgnratesS2(nn) = ( (imagedata[posindata2+nn] > 0 ?
+    //     // imagedata[posindata2+nn] : 0));  lgnratesS2(nn + FFRFSIZE / 2) = (
+    //     // (imagedata[posindata2+nn] < 0 ? -imagedata[posindata2+nn] : 0));
+    //   }
+    //   lgnratesS1 /= lgnratesS1.maxCoeff(); // Scale by max!!
+    //   lgnratesS2 /= lgnratesS2.maxCoeff(); // Scale by max!!
+
+    //   for (int nn = 0; nn < FFRFSIZE; nn++)
+    //     lgnrates(nn) = mixval1 * lgnratesS1(nn) + mixval2 * lgnratesS2(nn);
+    // }
 
     // At the beginning of every presentation, we reset everything ! (it is important for the random-patches case which
     // tends to generate epileptic self-sustaining firing; 'normal' learning doesn't need it.)
