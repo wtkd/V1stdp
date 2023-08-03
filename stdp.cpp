@@ -1196,7 +1196,7 @@ int run(
                                 : VectorXd(LATCONNMULT * VSTIM * LatInput);
 
       // Total input (FF + lateral + frozen noise):
-      VectorXd const &I =
+      VectorXd const I =
           Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
 
       VectorXd const vprev = v;
