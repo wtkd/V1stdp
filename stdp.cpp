@@ -915,10 +915,6 @@ int run(
   for (int nn = 0; nn < NBNEUR; nn++)
     ALTDS[nn] = BASEALTD + RANDALTD * ((double)rand() / (double)RAND_MAX);
 
-  VectorXd lgnrates = VectorXd::Zero(FFRFSIZE);
-  VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
-  VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
-
   double mixvals[NBMIXES];
   for (int nn = 0; nn < NBMIXES; nn++)
     // NBMIXES values equally spaced from 0 to 1 inclusive.
@@ -1066,9 +1062,9 @@ int run(
     }
 
     // Where are we in the data file?
-    int posindata = ((numpres % nbpatchesinfile) * FFRFSIZE / 2);
-    if (phase == Phase::pulse)
-      posindata = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
+    int const curretnDataNumber = (phase == Phase::pulse ? STIM1 : numpres);
+    int const posindata = (curretnDataNumber % nbpatchesinfile) * FFRFSIZE / 2;
+
     if (posindata >= totaldatasize - FFRFSIZE / 2) {
       std::cerr << "Error: tried to read beyond data end.\n";
       return -1;
@@ -1078,6 +1074,10 @@ int run(
 
     // Extracting the image data for this frame presentation, and preparing the LGN / FF output rates (notice the
     // log-transform):
+
+    VectorXd lgnrates = VectorXd::Zero(FFRFSIZE);
+    VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
+    VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
 
     for (int nn = 0; nn < FFRFSIZE / 2; nn++) {
       lgnrates(nn) = log(1.0 + ((double)imagedata[posindata + nn] > 0 ? MOD * (double)imagedata[posindata + nn] : 0));
