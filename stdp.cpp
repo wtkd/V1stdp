@@ -1065,8 +1065,8 @@ int run(
     }
 
     // Where are we in the data file?
-    int const curretnDataNumber = (phase == Phase::pulse ? STIM1 : numpres);
-    int const posindata = (curretnDataNumber % nbpatchesinfile) * FFRFSIZE / 2;
+    int const currentDataNumber = (phase == Phase::pulse ? STIM1 : numpres);
+    int const posindata = (currentDataNumber % nbpatchesinfile) * FFRFSIZE / 2;
 
     if (posindata >= totaldatasize - FFRFSIZE / 2) {
       std::cerr << "Error: tried to read beyond data end.\n";
@@ -1080,21 +1080,21 @@ int run(
 
     INPUTMULT = 150.0;
     INPUTMULT *= 2.0;
-    VectorXd s, t;
 
-    ArrayXd const rawLgnrates =
-        [&]() {
-          ArrayXd result(FFRFSIZE);
-          result << log(1.0 + (MOD * (imageVector.col(posindata)).cast<double>()).cwiseMax(0)),
-              log(1.0 - (MOD * (imageVector.col(posindata)).cast<double>()).cwiseMin(0));
-          return result;
-        }()
+    ArrayXd const rawLgnrates = [&]() {
+      ArrayXd result(FFRFSIZE);
+      result << log(1.0 + (MOD * (imageVector.col(currentDataNumber)).cast<double>()).max(0)),
+          log(1.0 - (MOD * (imageVector.col(currentDataNumber)).cast<double>()).min(0));
+      return result;
+    }();
+
+    VectorXd const lgnrates =
+        rawLgnrates / rawLgnrates.maxCoeff() *
         // We put inputmult here to ensure that it is reflected in the actual number of incoming spikes
-        * INPUTMULT
+        INPUTMULT *
         // LGN rates from the pattern file are expressed in Hz. We want it in rate per dt, and dt itself is expressed in
         // ms.
-        * (dt / 1000.0);
-    VectorXd const lgnrates = rawLgnrates / rawLgnrates.maxCoeff();
+        (dt / 1000.0);
 
     // if (phase == Phase::mixing) {
     //   VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
@@ -1151,7 +1151,7 @@ int run(
 
     for (int ni = 0; ni < NBNEUR; ni++)
       for (int nj = 0; nj < NBNEUR; nj++)
-        incomingspikes[ni][nj].fill(0);
+        incomingspikes[ni][nj].setZero();
 
     // Stimulus presentation
     for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES; numstepthispres++) {
