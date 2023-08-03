@@ -787,6 +787,30 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
+struct ModelState {
+  MatrixXd w;
+  MatrixXd wff;
+  // VectorXd v;
+  // std::unique_ptr<VectorXd> vprev;
+  // std::vector<std::vector<int>> delays;
+  // std::vector<std::vector<int>> delaysFF;
+  // std::vector<std::vector<VectorXi>> incomingspikes;
+  // std::vector<std::vector<VectorXi>> incomingFFspikes;
+  // VectorXi firings;
+  VectorXd xplast_lat;
+  VectorXd xplast_ff;
+  VectorXd vneg;
+  VectorXd vpos;
+  VectorXd vlongtrace;
+  VectorXd z;
+  VectorXd wadap;
+  VectorXd vthresh;
+  VectorXd refractime;
+  VectorXi isspiking;
+  VectorXd EachNeurLTD;
+  VectorXd EachNeurLTP;
+};
+
 int run(
     double const LATCONNMULT,
     double const WIE_MAX,
@@ -985,6 +1009,23 @@ int run(
     saveWeights(wff, saveDirectory / ("wff_" + std::to_string((long long int)(index)) + ".dat"));
   };
 
+  ModelState modelState{
+      initw,                                                            // w
+      initwff,                                                          // wff
+      VectorXd::Zero(NBNEUR),                                           // xplast_lat
+      VectorXd::Zero(FFRFSIZE),                                         // xplast_ff
+      restingMembranePotential,                                         // vneg
+      restingMembranePotential,                                         // vpos
+      (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0), // vlongtrace
+      VectorXd::Zero(NBNEUR),                                           // z
+      VectorXd::Zero(NBNEUR),                                           // wadap
+      VectorXd::Constant(NBNEUR, VTREST),                               // vthresh
+      VectorXd::Zero(NBNEUR),                                           // refractime
+      VectorXi::Zero(NBNEUR),                                           // isspiking
+      VectorXd::Zero(NBNEUR),                                           // EachNeurLTD
+      VectorXd::Zero(NBNEUR),                                           // EachNeurLTP
+  };
+
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
   MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
   VectorXd sumwff = VectorXd::Zero(NBPRES);
@@ -992,29 +1033,30 @@ int run(
   MatrixXi resps = MatrixXi::Zero(NBNEUR, NBRESPS);
   MatrixXd respssumv = MatrixXd::Zero(NBNEUR, NBRESPS);
 
-  VectorXd vneg = restingMembranePotential;
-  VectorXd vpos = restingMembranePotential;
+  MatrixXd &wff = modelState.wff;
+  MatrixXd &w = modelState.w;
 
-  VectorXd z = VectorXd::Zero(NBNEUR);
-  VectorXd wadap = VectorXd::Zero(NBNEUR);
-  VectorXd vthresh = VectorXd::Constant(NBNEUR, VTREST);
-  VectorXd refractime = VectorXd::Zero(NBNEUR);
-  VectorXi isspiking = VectorXi::Zero(NBNEUR);
-  VectorXd EachNeurLTD = VectorXd::Zero(NBNEUR);
-  VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
-
-  // Initializations.
-  VectorXd xplast_ff = VectorXd::Zero(FFRFSIZE);
-  VectorXd xplast_lat = VectorXd::Zero(NBNEUR);
-
-  // Correct initialization for vlongtrace.
-  VectorXd vlongtrace = (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0);
-
-  MatrixXd wff = initwff;
-  MatrixXd w = initw;
   // If no-inhib mode, remove all inhibitory connections:
   if (NOINH)
     w.rightCols(NBI).setZero();
+
+  VectorXd &vneg = modelState.vneg;
+  VectorXd &vpos = modelState.vpos;
+
+  VectorXd &z = modelState.z;
+
+  VectorXd &xplast_ff = modelState.xplast_ff;
+  VectorXd &xplast_lat = modelState.xplast_lat;
+
+  // Correct initialization for vlongtrace.
+  VectorXd &vlongtrace = modelState.vlongtrace;
+
+  VectorXd &wadap = modelState.wadap;
+  VectorXd &vthresh = modelState.vthresh;
+  VectorXd &refractime = modelState.refractime;
+  VectorXi &isspiking = modelState.isspiking;
+  VectorXd &EachNeurLTD = modelState.EachNeurLTD;
+  VectorXd &EachNeurLTP = modelState.EachNeurLTP;
 
   // For each stimulus presentation...
   for (int numpres = 0; numpres < NBPRES; numpres++) {
