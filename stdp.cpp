@@ -1081,65 +1081,43 @@ int run(
     INPUTMULT = 150.0;
     INPUTMULT *= 2.0;
 
-    ArrayXd const rawLgnrates = [&]() {
+    auto const createRatioLgnrates = [&](int const dataNumber, double const mod) -> ArrayXd {
       ArrayXd result(FFRFSIZE);
-      result << log(1.0 + (MOD * (imageVector.col(currentDataNumber)).cast<double>()).max(0)),
-          log(1.0 - (MOD * (imageVector.col(currentDataNumber)).cast<double>()).min(0));
-      return result;
-    }();
+      result << log(1.0 + (mod * (imageVector.col(dataNumber)).cast<double>()).max(0)),
+          log(1.0 - (mod * (imageVector.col(dataNumber)).cast<double>()).min(0));
+      return result / result.maxCoeff();
+    };
 
     VectorXd const lgnrates =
-        rawLgnrates / rawLgnrates.maxCoeff() *
-        // We put inputmult here to ensure that it is reflected in the actual number of incoming spikes
-        INPUTMULT *
-        // LGN rates from the pattern file are expressed in Hz. We want it in rate per dt, and dt itself is expressed in
-        // ms.
-        (dt / 1000.0);
+        [&]() -> ArrayXd {
+      if (phase == Phase::mixing) {
+        int const posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
+        if (posindata1 >= totaldatasize - FFRFSIZE / 2) {
+          std::cerr << "Error: tried to read beyond data end.\n";
+          std::exit(-1);
+        }
+        int const posindata2 = ((STIM2 % nbpatchesinfile) * FFRFSIZE / 2);
+        if (posindata2 >= totaldatasize - FFRFSIZE / 2) {
+          std::cerr << "Error: tried to read beyond data end.\n";
+          std::exit(-1);
+        }
 
-    // if (phase == Phase::mixing) {
-    //   VectorXd lgnratesS1 = VectorXd::Zero(FFRFSIZE);
-    //   VectorXd lgnratesS2 = VectorXd::Zero(FFRFSIZE);
+        // XXX: Why not use MOD? Should be use same value of others
+        ArrayXd const lgnratesS1 = createRatioLgnrates(STIM1, 1);
+        ArrayXd const lgnratesS2 = createRatioLgnrates(STIM2, 1);
 
-    //   int posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
-    //   if (posindata1 >= totaldatasize - FFRFSIZE / 2) {
-    //     std::cerr << "Error: tried to read beyond data end.\n";
-    //     return -1;
-    //   }
-    //   int posindata2 = ((STIM2 % nbpatchesinfile) * FFRFSIZE / 2);
-    //   if (posindata2 >= totaldatasize - FFRFSIZE / 2) {
-    //     std::cerr << "Error: tried to read beyond data end.\n";
-    //     return -1;
-    //   }
+        double const mixval1 = (numpres / NBMIXES == 2 ? 0 : mixvals[numpres % NBMIXES]);
+        double const mixval2 = (numpres / NBMIXES == 1 ? 0 : 1.0 - mixvals[numpres % NBMIXES]);
 
-    //   double mixval1 = mixvals[numpres % NBMIXES];
-    //   double mixval2 = 1.0 - mixval1;
-    //   double mixedinput = 0;
-    //   if ((numpres / NBMIXES) == 1)
-    //     mixval2 = 0;
-    //   if ((numpres / NBMIXES) == 2)
-    //     mixval1 = 0;
-
-    //   for (int nn = 0; nn < FFRFSIZE / 2; nn++) {
-    //     lgnratesS1(nn) = log(1.0 + ((double)imagedata[posindata1 + nn] > 0 ? (double)imagedata[posindata1 + nn] :
-    //     0)); lgnratesS1(nn + FFRFSIZE / 2) =
-    //         log(1.0 + ((double)imagedata[posindata1 + nn] < 0 ? -(double)imagedata[posindata1 + nn] : 0));
-    //     lgnratesS2(nn) = log(1.0 + ((double)imagedata[posindata2 + nn] > 0 ? (double)imagedata[posindata2 + nn] :
-    //     0)); lgnratesS2(nn + FFRFSIZE / 2) =
-    //         log(1.0 + ((double)imagedata[posindata2 + nn] < 0 ? -(double)imagedata[posindata2 + nn] : 0));
-    //     // No log-transform:
-    //     // lgnratesS1(nn) = ( (imagedata[posindata1+nn] > 0 ?
-    //     // imagedata[posindata1+nn] : 0));  lgnratesS1(nn + FFRFSIZE / 2) = (
-    //     // (imagedata[posindata1+nn] < 0 ? -imagedata[posindata1+nn] : 0));
-    //     // lgnratesS2(nn) = ( (imagedata[posindata2+nn] > 0 ?
-    //     // imagedata[posindata2+nn] : 0));  lgnratesS2(nn + FFRFSIZE / 2) = (
-    //     // (imagedata[posindata2+nn] < 0 ? -imagedata[posindata2+nn] : 0));
-    //   }
-    //   lgnratesS1 /= lgnratesS1.maxCoeff(); // Scale by max!!
-    //   lgnratesS2 /= lgnratesS2.maxCoeff(); // Scale by max!!
-
-    //   for (int nn = 0; nn < FFRFSIZE; nn++)
-    //     lgnrates(nn) = mixval1 * lgnratesS1(nn) + mixval2 * lgnratesS2(nn);
-    // }
+        return mixval1 * lgnratesS1 + mixval2 * lgnratesS2;
+      }
+      return createRatioLgnrates(currentDataNumber, MOD);
+    }()
+                     // We put inputmult here to ensure that it is reflected in the actual number of incoming spikes
+                     * INPUTMULT *
+                     // LGN rates from the pattern file are expressed in Hz. We want it in rate
+                     // per dt, and dt itself is expressed in ms.
+                     (dt / 1000.0);
 
     // At the beginning of every presentation, we reset everything ! (it is important for the random-patches case which
     // tends to generate epileptic self-sustaining firing; 'normal' learning doesn't need it.)
