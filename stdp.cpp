@@ -912,14 +912,20 @@ int run(
   MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
   MatrixXi spikesthisstep(NBNEUR, NBNEUR);
 
-  double ALTDS[NBNEUR];
-  for (int nn = 0; nn < NBNEUR; nn++)
-    ALTDS[nn] = BASEALTD + RANDALTD * ((double)rand() / (double)RAND_MAX);
+  std::vector<double> const ALTDS = [&]() {
+    std::vector<double> ALTDS(NBNEUR);
+    for (int nn = 0; nn < NBNEUR; nn++)
+      ALTDS[nn] = BASEALTD + RANDALTD * ((double)rand() / (double)RAND_MAX);
+    return ALTDS;
+  }();
 
-  double mixvals[NBMIXES];
-  for (int nn = 0; nn < NBMIXES; nn++)
-    // NBMIXES values equally spaced from 0 to 1 inclusive.
-    mixvals[nn] = (double)nn / (double)(NBMIXES - 1);
+  std::vector<double> const mixvals = [&]() {
+    std::vector<double> mixvals(NBMIXES);
+    for (int nn = 0; nn < NBMIXES; nn++)
+      // NBMIXES values equally spaced from 0 to 1 inclusive.
+      mixvals[nn] = (double)nn / (double)(NBMIXES - 1);
+    return mixvals;
+  }();
 
   // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
   // target neuron and j is the source synapse)
