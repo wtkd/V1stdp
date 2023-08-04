@@ -2,11 +2,13 @@
 // g++ -I $EIGEN_DIR/Eigen/ -O3 -std=c++11 stdp.cpp -o stdp
 
 #include <Eigen/Dense>
+#include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -929,64 +931,81 @@ int run(
 
   // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
   // target neuron and j is the source synapse)
-  std::vector<std::vector<int>> delays(NBNEUR, std::vector<int>(NBNEUR));
-  std::vector<std::vector<int>> delaysFF(FFRFSIZE, std::vector<int>(NBNEUR));
+  auto const delays = [&]() {
+    std::vector<std::vector<int>> delays(NBNEUR, std::vector<int>(NBNEUR));
 
-  // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming synapse); each
-  // vector is used as a circular array, containing the incoming spikes at this synapse at successive timesteps:
-  std::vector<std::vector<VectorXi>> incomingspikes(NBNEUR, std::vector<VectorXi>(NBNEUR));
-  std::vector<std::vector<VectorXi>> incomingFFspikes(NBNEUR, std::vector<VectorXi>(FFRFSIZE));
+    // We generate the delays:
 
-  // We generate the delays:
+    // We use a trick to generate an exponential distribution, median should be small (maybe 2-4ms) The mental image is
+    // that you pick a uniform value in the unit line, repeatedly check if it falls below a certain threshold - if not,
+    // you cut out the portion of the unit line below that threshold and stretch the remainder (including the random
+    // value) to fill the unit line again. Each time you increase a counter, stopping when the value finally falls below
+    // the threshold. The counter at the end of this process has exponential distribution. There's very likely simpler
+    // ways to do it.
 
-  // We use a trick to generate an exponential distribution, median should be small (maybe 2-4ms) The mental image is
-  // that you pick a uniform value in the unit line, repeatedly check if it falls below a certain threshold - if not,
-  // you cut out the portion of the unit line below that threshold and stretch the remainder (including the random
-  // value) to fill the unit line again. Each time you increase a counter, stopping when the value finally falls below
-  // the threshold. The counter at the end of this process has exponential distribution. There's very likely simpler
-  // ways to do it.
+    // DELAYPARAM should be a small value (3 to 6). It controls the median of the exponential.
+    for (int ni = 0; ni < NBNEUR; ni++) {
+      for (int nj = 0; nj < NBNEUR; nj++) {
 
-  // DELAYPARAM should be a small value (3 to 6). It controls the median of the exponential.
-  for (int ni = 0; ni < NBNEUR; ni++) {
-    for (int nj = 0; nj < NBNEUR; nj++) {
+        double val = (double)rand() / (double)RAND_MAX;
+        double crit = 1.0 / DELAYPARAM; // .1666666666;
+        int mydelay;
+        for (mydelay = 1; mydelay <= MAXDELAYDT; mydelay++) {
+          if (val < crit)
+            break;
+          // "Cutting" and "Stretching"
+          val = DELAYPARAM * (val - crit) / (DELAYPARAM - 1.0);
+        }
 
-      double val = (double)rand() / (double)RAND_MAX;
-      double crit = 1.0 / DELAYPARAM; // .1666666666;
-      int mydelay;
-      for (mydelay = 1; mydelay <= MAXDELAYDT; mydelay++) {
-        if (val < crit)
-          break;
-        // "Cutting" and "Stretching"
-        val = DELAYPARAM * (val - crit) / (DELAYPARAM - 1.0);
+        if (mydelay > MAXDELAYDT)
+          mydelay = 1;
+        delays[nj][ni] = mydelay;
       }
-      if (mydelay > MAXDELAYDT)
-        mydelay = 1;
-      // cout << mydelay << " ";
-      delays[nj][ni] = mydelay;
-      incomingspikes[ni][nj] = VectorXi::Zero(mydelay);
     }
-  }
+    return delays;
+  }();
 
   // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
   // myfile.open("delays.txt", ios::trunc | ios::out);
-  for (int ni = 0; ni < NBNEUR; ni++) {
-    for (int nj = 0; nj < FFRFSIZE; nj++) {
+  auto const delaysFF = [&]() {
+    std::vector<std::vector<int>> delaysFF(FFRFSIZE, std::vector<int>(NBNEUR));
 
-      double val = (double)rand() / (double)RAND_MAX;
-      double crit = .2;
-      int mydelay;
-      for (mydelay = 1; mydelay <= MAXDELAYDT; mydelay++) {
-        if (val < crit)
-          break;
-        val = 5.0 * (val - crit) / 4.0;
+    for (int ni = 0; ni < NBNEUR; ni++) {
+      for (int nj = 0; nj < FFRFSIZE; nj++) {
+
+        double val = (double)rand() / (double)RAND_MAX;
+        double crit = .2;
+        int mydelay;
+        for (mydelay = 1; mydelay <= MAXDELAYDT; mydelay++) {
+          if (val < crit)
+            break;
+          val = 5.0 * (val - crit) / 4.0;
+        }
+        if (mydelay > MAXDELAYDT)
+          mydelay = 1;
+        delaysFF[nj][ni] = mydelay;
       }
-      if (mydelay > MAXDELAYDT)
-        mydelay = 1;
-      delaysFF[nj][ni] = mydelay;
-      // myfile << delaysFF[nj][ni] << " ";
-      incomingFFspikes[ni][nj] = VectorXi::Zero(mydelay);
+    }
+    return delaysFF;
+  }();
+
+  // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming
+  // synapse); each vector is used as a circular array, containing the incoming spikes at this synapse at
+  // successive timesteps:
+  std::vector<std::vector<VectorXi>> incomingspikes(NBNEUR, std::vector<VectorXi>(NBNEUR));
+  for (int ni = 0; ni < NBNEUR; ni++) {
+    for (int nj = 0; nj < NBNEUR; nj++) {
+      incomingspikes[ni][nj] = VectorXi::Zero(delays[nj][ni]);
     }
   }
+
+  std::vector<std::vector<VectorXi>> incomingFFspikes(NBNEUR, std::vector<VectorXi>(FFRFSIZE));
+  for (int ni = 0; ni < NBNEUR; ni++) {
+    for (int nj = 0; nj < FFRFSIZE; nj++) {
+      incomingFFspikes[ni][nj] = VectorXi::Zero(delaysFF[nj][ni]);
+    }
+  }
+
   // myfile << endl; myfile.close();
 
   // Initializations done, let's get to it!
