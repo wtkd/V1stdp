@@ -989,23 +989,6 @@ int run(
     return delaysFF;
   }();
 
-  // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming
-  // synapse); each vector is used as a circular array, containing the incoming spikes at this synapse at
-  // successive timesteps:
-  std::vector<std::vector<VectorXi>> incomingspikes(NBNEUR, std::vector<VectorXi>(NBNEUR));
-  for (int ni = 0; ni < NBNEUR; ni++) {
-    for (int nj = 0; nj < NBNEUR; nj++) {
-      incomingspikes[ni][nj] = VectorXi::Zero(delays[nj][ni]);
-    }
-  }
-
-  std::vector<std::vector<VectorXi>> incomingFFspikes(NBNEUR, std::vector<VectorXi>(FFRFSIZE));
-  for (int ni = 0; ni < NBNEUR; ni++) {
-    for (int nj = 0; nj < FFRFSIZE; nj++) {
-      incomingFFspikes[ni][nj] = VectorXi::Zero(delaysFF[nj][ni]);
-    }
-  }
-
   // myfile << endl; myfile.close();
 
   // Initializations done, let's get to it!
@@ -1152,9 +1135,22 @@ int run(
     VectorXd lgnfirings = VectorXd::Zero(FFRFSIZE);
     VectorXi firings = VectorXi::Zero(NBNEUR);
 
-    for (int ni = 0; ni < NBNEUR; ni++)
-      for (int nj = 0; nj < NBNEUR; nj++)
-        incomingspikes[ni][nj].setZero();
+    // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming
+    // synapse); each vector is used as a circular array, containing the incoming spikes at this synapse at
+    // successive timesteps:
+    std::vector<std::vector<VectorXi>> incomingspikes(NBNEUR, std::vector<VectorXi>(NBNEUR));
+    for (int ni = 0; ni < NBNEUR; ni++) {
+      for (int nj = 0; nj < NBNEUR; nj++) {
+        incomingspikes[ni][nj] = VectorXi::Zero(delays[nj][ni]);
+      }
+    }
+
+    std::vector<std::vector<VectorXi>> incomingFFspikes(NBNEUR, std::vector<VectorXi>(FFRFSIZE));
+    for (int ni = 0; ni < NBNEUR; ni++) {
+      for (int nj = 0; nj < FFRFSIZE; nj++) {
+        incomingFFspikes[ni][nj] = VectorXi::Zero(delaysFF[nj][ni]);
+      }
+    }
 
     // Stimulus presentation
     for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES; numstepthispres++) {
