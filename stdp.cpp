@@ -1132,7 +1132,6 @@ int run(
     VectorXd v = VectorXd::Constant(NBNEUR, Eleak); // VectorXd::Zero(NBNEUR);
 
     resps.col(numpres % NBRESPS).setZero();
-    VectorXd lgnfirings = VectorXd::Zero(FFRFSIZE);
     VectorXi firings = VectorXi::Zero(NBNEUR);
 
     // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming
@@ -1156,21 +1155,26 @@ int run(
     for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES; numstepthispres++) {
 
       // We determine FF spikes, based on the specified lgnrates:
+      VectorXd const lgnfirings = [&]() -> ArrayXd {
+        if (phase == Phase::spontaneous) {
+          return ArrayXd::Zero(FFRFSIZE);
+        }
 
-      if (
+        if (
           // In the PULSE case, inputs only fire for a short period of time
           ((phase == Phase::pulse) && (numstepthispres >= (double)(PULSESTART) / dt) &&
            (numstepthispres < (double)(PULSESTART + PULSETIME) / dt)) ||
           // Otherwise, inputs only fire until the 'relaxation' period at the end of each presentation
-          ((phase != Phase::pulse) && (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt))))
-        for (int nn = 0; nn < FFRFSIZE; nn++)
-          // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
-          lgnfirings(nn) = (rand() / (double)RAND_MAX < std::abs(lgnrates(nn)) ? 1.0 : 0.0);
-      else
-        lgnfirings.setZero();
+          ((phase != Phase::pulse) && (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)))){
+          ArrayXi r(FFRFSIZE);
+          std::ranges::for_each(r, [](auto &i) { i = rand(); });
 
-      if (phase == Phase::spontaneous)
-        lgnfirings.setZero();
+          // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
+          return ((std::move(r).cast<double>() / (double)RAND_MAX) < lgnrates.cwiseAbs().array()).cast<double>();
+        }
+
+        return ArrayXd::Zero(FFRFSIZE);
+      }();
 
       // We compute the feedforward input:
 
@@ -1217,6 +1221,7 @@ int run(
       for (int ni = 0; ni < NBNEUR; ni++)
         for (int nj = 0; nj < NBNEUR; nj++) {
           // If NOELAT, E-E synapses are disabled.
+          // XXX: Number of excitatory neurons are hard-coded
           if (NOELAT && (nj < 100) && (ni < 100))
             continue;
           // No autapses
