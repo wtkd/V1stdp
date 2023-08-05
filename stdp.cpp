@@ -913,10 +913,9 @@ int run(
   MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
   MatrixXi spikesthisstep(NBNEUR, NBNEUR);
 
-  std::vector<double> const ALTDS = [&]() {
-    std::vector<double> ALTDS(NBNEUR);
-    for (int nn = 0; nn < NBNEUR; nn++)
-      ALTDS[nn] = BASEALTD + RANDALTD * ((double)rand() / (double)RAND_MAX);
+  ArrayXd const ALTDS = [&]() {
+    ArrayXd ALTDS(NBNEUR);
+    std::ranges::for_each(ALTDS, [](auto &i) { i = BASEALTD + RANDALTD * ((double)rand() / (double)RAND_MAX); });
     return ALTDS;
   }();
 
@@ -1350,18 +1349,13 @@ int run(
       // if (numpres >= 401)
       {
         // Plasticity !
-        VectorXd EachNeurLTD = VectorXd::Zero(NBNEUR);
-        VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
-
         // For each neuron, we compute the quantities by which any synapse
         // reaching this given neuron should be modified, if the synapse's
         // firing / recent activity (xplast) commands modification.
-        for (int nn = 0; nn < NBE; nn++)
-          EachNeurLTD(nn) = dt * (-ALTDS[nn] / VREF2) * vlongtrace(nn) * vlongtrace(nn) *
-                            ((vneg(nn) - THETAVNEG) < 0 ? 0 : (vneg(nn) - THETAVNEG));
-        for (int nn = 0; nn < NBE; nn++)
-          EachNeurLTP(nn) = dt * ALTP * ALTPMULT * ((vpos(nn) - THETAVNEG) < 0 ? 0 : (vpos(nn) - THETAVNEG)) *
-                            ((v(nn) - THETAVPOS) < 0 ? 0 : (v(nn) - THETAVPOS));
+        VectorXd const EachNeurLTD =
+            dt * (-ALTDS / VREF2) * vlongtrace.array() * vlongtrace.array() * (vneg.array() - THETAVNEG).cwiseMax(0);
+        VectorXd const EachNeurLTP =
+            dt * ALTP * ALTPMULT * (vpos.array() - THETAVNEG).cwiseMax(0) * (v.array() - THETAVPOS).cwiseMax(0);
 
         // Feedforward synapses, then lateral synapses.
         for (int syn = 0; syn < FFRFSIZE; syn++)
