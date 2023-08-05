@@ -1219,9 +1219,8 @@ int run(
       // Now we compute the lateral inputs. Remember that incomingspikes is a
       // circular array.
 
-      VectorXd LatInput = VectorXd::Zero(NBNEUR);
-
-      MatrixXi const spikesthisstep = [&]() {
+      auto const [LatInput, spikesthisstep] = [&]() {
+        VectorXd LatInput = VectorXd::Zero(NBNEUR);
         MatrixXi spikesthisstep = MatrixXi::Zero(NBNEUR, NBNEUR);
         for (int ni = 0; ni < NBNEUR; ni++) {
           for (int nj = 0; nj < NBNEUR; nj++) {
@@ -1241,7 +1240,7 @@ int run(
             }
           }
         }
-        return spikesthisstep;
+        return std::tuple{LatInput, spikesthisstep};
       }();
 
       // // We erase any incoming spikes for this synapse/timestep
