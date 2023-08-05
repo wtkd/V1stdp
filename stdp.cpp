@@ -1166,11 +1166,12 @@ int run(
            (numstepthispres < (double)(PULSESTART + PULSETIME) / dt)) ||
           // Otherwise, inputs only fire until the 'relaxation' period at the end of each presentation
           ((phase != Phase::pulse) && (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)))){
-          ArrayXi r(FFRFSIZE);
-          std::ranges::for_each(r, [](auto &i) { i = rand(); });
-
-          // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
-          return ((std::move(r).cast<double>() / (double)RAND_MAX) < lgnrates.cwiseAbs().array()).cast<double>();
+          ArrayXd r(FFRFSIZE);
+          for (auto &&it = r.begin(); it != r.end(); ++it) {
+            // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
+            *it = (rand() / (double)RAND_MAX < std::abs(lgnrates(std::distance(r.begin(), it))) ? 1.0 : 0.0);
+          }
+          return r;
         }
 
         return ArrayXd::Zero(FFRFSIZE);
