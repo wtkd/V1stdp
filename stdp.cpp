@@ -1218,26 +1218,39 @@ int run(
 
       VectorXd LatInput = VectorXd::Zero(NBNEUR);
 
-      spikesthisstep.setZero();
-      for (int ni = 0; ni < NBNEUR; ni++)
+      MatrixXi const spikesthisstep = [&]() {
+        MatrixXi spikesthisstep = MatrixXi::Zero(NBNEUR, NBNEUR);
+        for (int ni = 0; ni < NBNEUR; ni++) {
+          for (int nj = 0; nj < NBNEUR; nj++) {
+            // If NOELAT, E-E synapses are disabled.
+            // XXX: Number of excitatory neurons are hard-coded
+            if (NOELAT && (nj < 100) && (ni < 100))
+              continue;
+            // No autapses
+            if (ni == nj)
+              continue;
+            // If there is a spike at that synapse for the current timestep, we add it to the lateral input for this
+            // neuron
+            if (incomingspikes[ni][nj](numstep % delays[nj][ni]) > 0) {
+
+              LatInput(ni) += w(ni, nj) * incomingspikes[ni][nj](numstep % delays[nj][ni]);
+              spikesthisstep(ni, nj) = 1;
+            }
+          }
+        }
+        return spikesthisstep;
+      }();
+
+      for (int ni = 0; ni < NBNEUR; ni++) {
         for (int nj = 0; nj < NBNEUR; nj++) {
           // If NOELAT, E-E synapses are disabled.
           // XXX: Number of excitatory neurons are hard-coded
           if (NOELAT && (nj < 100) && (ni < 100))
             continue;
-          // No autapses
-          if (ni == nj)
-            continue;
-          // If there is a spike at that synapse for the current timestep, we add it to the lateral input for this
-          // neuron
-          if (incomingspikes[ni][nj](numstep % delays[nj][ni]) > 0) {
-
-            LatInput(ni) += w(ni, nj) * incomingspikes[ni][nj](numstep % delays[nj][ni]);
-            spikesthisstep(ni, nj) = 1;
-            // We erase any incoming spikes for this synapse/timestep
-            incomingspikes[ni][nj](numstep % delays[nj][ni]) = 0;
-          }
+          // We erase any incoming spikes for this synapse/timestep
+          incomingspikes[ni][nj](numstep % delays[nj][ni]) = 0;
         }
+      }
 
       VectorXd const Ilat = NOLAT
                                 // This disables all lateral connections - Inhibitory and excitatory
