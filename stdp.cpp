@@ -810,8 +810,6 @@ struct ModelState {
   VectorXd vthresh;
   VectorXd refractime;
   VectorXi isspiking;
-  VectorXd EachNeurLTD;
-  VectorXd EachNeurLTP;
 };
 
 int run(
@@ -1027,9 +1025,7 @@ int run(
       VectorXd::Zero(NBNEUR),                                           // wadap
       VectorXd::Constant(NBNEUR, VTREST),                               // vthresh
       VectorXd::Zero(NBNEUR),                                           // refractime
-      VectorXi::Zero(NBNEUR),                                           // isspiking
-      VectorXd::Zero(NBNEUR),                                           // EachNeurLTD
-      VectorXd::Zero(NBNEUR),                                           // EachNeurLTP
+      VectorXi::Zero(NBNEUR)                                            // isspiking
   };
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
@@ -1061,8 +1057,6 @@ int run(
   VectorXd &vthresh = modelState.vthresh;
   VectorXd &refractime = modelState.refractime;
   VectorXi &isspiking = modelState.isspiking;
-  VectorXd &EachNeurLTD = modelState.EachNeurLTD;
-  VectorXd &EachNeurLTP = modelState.EachNeurLTP;
 
   Map<ArrayXX<int8_t> const> const imageVector(imagedata.data(), FFRFSIZE / 2, nbpatchesinfile);
 
@@ -1155,7 +1149,6 @@ int run(
 
     // Stimulus presentation
     for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES; numstepthispres++) {
-
       // We determine FF spikes, based on the specified lgnrates:
       VectorXd const lgnfirings = [&]() -> ArrayXd {
         if (phase == Phase::spontaneous) {
@@ -1356,8 +1349,9 @@ int run(
       if ((phase == Phase::learning) && (numpres >= 401))
       // if (numpres >= 401)
       {
-
         // Plasticity !
+        VectorXd EachNeurLTD = VectorXd::Zero(NBNEUR);
+        VectorXd EachNeurLTP = VectorXd::Zero(NBNEUR);
 
         // For each neuron, we compute the quantities by which any synapse
         // reaching this given neuron should be modified, if the synapse's
