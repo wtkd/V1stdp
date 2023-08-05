@@ -1133,7 +1133,6 @@ int run(
     VectorXd v = VectorXd::Constant(NBNEUR, Eleak); // VectorXd::Zero(NBNEUR);
 
     resps.col(numpres % NBRESPS).setZero();
-    VectorXi firings = VectorXi::Zero(NBNEUR);
 
     // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming
     // synapse); each vector is used as a circular array, containing the incoming spikes at this synapse at
@@ -1293,8 +1292,9 @@ int run(
 
       // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
       // time has elapsed.
-      if (!NOSPIKE) {
-        firings = (v.array() > VPEAK).select(OneV, ZeroV);
+      VectorXi const firings = NOSPIKE ? VectorXi::Zero(NBNEUR) : (v.array() > VPEAK).cast<int>().matrix().eval();
+
+      if (not NOSPIKE) {
         v = (firings.array() > 0).select(VPEAK, v);
         // In practice, REFRACTIME is set to 0 for all current experiments.
         refractime = (firings.array() > 0).select(REFRACTIME, refractime);
