@@ -14,6 +14,7 @@
 #include <tuple>
 
 #include <CLI/CLI.hpp>
+#include <boost/circular_buffer.hpp>
 
 #include "config.hpp"
 
@@ -1137,10 +1138,12 @@ int run(
     // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming
     // synapse); each vector is used as a circular array, containing the incoming spikes at this synapse at
     // successive timesteps:
-    std::vector<std::vector<VectorXi>> incomingspikes(NBNEUR, std::vector<VectorXi>(NBNEUR));
+    std::vector<std::vector<boost::circular_buffer<int>>> incomingspikes(
+        NBNEUR, std::vector<boost::circular_buffer<int>>(NBNEUR)
+    );
     for (int ni = 0; ni < NBNEUR; ni++) {
       for (int nj = 0; nj < NBNEUR; nj++) {
-        incomingspikes[ni][nj] = VectorXi::Zero(delays[nj][ni]);
+        incomingspikes[ni][nj] = boost::circular_buffer<int>(delays[nj][ni], 0);
       }
     }
 
@@ -1231,9 +1234,9 @@ int run(
               continue;
             // If there is a spike at that synapse for the current timestep, we add it to the lateral input for this
             // neuron
-            if (incomingspikes[ni][nj](numstep % delays[nj][ni]) > 0) {
-
-              LatInput(ni) += w(ni, nj) * incomingspikes[ni][nj](numstep % delays[nj][ni]);
+            auto const &spike = incomingspikes[ni][nj].front();
+            if (spike > 0) {
+              LatInput(ni) += w(ni, nj) * spike;
               spikesthisstep(ni, nj) = 1;
             }
           }
@@ -1241,16 +1244,9 @@ int run(
         return spikesthisstep;
       }();
 
-      for (int ni = 0; ni < NBNEUR; ni++) {
-        for (int nj = 0; nj < NBNEUR; nj++) {
-          // If NOELAT, E-E synapses are disabled.
-          // XXX: Number of excitatory neurons are hard-coded
-          if (NOELAT && (nj < 100) && (ni < 100))
-            continue;
-          // We erase any incoming spikes for this synapse/timestep
-          incomingspikes[ni][nj](numstep % delays[nj][ni]) = 0;
-        }
-      }
+      // // We erase any incoming spikes for this synapse/timestep
+      // std::ranges::for_each(incomingspikes, [](auto &v) { std::ranges::for_each(v, [](auto &q) { q.pop_front(); });
+      // });
 
       VectorXd const Ilat = NOLAT
                                 // This disables all lateral connections - Inhibitory and excitatory
@@ -1307,10 +1303,8 @@ int run(
 
         // Send the spike through the network. Remember that incomingspikes is a circular array.
         for (int ni = 0; ni < NBNEUR; ni++) {
-          if (!firings[ni])
-            continue;
           for (int nj = 0; nj < NBNEUR; nj++) {
-            incomingspikes[nj][ni]((numstep + delays[ni][nj]) % delays[ni][nj]) = 1;
+            incomingspikes[nj][ni].push_back(firings[ni] ? 1 : 0);
           }
         }
       }
