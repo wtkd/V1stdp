@@ -1358,22 +1358,30 @@ int run(
             dt * ALTP * ALTPMULT * (vpos.array() - THETAVNEG).cwiseMax(0) * (v.array() - THETAVPOS).cwiseMax(0);
 
         // Feedforward synapses, then lateral synapses.
-        for (int syn = 0; syn < FFRFSIZE; syn++)
-          for (int nn = 0; nn < NBE; nn++)
-            wff(nn, syn) += xplast_ff(syn) * EachNeurLTP(nn);
+        wff.topRows(NBE) += EachNeurLTP.topRows(NBE) * xplast_ff.transpose();
+
         for (int syn = 0; syn < FFRFSIZE; syn++)
           if (lgnfirings(syn) > 1e-10)
             for (int nn = 0; nn < NBE; nn++)
               // if (spikesthisstepFF(nn, syn) > 0)
               wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
-        for (int syn = 0; syn < NBE; syn++)
-          for (int nn = 0; nn < NBE; nn++)
-            w(nn, syn) += xplast_lat(syn) * EachNeurLTP(nn);
+
+        // wff += EachNeurLTD.asDiagonal() * (1.0 + wff.array() * WPENSCALE).matrix() *
+        //        (lgnfirings.array() > 1e-10).matrix().cast<double>().asDiagonal();
+
+        w.topLeftCorner(NBE, NBE) += EachNeurLTP.topRows(NBE) * xplast_lat.transpose();
+
         for (int syn = 0; syn < NBE; syn++)
           //    if (firingsprev(syn) > 1e-10)
           for (int nn = 0; nn < NBE; nn++)
             if (spikesthisstep(nn, syn) > 0)
               w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
+
+        // w.topLeftCorner(NBE, NBE) +=
+        //     ((spikesthisstep.topRows(NBE).array() > 0).cast<double>() *
+        //      (EachNeurLTD.topRows(NBE).asDiagonal() * (1.0 + w.topLeftCorner(NBE, NBE).array() * WPENSCALE).matrix())
+        //          .array())
+        //         .matrix();
 
         // Diagonal lateral weights are 0!
         w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
