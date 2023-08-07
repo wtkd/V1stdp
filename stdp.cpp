@@ -678,6 +678,7 @@ struct ModelState {
   VectorXi isspiking;
   std::vector<std::vector<boost::circular_buffer<int>>> incomingspikes;
   std::vector<std::vector<VectorXi>> incomingFFspikes;
+  VectorXd v;
 };
 
 int run(
@@ -911,6 +912,8 @@ int run(
     return initialIncomingFFspikes;
   }();
 
+  auto const initialV = VectorXd::Constant(NBNEUR, Eleak);
+
   ModelState modelState{
       initw,                                                            // w
       initwff,                                                          // wff
@@ -925,7 +928,8 @@ int run(
       VectorXd::Zero(NBNEUR),                                           // refractime
       VectorXi::Zero(NBNEUR),                                           // isspiking
       initialIncomingspikes,                                            // incomingspikes
-      initialIncomingFFspikes                                           // incomingFFspikes
+      initialIncomingFFspikes,                                          // incomingFFspikes
+      initialV                                                          // v
   };
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
@@ -957,6 +961,8 @@ int run(
 
   auto &incomingspikes = modelState.incomingspikes;
   auto &incomingFFspikes = modelState.incomingFFspikes;
+
+  auto &v = modelState.v;
 
   Map<ArrayXX<int8_t> const> const imageVector(imagedata.data(), FFRFSIZE / 2, nbpatchesinfile);
 
@@ -1023,7 +1029,7 @@ int run(
 
     // At the beginning of every presentation, we reset everything ! (it is important for the random-patches case which
     // tends to generate epileptic self-sustaining firing; 'normal' learning doesn't need it.)
-    VectorXd v = VectorXd::Constant(NBNEUR, Eleak); // VectorXd::Zero(NBNEUR);
+    v = initialV; // VectorXd::Zero(NBNEUR);
 
     resps.col(numpres % NBRESPS).setZero();
 
