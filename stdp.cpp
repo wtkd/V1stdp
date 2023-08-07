@@ -910,8 +910,7 @@ int run(
   VectorXd const ZeroLGN = VectorXd::Zero(FFRFSIZE);
   VectorXd const OneLGN = VectorXd::Constant(FFRFSIZE, 1.0);
 
-  MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
-  MatrixXi spikesthisstep(NBNEUR, NBNEUR);
+  // MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
 
   ArrayXd const ALTDS = [&]() {
     ArrayXd ALTDS(NBNEUR);
