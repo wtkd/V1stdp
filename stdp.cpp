@@ -889,14 +889,25 @@ int run(
 
   // The noise excitatory input is a Poisson process (separate for each cell) with a constant rate (in KHz / per ms)
   // We store it as "frozen noise" to save time.
-  MatrixXd negnoisein = -poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, NEGNOISERATE)) * VSTIM;
-  MatrixXd posnoisein = poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, POSNOISERATE)) * VSTIM;
+  MatrixXd const negnoisein = [&]() {
+    // The poissonMatrix should be evaluated every time because of reproductivity.
+    MatrixXd negnoisein = -poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, NEGNOISERATE)) * VSTIM;
+    // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
+    if (NONOISE || NOSPIKE) {
+      negnoisein.setZero();
+    }
+    return negnoisein;
+  }();
 
-  // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
-  if (NONOISE || NOSPIKE) {
-    posnoisein.setZero();
-    negnoisein.setZero();
-  }
+  MatrixXd const posnoisein = [&]() {
+    // The poissonMatrix should be evaluated every time because of reproductivity.
+    MatrixXd posnoisein = poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, POSNOISERATE)) * VSTIM;
+    // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
+    if (NONOISE || NOSPIKE) {
+      posnoisein.setZero();
+    }
+    return posnoisein;
+  }();
 
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
