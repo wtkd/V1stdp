@@ -6,4 +6,5 @@
    "make"
    ;; Libraries
    "eigen"
-   "cli11"))
+   "cli11"
+   "boost"))

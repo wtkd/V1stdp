@@ -20,9 +20,11 @@ add_executable(stdp
 
 find_package(Eigen3 REQUIRED)
 find_package(CLI11 CONFIG REQUIRED)
+find_package(Boost REQUIRED)
 
 target_link_libraries(stdp Eigen3::Eigen)
 target_link_libraries(stdp CLI11::CLI11)
+target_link_libraries(stdp Boost::boost)
 
 target_compile_features(stdp PRIVATE cxx_std_20)
 
