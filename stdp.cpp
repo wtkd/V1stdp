@@ -850,8 +850,6 @@ int run(
   int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
   int const NBSTEPS = NBSTEPSPERPRES * NBPRES;
 
-  double INPUTMULT = -1;
-
   std::cout << "Reading input data...." << std::endl;
 
   auto const imagedata = [&]() {
@@ -1087,8 +1085,7 @@ int run(
     // Extracting the image data for this frame presentation, and preparing the LGN / FF output rates (notice the
     // log-transform):
 
-    INPUTMULT = 150.0;
-    INPUTMULT *= 2.0;
+    double const INPUTMULT = 150.0 * 2.0;
 
     auto const createRatioLgnrates = [&](int const dataNumber, double const mod) -> ArrayXd {
       ArrayXd result(FFRFSIZE);
