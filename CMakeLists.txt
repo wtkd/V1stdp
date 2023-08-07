@@ -15,8 +15,13 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
 endif()
 
 add_executable(stdp
-  stdp.cpp
-  )
+  src/stdp.cpp)
+
+add_subdirectory(src/simulation)
+target_link_libraries(stdp Simulation)
+
+add_subdirectory(src/tool)
+target_link_libraries(stdp Tool)
 
 find_package(Eigen3 REQUIRED)
 find_package(CLI11 CONFIG REQUIRED)
