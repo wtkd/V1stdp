@@ -1029,8 +1029,6 @@ int run(
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
   MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
-  VectorXd sumwff = VectorXd::Zero(NBPRES);
-  VectorXd sumw = VectorXd::Zero(NBPRES);
   MatrixXi resps = MatrixXi::Zero(NBNEUR, NBRESPS);
   MatrixXd respssumv = MatrixXd::Zero(NBNEUR, NBRESPS);
 
@@ -1409,8 +1407,6 @@ int run(
       numstep++;
     }
 
-    sumwff(numpres) = wff.sum();
-    sumw(numpres) = w.sum();
     if (numpres % 100 == 0) {
       std::cout << "Presentation " << numpres << " / " << NBPRES << std::endl;
       std::cout << "TIME: " << (double)(clock() - tic) / (double)CLOCKS_PER_SEC << std::endl;
