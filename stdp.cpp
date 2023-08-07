@@ -140,32 +140,6 @@ int poissonScalar(double const lambd);
 void saveWeights(MatrixXd const &wgt, std::filesystem::path);
 MatrixXd readWeights(Eigen::Index, Eigen::Index, std::filesystem::path);
 
-int run(
-    double const LATCONNMULT,
-    double const WIE_MAX,
-    double const DELAYPARAM,
-    double const WPENSCALE,
-    double const ALTPMULT,
-    int const PRESTIME,
-    int const NBLASTSPIKESPRES,
-    int const NBPRES,
-    int const NONOISE,
-    int const NOSPIKE,
-    int const NBRESPS,
-    int const NOINH,
-    Phase const PHASE,
-    int const STIM1,
-    int const STIM2,
-    int const PULSETIME,
-    MatrixXd const &initwff,
-    MatrixXd const &initw,
-    int const NOLAT,
-    int const NOELAT,
-    std::filesystem::path const inputDirectory,
-    std::filesystem::path const saveDirectory,
-    int const saveLogInterval
-);
-
 struct Model {
   bool nonoise = false;
   bool nospike = false;
@@ -175,11 +149,43 @@ struct Model {
   int delayparam = 5.0;
   int latconnmult = LATCONNMULTINIT;
   double wpenscale = 0.33;
-  int timepres = 350;
   double altpmult = 0.75;
   double wie = 0.5;
   double wei = 20.0;
+
+  // WII max is yoked to WIE max
+
+  double WEI_MAX() const {
+    return wei * 4.32 / latconnmult; // 1.5
+  }
+  double WIE_MAX() const { return wie * 4.32 / latconnmult; }
+  double WII_MAX() const { return wie * 4.32 / latconnmult; }
+
+  void outputLog() const {
+    std::cout << "Lat. conn.: " << latconnmult << std::endl;
+    std::cout << "WIE_MAX: " << WIE_MAX() << " / " << wie << std::endl;
+    std::cout << "DELAYPARAM: " << delayparam << std::endl;
+    std::cout << "WPENSCALE: " << wpenscale << std::endl;
+    std::cout << "ALTPMULT: " << altpmult << std::endl;
+  }
 };
+
+int run(
+    Model const &model,
+    int const PRESTIME,
+    int const NBLASTSPIKESPRES,
+    int const NBPRES,
+    int const NBRESPS,
+    Phase const phase,
+    int const STIM1,
+    int const STIM2,
+    int const PULSETIME,
+    MatrixXd const &initwff,
+    MatrixXd const &initw,
+    std::filesystem::path const inputDirectory,
+    std::filesystem::path const saveDirectory,
+    int const saveLogInterval
+);
 
 void setupModel(CLI::App &app, Model &model) {
   app.add_option("--nonoise", model.nonoise, "No noise");
@@ -190,7 +196,6 @@ void setupModel(CLI::App &app, Model &model) {
   app.add_option("--delayparam", model.delayparam, "Delay parameter");
   app.add_option("--latconnmult", model.latconnmult, "Lateral connection multiplication");
   app.add_option("--wpenscale", model.wpenscale, "Wpenscale");
-  app.add_option("--timepres", model.timepres, "Timepres");
   app.add_option("--altpmult", model.altpmult, "Altpmult");
   app.add_option("--wie", model.wie, "Weight on I-E");
   app.add_option("--wei", model.wei, "Weight on E-I");
@@ -228,6 +233,7 @@ struct LearnOptions {
   std::filesystem::path inputDirectory;
   std::filesystem::path saveDirectory;
   int saveLogInterval = 50'000;
+  int timepres = 350;
 };
 
 void setupLearn(CLI::App &app) {
@@ -242,6 +248,7 @@ void setupLearn(CLI::App &app) {
   sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+  sub->add_option("--timepres", opt->timepres, "Presentation time");
 
   sub->callback([opt]() {
     Model const &model = opt->model;
@@ -258,13 +265,7 @@ void setupLearn(CLI::App &app) {
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
-    auto const &timepres = model.timepres; // ms
-
-    auto const &NOLAT = model.nolat;
-    auto const &NOELAT = model.noelat;
-    auto const &NOINH = model.noinh;
-    auto const &NOSPIKE = model.nospike;
-    auto const &NONOISE = model.nonoise;
+    auto const &timepres = opt->timepres; // ms
 
     // NOTE: At first, it was initialized 50 but became 30 soon, so I squashed it.
     int const NBLASTSPIKESPRES = 30;
@@ -273,19 +274,9 @@ void setupLearn(CLI::App &app) {
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const &NBRESPS = 2000;
 
-    auto const &LATCONNMULT = model.latconnmult;
-
-    auto const &DELAYPARAM = model.delayparam;
-
-    double const &WPENSCALE = model.wpenscale;
-    double const &ALTPMULT = model.altpmult;
-
-    double const &wei = model.wei;
-    double const &wie = model.wie;
-    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
-    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
-    // WII max is yoked to WIE max
-    double const WII_MAX = wie * 4.32 / LATCONNMULT;
+    double const WEI_MAX = model.WEI_MAX();
+    double const WIE_MAX = model.WIE_MAX();
+    double const WII_MAX = model.WII_MAX();
 
     MatrixXd const w = [&]() {
       MatrixXd w = MatrixXd::Zero(NBNEUR, NBNEUR); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
@@ -317,26 +308,17 @@ void setupLearn(CLI::App &app) {
       return wff;
     }();
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
+    run(model,
         timepres,
         NBLASTSPIKESPRES,
         step,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::learning,
         -1, // STIM1 is not used
         -1, // STIM2 is not used
         -1, // PULSETIME is not used
         wff,
         w,
-        NOLAT,
-        NOELAT,
         inputDirectory,
         saveDirectory,
         saveLogInterval);
@@ -352,6 +334,7 @@ struct TestOptions {
   std::filesystem::path saveDirectory;
   std::filesystem::path loadDirectory;
   int saveLogInterval = 50'000;
+  int timepres = 350;
 };
 
 void setupTest(CLI::App &app) {
@@ -367,6 +350,7 @@ void setupTest(CLI::App &app) {
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+  sub->add_option("--timepres", opt->timepres, "Presentation time");
 
   sub->callback([opt]() {
     Model const &model = opt->model;
@@ -384,35 +368,14 @@ void setupTest(CLI::App &app) {
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
-    int const PRESTIMETESTING = model.timepres; // ms
-
-    auto const &NOLAT = model.nolat;
-    auto const &NOELAT = model.noelat;
-    auto const &NOINH = model.noinh;
-    auto const &NOSPIKE = model.nospike;
-    auto const &NONOISE = model.nonoise;
-
+    auto const &PRESTIME = opt->timepres;
     int const NBLASTSPIKESPRES = 30;
 
-    int const PRESTIME = PRESTIMETESTING;
     int const NBPRES = step; //* NBPRESPERPATTERNTESTING;
 
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = NBPRES;
-
-    double const &LATCONNMULT = model.latconnmult;
-    double const &DELAYPARAM = model.delayparam;
-
-    // These are not used actually in the `run` function.
-    double const &WPENSCALE = model.wpenscale;
-    double const &ALTPMULT = model.altpmult;
-    double const &wei = model.wei;
-    double const &wie = model.wie;
-    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
-    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
-    // WII max is yoked to WIE max
-    double const WII_MAX = wie * 4.32 / LATCONNMULT;
 
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
@@ -423,26 +386,17 @@ void setupTest(CLI::App &app) {
     // w.bottomRows(NBI).leftCols(NBE).fill(1.0); // Inhbitory neurons receive excitatory inputs from excitatory neurons
     // w.rightCols(NBI).fill(-1.0); // Everybody receives fixed, negative inhibition (including inhibitory neurons)
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
+    run(model,
         PRESTIME,
         NBLASTSPIKESPRES,
         step,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::testing,
         -1, // STIM1 is not used
         -1, // STIM2 is not used
         -1, // PULSETIME is not used
         wff,
         w,
-        NOLAT,
-        NOELAT,
         inputDirectory,
         saveDirectory,
         saveLogInterval);
@@ -494,12 +448,6 @@ void setupMix(CLI::App &app) {
     int const &STIM1 = stimulationNumbers.first - 1;
     int const &STIM2 = stimulationNumbers.second - 1;
 
-    auto const &NOLAT = model.nolat;
-    auto const &NOELAT = model.noelat;
-    auto const &NOINH = model.noinh;
-    auto const &NOSPIKE = model.nospike;
-    auto const &NONOISE = model.nonoise;
-
     int const NBLASTSPIKESPRES = 30;
 
     int const NBPRES = NBMIXES * 3; //* NBPRESPERPATTERNTESTING;
@@ -508,47 +456,23 @@ void setupMix(CLI::App &app) {
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = NBPRES;
 
-    double const &LATCONNMULT = model.latconnmult;
-    double const &DELAYPARAM = model.delayparam;
-
-    // These constants are only used for learning:
-    // These are not used actually in the `run` function.
-    double const &WPENSCALE = model.wpenscale;
-    double const &ALTPMULT = model.altpmult;
-    double const &wei = model.wei;
-    double const &wie = model.wie;
-    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
-    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
-    // WII max is yoked to WIE max
-    double const WII_MAX = wie * 4.32 / LATCONNMULT;
-
     int const PRESTIME = PRESTIMEMIXING;
-
     auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
     auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
 
     std::cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << std::endl;
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
+    run(model,
         PRESTIME,
         NBLASTSPIKESPRES,
         NBPRES,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::mixing,
         STIM1,
         STIM2,
         -1, // PULSETIME is not used
         wff,
         w,
-        NOLAT,
-        NOELAT,
         inputDirectory,
         saveDirectory,
         saveLogInterval);
@@ -609,26 +533,6 @@ void setupPulse(CLI::App &app) {
 
     int const &PULSETIME = opt->pulsetime;
 
-    auto const &NOLAT = model.nolat;
-    auto const &NOELAT = model.noelat;
-    auto const &NOINH = model.noinh;
-    auto const &NOSPIKE = model.nospike;
-    auto const &NONOISE = model.nonoise;
-
-    double const &LATCONNMULT = model.latconnmult;
-    double const &DELAYPARAM = model.delayparam;
-
-    // These constants are only used for learning:
-    // These are not used actually in the `run` function.
-    double const &WPENSCALE = model.wpenscale;
-    double const &ALTPMULT = model.altpmult;
-    double const &wei = model.wei;
-    double const &wie = model.wie;
-    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
-    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
-    // WII max is yoked to WIE max
-    double const WII_MAX = wie * 4.32 / LATCONNMULT;
-
     int const NBPATTERNS = NBPATTERNSPULSE;
     int const PRESTIME = PRESTIMEPULSE;
     int const NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
@@ -644,26 +548,17 @@ void setupPulse(CLI::App &app) {
     auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
     auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
+    run(model,
         PRESTIME,
         NBLASTSPIKESPRES,
         NBPRES,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::pulse,
         STIM1,
         -1, // STIM2 is not used
         PULSETIME,
         wff,
         w,
-        NOLAT,
-        NOELAT,
         inputDirectory,
         saveDirectory,
         saveLogInterval);
@@ -707,26 +602,6 @@ void setupSpontaneous(CLI::App &app) {
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
-    auto const &NOLAT = model.nolat;
-    auto const &NOELAT = model.noelat;
-    auto const &NOINH = model.noinh;
-    auto const &NOSPIKE = model.nospike;
-    auto const &NONOISE = model.nonoise;
-
-    double const &LATCONNMULT = model.latconnmult;
-    double const &DELAYPARAM = model.delayparam;
-
-    // These constants are only used for learning:
-    // These are not used actually in the `run` function.
-    double const &WPENSCALE = model.wpenscale;
-    double const &ALTPMULT = model.altpmult;
-    double const &wei = model.wei;
-    double const &wie = model.wie;
-    double const WEI_MAX = wei * 4.32 / LATCONNMULT; // 1.5
-    double const WIE_MAX = wie * 4.32 / LATCONNMULT;
-    // WII max is yoked to WIE max
-    double const WII_MAX = wie * 4.32 / LATCONNMULT;
-
     int const NBPATTERNS = NBPATTERNSSPONT;
     int const PRESTIME = PRESTIMESPONT;
     int const NBPRES = NBPATTERNS;
@@ -739,26 +614,17 @@ void setupSpontaneous(CLI::App &app) {
     auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
     auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
 
-    run(LATCONNMULT,
-        WIE_MAX,
-        DELAYPARAM,
-        WPENSCALE,
-        ALTPMULT,
+    run(model,
         PRESTIME,
         NBLASTSPIKESPRES,
         NBPRES,
-        NONOISE,
-        NOSPIKE,
         NBRESPS,
-        NOINH,
         Phase::spontaneous,
         -1, // STIM1 is not used
         -1, // STIM2 is not used
         -1, // PULSE is not used
         wff,
         w,
-        NOLAT,
-        NOELAT,
         inputDirectory,
         saveDirectory,
         saveLogInterval);
@@ -813,39 +679,40 @@ struct ModelState {
 };
 
 int run(
-    double const LATCONNMULT,
-    double const WIE_MAX,
-    double const DELAYPARAM,
-    double const WPENSCALE,
-    double const ALTPMULT,
+    Model const &model,
     int const PRESTIME,
     int const NBLASTSPIKESPRES,
     int const NBPRES,
-    int const NONOISE,
-    int const NOSPIKE,
     int const NBRESPS,
-    int const NOINH,
     Phase const phase,
     int const STIM1,
     int const STIM2,
     int const PULSETIME,
     MatrixXd const &initwff,
     MatrixXd const &initw,
-    int const NOLAT,
-    int const NOELAT,
     std::filesystem::path const inputDirectory,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval
 ) {
+  model.outputLog();
+
+  auto const &NOLAT = model.nolat;
+  auto const &NOELAT = model.noelat;
+  auto const &NOINH = model.noinh;
+  auto const &NOSPIKE = model.nospike;
+  auto const &NONOISE = model.nonoise;
+
+  auto const &LATCONNMULT = model.latconnmult;
+
+  auto const &DELAYPARAM = model.delayparam;
+
+  double const &WPENSCALE = model.wpenscale;
+  double const &ALTPMULT = model.altpmult;
+
   // On the command line, you must specify one of 'learn', 'pulse', 'test',
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
   // number. IF using 'mix', you must specify two stimulus numbers.
 
-  std::cout << "Lat. conn.: " << LATCONNMULT << std::endl;
-  std::cout << "WIE_MAX: " << WIE_MAX << " / " << WIE_MAX * LATCONNMULT / 4.32 << std::endl;
-  std::cout << "DELAYPARAM: " << DELAYPARAM << std::endl;
-  std::cout << "WPENSCALE: " << WPENSCALE << std::endl;
-  std::cout << "ALTPMULT: " << ALTPMULT << std::endl;
   int const NBSTEPSPERPRES = (int)(PRESTIME / dt);
   int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
   int const NBSTEPS = NBSTEPSPERPRES * NBPRES;
