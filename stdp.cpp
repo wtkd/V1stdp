@@ -1384,13 +1384,14 @@ int run(
         //         .matrix();
 
         // Diagonal lateral weights are 0!
-        w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
+        w.topLeftCorner(NBE, NBE) =
+            w.topLeftCorner(NBE, NBE).cwiseProduct(MatrixXd::Constant(NBE, NBE, 1) - MatrixXd::Identity(NBE, NBE));
 
-        wff = wff.cwiseMax(0);
+        wff.topRows(NBE) = wff.topRows(NBE).cwiseMax(0);
         w.leftCols(NBE) = w.leftCols(NBE).cwiseMax(0);
-        w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
-        wff = wff.cwiseMin(MAXW);
-        w = w.cwiseMin(MAXW);
+        // w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
+        wff.topRows(NBE) = wff.topRows(NBE).cwiseMin(MAXW);
+        w.topLeftCorner(NBE, NBE) = w.topLeftCorner(NBE, NBE).cwiseMin(MAXW);
       }
 
       // Storing some indicator variablkes...
