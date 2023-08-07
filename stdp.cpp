@@ -681,6 +681,276 @@ struct ModelState {
   VectorXd v;
 };
 
+inline auto runStep(
+    Model const &model,
+    ModelState &modelState,
+    bool const &plasticity,
+    ArrayXd const &ALTDS,
+    VectorXd const &lgnfirings,
+    auto const &posnoise,
+    auto const &negnoise
+) {
+  auto const &NOLAT = model.nolat;
+  auto const &NOELAT = model.noelat;
+  auto const &NOINH = model.noinh;
+  auto const &NOSPIKE = model.nospike;
+  auto const &NONOISE = model.nonoise;
+
+  auto const &LATCONNMULT = model.latconnmult;
+
+  auto const &DELAYPARAM = model.delayparam;
+
+  double const &WPENSCALE = model.wpenscale;
+  double const &ALTPMULT = model.altpmult;
+
+  MatrixXd &wff = modelState.wff;
+  MatrixXd &w = modelState.w;
+
+  VectorXd &vneg = modelState.vneg;
+  VectorXd &vpos = modelState.vpos;
+
+  VectorXd &z = modelState.z;
+
+  VectorXd &xplast_ff = modelState.xplast_ff;
+  VectorXd &xplast_lat = modelState.xplast_lat;
+
+  VectorXd &vlongtrace = modelState.vlongtrace;
+
+  VectorXd &wadap = modelState.wadap;
+  VectorXd &vthresh = modelState.vthresh;
+  VectorXd &refractime = modelState.refractime;
+  VectorXi &isspiking = modelState.isspiking;
+
+  auto &incomingspikes = modelState.incomingspikes;
+  auto &incomingFFspikes = modelState.incomingFFspikes;
+
+  auto &v = modelState.v;
+
+  // We compute the feedforward input:
+
+  // Using delays for FF connections from LGN makes the system MUCH slower,
+  // and doesn't change much. So we don't.
+  /*
+  // Compute the FF input from incoming spikes from LGN... as set in the
+  *previous* timestep...
+  // SLOW !
+  spikesthisstepFF.setZero();
+  for (int ni=0; ni< NBE; ni++) // Inhibitory cells don't receive FF input...
+  for (int nj=0; nj< FFRFSIZE; nj++)
+  {
+  if (incomingFFspikes[ni][nj](numstep % delaysFF[nj][ni]) > 0){
+  Iff(ni) += wff(ni, nj) ;
+  spikesthisstepFF(ni, nj) = 1;
+  incomingFFspikes[ni][nj](numstep % delaysFF[nj][ni]) = 0;
+  }
+  }
+
+  Iff *= VSTIM;
+  // Send the spike through the FF connections
+  // Note: ni is the source LGN cell (and therefore the synapse number on
+  neuron nj), nj is the destination neuron for (int ni=0; ni < FFRFSIZE; ni++){
+  if (!lgnfirings[ni]) continue;
+  for (int nj=0; nj < NBNEUR; nj++){
+  incomingFFspikes[nj][ni]( (numstep + delaysFF[ni][nj]) %
+  delaysFF[ni][nj] ) = 1;  // Yeah, (x+y) mod y = x mod y.
+
+  }
+  }
+  */
+
+  // This, which ignores FF delays, is much faster.... MAtrix
+  // multiplications courtesy of the Eigen library.
+  VectorXd const Iff = wff * lgnfirings * VSTIM;
+
+  // Now we compute the lateral inputs. Remember that incomingspikes is a
+  // circular array.
+
+  auto const [LatInput, spikesthisstep] = [&]() {
+    VectorXd LatInput = VectorXd::Zero(NBNEUR);
+    MatrixXi spikesthisstep = MatrixXi::Zero(NBNEUR, NBNEUR);
+    for (int ni = 0; ni < NBNEUR; ni++) {
+      for (int nj = 0; nj < NBNEUR; nj++) {
+        // If NOELAT, E-E synapses are disabled.
+        // XXX: Number of excitatory neurons are hard-coded
+        if (NOELAT && (nj < 100) && (ni < 100))
+          continue;
+        // No autapses
+        if (ni == nj)
+          continue;
+        // If there is a spike at that synapse for the current timestep, we add it to the lateral input for this
+        // neuron
+        auto const &spike = incomingspikes[ni][nj].front();
+        if (spike > 0) {
+          LatInput(ni) += w(ni, nj) * spike;
+          spikesthisstep(ni, nj) = 1;
+        }
+      }
+    }
+    return std::tuple{LatInput, spikesthisstep};
+  }();
+
+  // // We erase any incoming spikes for this synapse/timestep
+  // std::ranges::for_each(incomingspikes, [](auto &v) { std::ranges::for_each(v, [](auto &q) { q.pop_front(); });
+  // });
+
+  VectorXd const Ilat = NOLAT
+                            // This disables all lateral connections - Inhibitory and excitatory
+                            ? VectorXd::Zero(NBNEUR)
+                            : VectorXd(LATCONNMULT * VSTIM * LatInput);
+
+  // Total input (FF + lateral + frozen noise):
+  VectorXd const I = Iff + Ilat + posnoise + negnoise; //- InhibVect;
+
+  VectorXd const vprev = v;
+  VectorXd const vprevprev = vprev;
+
+  // AdEx  neurons:
+  if (NOSPIKE) {
+    for (int nn = 0; nn < NBNEUR; nn++)
+      v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + z(nn) - wadap(nn)) + I(nn);
+  } else {
+    for (int nn = 0; nn < NBNEUR; nn++)
+      v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
+                           wadap(nn)) +
+               I(nn);
+  }
+  // // The input current is also included in the diff. eq. I believe that's not the right way.
+  // v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
+  //                      wadap(nn) + I(nn));
+
+  // Currently-spiking neurons are clamped at VPEAK.
+  v = (isspiking.array() > 0).select(VPEAK - .001, v);
+
+  //  Neurons that have finished their spiking are set to VRESET.
+  v = (isspiking.array() == 1).select(VRESET, v);
+
+  // Updating some AdEx / plasticity variables
+  z = (isspiking.array() == 1).select(Isp, z);
+  vthresh = (isspiking.array() == 1).select(VTMAX, vthresh);
+  wadap = (isspiking.array() == 1).select(wadap.array() + B, wadap.array());
+
+  // Spiking period elapsing... (in paractice, this is not really needed since the spiking period NBSPIKINGSTEPS is
+  // set to 1 for all current experiments)
+  isspiking = (isspiking.array() - 1).cwiseMax(0);
+
+  v = v.cwiseMax(MINV);
+  refractime = (refractime.array() - dt).cwiseMax(0);
+
+  // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
+  // time has elapsed.
+  VectorXi const firings = NOSPIKE ? VectorXi::Zero(NBNEUR) : (v.array() > VPEAK).cast<int>().matrix().eval();
+
+  if (not NOSPIKE) {
+    v = (firings.array() > 0).select(VPEAK, v);
+    // In practice, REFRACTIME is set to 0 for all current experiments.
+    refractime = (firings.array() > 0).select(REFRACTIME, refractime);
+    isspiking = (firings.array() > 0).select(NBSPIKINGSTEPS, isspiking);
+
+    // Send the spike through the network. Remember that incomingspikes is a circular array.
+    for (int ni = 0; ni < NBNEUR; ni++) {
+      for (int nj = 0; nj < NBNEUR; nj++) {
+        incomingspikes[nj][ni].push_back(firings[ni] ? 1 : 0);
+      }
+    }
+  }
+
+  // "Wrong" version: firing if above threshold, immediately reset at
+  // Vreset.
+  // firings = (v.array() > vthresh.array()).select(OneV, ZeroV);
+  // v = (firings.array() > 0).select(VRESET, v);
+
+  // AdEx variables update:
+
+  // wadap = (isspiking.array() > 0).select(wadap.array(), wadap.array() +
+  // (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array())); //
+  // clopathlike (while spiking, don't modify wadap.
+  wadap = wadap.array() + (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array());
+  z = z + (dt / TAUZ) * -1.0 * z;
+  vthresh = vthresh.array() + (dt / TAUVTHRESH) * (-1.0 * vthresh.array() + VTREST);
+
+  // Wrong - using the raw v rather than "depolarization" v-vleak (or
+  // v-vthresh)
+  // vlongtrace = vlongtrace + (dt / TAUVLONGTRACE) * (v - vlongtrace);
+
+  // Correct: using depolarization (or more precisely depolarization above
+  // THETAVLONGTRACE))
+  vlongtrace += (dt / TAUVLONGTRACE) * ((vprevprev.array() - THETAVLONGTRACE).cwiseMax(0).matrix() - vlongtrace);
+  vlongtrace = vlongtrace.cwiseMax(0); // Just in case.
+
+  // This is also wrong - the dt/tau should not apply to the increments
+  // (firings / lgnfirings). However that should only be a strict constant
+  // multiplication, which could be included into the ALTP/ALTP constants.
+  /*
+    xplast_lat += (dt / TAUXPLAST) * (firings.cast<double>() - xplast_lat);
+    xplast_ff += (dt / TAUXPLAST) * (lgnfirings - xplast_ff);
+    vneg += (dt / TAUVNEG) * (v - vneg);
+    vpos += (dt / TAUVPOS) * (v - vpos);*/
+
+  // "Correct" version (I think):
+  // xplast_lat = xplast_lat + firings.cast<double>() - (dt / TAUXPLAST) *
+  // xplast_lat; xplast_ff = xplast_ff + lgnfirings - (dt / TAUXPLAST) *
+  // xplast_ff;
+
+  // Clopath-like version - the firings are also divided by tauxplast. Might
+  // cause trouble if dt is modified?
+  xplast_lat = xplast_lat + firings.cast<double>() / TAUXPLAST - (dt / TAUXPLAST) * xplast_lat;
+  xplast_ff = xplast_ff + lgnfirings / TAUXPLAST - (dt / TAUXPLAST) * xplast_ff;
+
+  vneg = vneg + (dt / TAUVNEG) * (vprevprev - vneg);
+  vpos = vpos + (dt / TAUVPOS) * (vprevprev - vpos);
+
+  if (plasticity)
+  // if (numpres >= 401)
+  {
+    // Plasticity !
+    // For each neuron, we compute the quantities by which any synapse
+    // reaching this given neuron should be modified, if the synapse's
+    // firing / recent activity (xplast) commands modification.
+    VectorXd const EachNeurLTD =
+        dt * (-ALTDS / VREF2) * vlongtrace.array() * vlongtrace.array() * (vneg.array() - THETAVNEG).cwiseMax(0);
+    VectorXd const EachNeurLTP =
+        dt * ALTP * ALTPMULT * (vpos.array() - THETAVNEG).cwiseMax(0) * (v.array() - THETAVPOS).cwiseMax(0);
+
+    // Feedforward synapses, then lateral synapses.
+
+    wff.topRows(NBE) += EachNeurLTP.head(NBE) * xplast_ff.transpose();
+
+    // wff.topRows(NBE) += EachNeurLTD.head(NBE).asDiagonal() * (1.0 + wff.topRows(NBE).array() *
+    // WPENSCALE).matrix() *
+    //                     (lgnfirings.array() > 1e-10).matrix().cast<double>().asDiagonal();
+    for (int syn = 0; syn < FFRFSIZE; syn++)
+      if (lgnfirings(syn) > 1e-10)
+        for (int nn = 0; nn < NBE; nn++)
+          // if (spikesthisstepFF(nn, syn) > 0)
+          wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
+
+    w.topLeftCorner(NBE, NBE) += EachNeurLTP.head(NBE) * xplast_lat.transpose();
+
+    // w.topLeftCorner(NBE, NBE) +=
+    //     ((spikesthisstep.topRows(NBE).array() > 0).cast<double>() *
+    //      (EachNeurLTD.head(NBE).asDiagonal() * (1.0 + w.topLeftCorner(NBE, NBE).array() * WPENSCALE).matrix())
+    //          .array())
+    //         .matrix();
+    for (int syn = 0; syn < NBE; syn++)
+      //    if (firingsprev(syn) > 1e-10)
+      for (int nn = 0; nn < NBE; nn++)
+        if (spikesthisstep(nn, syn) > 0)
+          w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
+
+    // Diagonal lateral weights are 0!
+    w.topLeftCorner(NBE, NBE) =
+        w.topLeftCorner(NBE, NBE).cwiseProduct(MatrixXd::Constant(NBE, NBE, 1) - MatrixXd::Identity(NBE, NBE));
+
+    wff.topRows(NBE) = wff.topRows(NBE).cwiseMax(0);
+    w.leftCols(NBE) = w.leftCols(NBE).cwiseMax(0);
+    // w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
+    wff.topRows(NBE) = wff.topRows(NBE).cwiseMin(MAXW);
+    w.topLeftCorner(NBE, NBE) = w.topLeftCorner(NBE, NBE).cwiseMin(MAXW);
+  }
+
+  return firings;
+}
+
 int run(
     Model const &model,
     int const PRESTIME,
@@ -1039,6 +1309,8 @@ int run(
     incomingspikes = initialIncomingspikes;
     incomingFFspikes = initialIncomingFFspikes;
 
+    bool const plastisity = (phase == Phase::learning) && (numpres >= 401);
+
     // Stimulus presentation
     for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES; numstepthispres++) {
       // We determine FF spikes, based on the specified lgnrates:
@@ -1064,228 +1336,15 @@ int run(
         return ArrayXd::Zero(FFRFSIZE);
       }();
 
-      // We compute the feedforward input:
-
-      // Using delays for FF connections from LGN makes the system MUCH slower,
-      // and doesn't change much. So we don't.
-      /*
-      // Compute the FF input from incoming spikes from LGN... as set in the
-  *previous* timestep...
-      // SLOW !
-  spikesthisstepFF.setZero();
-  for (int ni=0; ni< NBE; ni++) // Inhibitory cells don't receive FF input...
-      for (int nj=0; nj< FFRFSIZE; nj++)
-      {
-          if (incomingFFspikes[ni][nj](numstep % delaysFF[nj][ni]) > 0){
-              Iff(ni) += wff(ni, nj) ;
-              spikesthisstepFF(ni, nj) = 1;
-              incomingFFspikes[ni][nj](numstep % delaysFF[nj][ni]) = 0;
-          }
-      }
-
-  Iff *= VSTIM;
-      // Send the spike through the FF connections
-      // Note: ni is the source LGN cell (and therefore the synapse number on
-  neuron nj), nj is the destination neuron for (int ni=0; ni < FFRFSIZE; ni++){
-          if (!lgnfirings[ni]) continue;
-          for (int nj=0; nj < NBNEUR; nj++){
-              incomingFFspikes[nj][ni]( (numstep + delaysFF[ni][nj]) %
-  delaysFF[ni][nj] ) = 1;  // Yeah, (x+y) mod y = x mod y.
-
-          }
-      }
-      */
-
-      // This, which ignores FF delays, is much faster.... MAtrix
-      // multiplications courtesy of the Eigen library.
-      VectorXd const Iff = wff * lgnfirings * VSTIM;
-
-      // Now we compute the lateral inputs. Remember that incomingspikes is a
-      // circular array.
-
-      auto const [LatInput, spikesthisstep] = [&]() {
-        VectorXd LatInput = VectorXd::Zero(NBNEUR);
-        MatrixXi spikesthisstep = MatrixXi::Zero(NBNEUR, NBNEUR);
-        for (int ni = 0; ni < NBNEUR; ni++) {
-          for (int nj = 0; nj < NBNEUR; nj++) {
-            // If NOELAT, E-E synapses are disabled.
-            // XXX: Number of excitatory neurons are hard-coded
-            if (NOELAT && (nj < 100) && (ni < 100))
-              continue;
-            // No autapses
-            if (ni == nj)
-              continue;
-            // If there is a spike at that synapse for the current timestep, we add it to the lateral input for this
-            // neuron
-            auto const &spike = incomingspikes[ni][nj].front();
-            if (spike > 0) {
-              LatInput(ni) += w(ni, nj) * spike;
-              spikesthisstep(ni, nj) = 1;
-            }
-          }
-        }
-        return std::tuple{LatInput, spikesthisstep};
-      }();
-
-      // // We erase any incoming spikes for this synapse/timestep
-      // std::ranges::for_each(incomingspikes, [](auto &v) { std::ranges::for_each(v, [](auto &q) { q.pop_front(); });
-      // });
-
-      VectorXd const Ilat = NOLAT
-                                // This disables all lateral connections - Inhibitory and excitatory
-                                ? VectorXd::Zero(NBNEUR)
-                                : VectorXd(LATCONNMULT * VSTIM * LatInput);
-
-      // Total input (FF + lateral + frozen noise):
-      VectorXd const I =
-          Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
-
-      VectorXd const vprev = v;
-      VectorXd const vprevprev = vprev;
-
-      // AdEx  neurons:
-      if (NOSPIKE) {
-        for (int nn = 0; nn < NBNEUR; nn++)
-          v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + z(nn) - wadap(nn)) + I(nn);
-      } else {
-        for (int nn = 0; nn < NBNEUR; nn++)
-          v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
-                               wadap(nn)) +
-                   I(nn);
-      }
-      // // The input current is also included in the diff. eq. I believe that's not the right way.
-      // v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
-      //                      wadap(nn) + I(nn));
-
-      // Currently-spiking neurons are clamped at VPEAK.
-      v = (isspiking.array() > 0).select(VPEAK - .001, v);
-
-      //  Neurons that have finished their spiking are set to VRESET.
-      v = (isspiking.array() == 1).select(VRESET, v);
-
-      // Updating some AdEx / plasticity variables
-      z = (isspiking.array() == 1).select(Isp, z);
-      vthresh = (isspiking.array() == 1).select(VTMAX, vthresh);
-      wadap = (isspiking.array() == 1).select(wadap.array() + B, wadap.array());
-
-      // Spiking period elapsing... (in paractice, this is not really needed since the spiking period NBSPIKINGSTEPS is
-      // set to 1 for all current experiments)
-      isspiking = (isspiking.array() - 1).cwiseMax(0);
-
-      v = v.cwiseMax(MINV);
-      refractime = (refractime.array() - dt).cwiseMax(0);
-
-      // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
-      // time has elapsed.
-      VectorXi const firings = NOSPIKE ? VectorXi::Zero(NBNEUR) : (v.array() > VPEAK).cast<int>().matrix().eval();
-
-      if (not NOSPIKE) {
-        v = (firings.array() > 0).select(VPEAK, v);
-        // In practice, REFRACTIME is set to 0 for all current experiments.
-        refractime = (firings.array() > 0).select(REFRACTIME, refractime);
-        isspiking = (firings.array() > 0).select(NBSPIKINGSTEPS, isspiking);
-
-        // Send the spike through the network. Remember that incomingspikes is a circular array.
-        for (int ni = 0; ni < NBNEUR; ni++) {
-          for (int nj = 0; nj < NBNEUR; nj++) {
-            incomingspikes[nj][ni].push_back(firings[ni] ? 1 : 0);
-          }
-        }
-      }
-
-      // "Wrong" version: firing if above threshold, immediately reset at
-      // Vreset.
-      // firings = (v.array() > vthresh.array()).select(OneV, ZeroV);
-      // v = (firings.array() > 0).select(VRESET, v);
-
-      // AdEx variables update:
-
-      // wadap = (isspiking.array() > 0).select(wadap.array(), wadap.array() +
-      // (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array())); //
-      // clopathlike (while spiking, don't modify wadap.
-      wadap = wadap.array() + (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array());
-      z = z + (dt / TAUZ) * -1.0 * z;
-      vthresh = vthresh.array() + (dt / TAUVTHRESH) * (-1.0 * vthresh.array() + VTREST);
-
-      // Wrong - using the raw v rather than "depolarization" v-vleak (or
-      // v-vthresh)
-      // vlongtrace = vlongtrace + (dt / TAUVLONGTRACE) * (v - vlongtrace);
-
-      // Correct: using depolarization (or more precisely depolarization above
-      // THETAVLONGTRACE))
-      vlongtrace += (dt / TAUVLONGTRACE) * ((vprevprev.array() - THETAVLONGTRACE).cwiseMax(0).matrix() - vlongtrace);
-      vlongtrace = vlongtrace.cwiseMax(0); // Just in case.
-
-      // This is also wrong - the dt/tau should not apply to the increments
-      // (firings / lgnfirings). However that should only be a strict constant
-      // multiplication, which could be included into the ALTP/ALTP constants.
-      /*
-      xplast_lat += (dt / TAUXPLAST) * (firings.cast<double>() - xplast_lat);
-      xplast_ff += (dt / TAUXPLAST) * (lgnfirings - xplast_ff);
-      vneg += (dt / TAUVNEG) * (v - vneg);
-      vpos += (dt / TAUVPOS) * (v - vpos);*/
-
-      // "Correct" version (I think):
-      // xplast_lat = xplast_lat + firings.cast<double>() - (dt / TAUXPLAST) *
-      // xplast_lat; xplast_ff = xplast_ff + lgnfirings - (dt / TAUXPLAST) *
-      // xplast_ff;
-
-      // Clopath-like version - the firings are also divided by tauxplast. Might
-      // cause trouble if dt is modified?
-      xplast_lat = xplast_lat + firings.cast<double>() / TAUXPLAST - (dt / TAUXPLAST) * xplast_lat;
-      xplast_ff = xplast_ff + lgnfirings / TAUXPLAST - (dt / TAUXPLAST) * xplast_ff;
-
-      vneg = vneg + (dt / TAUVNEG) * (vprevprev - vneg);
-      vpos = vpos + (dt / TAUVPOS) * (vprevprev - vpos);
-
-      if ((phase == Phase::learning) && (numpres >= 401))
-      // if (numpres >= 401)
-      {
-        // Plasticity !
-        // For each neuron, we compute the quantities by which any synapse
-        // reaching this given neuron should be modified, if the synapse's
-        // firing / recent activity (xplast) commands modification.
-        VectorXd const EachNeurLTD =
-            dt * (-ALTDS / VREF2) * vlongtrace.array() * vlongtrace.array() * (vneg.array() - THETAVNEG).cwiseMax(0);
-        VectorXd const EachNeurLTP =
-            dt * ALTP * ALTPMULT * (vpos.array() - THETAVNEG).cwiseMax(0) * (v.array() - THETAVPOS).cwiseMax(0);
-
-        // Feedforward synapses, then lateral synapses.
-
-        wff.topRows(NBE) += EachNeurLTP.head(NBE) * xplast_ff.transpose();
-
-        // wff.topRows(NBE) += EachNeurLTD.head(NBE).asDiagonal() * (1.0 + wff.topRows(NBE).array() *
-        // WPENSCALE).matrix() *
-        //                     (lgnfirings.array() > 1e-10).matrix().cast<double>().asDiagonal();
-        for (int syn = 0; syn < FFRFSIZE; syn++)
-          if (lgnfirings(syn) > 1e-10)
-            for (int nn = 0; nn < NBE; nn++)
-              // if (spikesthisstepFF(nn, syn) > 0)
-              wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
-
-        w.topLeftCorner(NBE, NBE) += EachNeurLTP.head(NBE) * xplast_lat.transpose();
-
-        // w.topLeftCorner(NBE, NBE) +=
-        //     ((spikesthisstep.topRows(NBE).array() > 0).cast<double>() *
-        //      (EachNeurLTD.head(NBE).asDiagonal() * (1.0 + w.topLeftCorner(NBE, NBE).array() * WPENSCALE).matrix())
-        //          .array())
-        //         .matrix();
-        for (int syn = 0; syn < NBE; syn++)
-          //    if (firingsprev(syn) > 1e-10)
-          for (int nn = 0; nn < NBE; nn++)
-            if (spikesthisstep(nn, syn) > 0)
-              w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
-
-        // Diagonal lateral weights are 0!
-        w.topLeftCorner(NBE, NBE) =
-            w.topLeftCorner(NBE, NBE).cwiseProduct(MatrixXd::Constant(NBE, NBE, 1) - MatrixXd::Identity(NBE, NBE));
-
-        wff.topRows(NBE) = wff.topRows(NBE).cwiseMax(0);
-        w.leftCols(NBE) = w.leftCols(NBE).cwiseMax(0);
-        // w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
-        wff.topRows(NBE) = wff.topRows(NBE).cwiseMin(MAXW);
-        w.topLeftCorner(NBE, NBE) = w.topLeftCorner(NBE, NBE).cwiseMin(MAXW);
-      }
+      auto const firings = runStep(
+          model,
+          modelState,
+          plastisity,
+          ALTDS,
+          lgnfirings,
+          posnoisein.col(numstep % NBNOISESTEPS),
+          negnoisein.col(numstep % NBNOISESTEPS)
+      );
 
       // Storing some indicator variablkes...
 
