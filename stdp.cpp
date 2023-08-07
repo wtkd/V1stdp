@@ -1057,7 +1057,6 @@ int run(
   VectorXd &xplast_ff = modelState.xplast_ff;
   VectorXd &xplast_lat = modelState.xplast_lat;
 
-  // Correct initialization for vlongtrace.
   VectorXd &vlongtrace = modelState.vlongtrace;
 
   VectorXd &wadap = modelState.wadap;
