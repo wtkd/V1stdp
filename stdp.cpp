@@ -676,6 +676,8 @@ struct ModelState {
   VectorXd vthresh;
   VectorXd refractime;
   VectorXi isspiking;
+  std::vector<std::vector<boost::circular_buffer<int>>> incomingspikes;
+  std::vector<std::vector<VectorXi>> incomingFFspikes;
 };
 
 int run(
@@ -887,6 +889,28 @@ int run(
     saveWeights(wff, saveDirectory / ("wff_" + std::to_string((long long int)(index)) + ".dat"));
   };
 
+  std::vector<std::vector<boost::circular_buffer<int>>> const initialIncomingspikes = [&]() {
+    std::vector<std::vector<boost::circular_buffer<int>>> initialIncomingspikes(
+        NBNEUR, std::vector<boost::circular_buffer<int>>(NBNEUR)
+    );
+    for (int ni = 0; ni < NBNEUR; ni++) {
+      for (int nj = 0; nj < NBNEUR; nj++) {
+        initialIncomingspikes[ni][nj] = boost::circular_buffer<int>(delays[nj][ni], 0);
+      }
+    }
+    return initialIncomingspikes;
+  }();
+
+  std::vector<std::vector<VectorXi>> const initialIncomingFFspikes = [&] {
+    std::vector<std::vector<VectorXi>> initialIncomingFFspikes(NBNEUR, std::vector<VectorXi>(FFRFSIZE));
+    for (int ni = 0; ni < NBNEUR; ni++) {
+      for (int nj = 0; nj < FFRFSIZE; nj++) {
+        initialIncomingFFspikes[ni][nj] = VectorXi::Zero(delaysFF[nj][ni]);
+      }
+    }
+    return initialIncomingFFspikes;
+  }();
+
   ModelState modelState{
       initw,                                                            // w
       initwff,                                                          // wff
@@ -899,7 +923,9 @@ int run(
       VectorXd::Zero(NBNEUR),                                           // wadap
       VectorXd::Constant(NBNEUR, VTREST),                               // vthresh
       VectorXd::Zero(NBNEUR),                                           // refractime
-      VectorXi::Zero(NBNEUR)                                            // isspiking
+      VectorXi::Zero(NBNEUR),                                           // isspiking
+      initialIncomingspikes,                                            // incomingspikes
+      initialIncomingFFspikes                                           // incomingFFspikes
   };
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
@@ -928,6 +954,9 @@ int run(
   VectorXd &vthresh = modelState.vthresh;
   VectorXd &refractime = modelState.refractime;
   VectorXi &isspiking = modelState.isspiking;
+
+  auto &incomingspikes = modelState.incomingspikes;
+  auto &incomingFFspikes = modelState.incomingFFspikes;
 
   Map<ArrayXX<int8_t> const> const imageVector(imagedata.data(), FFRFSIZE / 2, nbpatchesinfile);
 
@@ -1001,21 +1030,8 @@ int run(
     // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming
     // synapse); each vector is used as a circular array, containing the incoming spikes at this synapse at
     // successive timesteps:
-    std::vector<std::vector<boost::circular_buffer<int>>> incomingspikes(
-        NBNEUR, std::vector<boost::circular_buffer<int>>(NBNEUR)
-    );
-    for (int ni = 0; ni < NBNEUR; ni++) {
-      for (int nj = 0; nj < NBNEUR; nj++) {
-        incomingspikes[ni][nj] = boost::circular_buffer<int>(delays[nj][ni], 0);
-      }
-    }
-
-    std::vector<std::vector<VectorXi>> incomingFFspikes(NBNEUR, std::vector<VectorXi>(FFRFSIZE));
-    for (int ni = 0; ni < NBNEUR; ni++) {
-      for (int nj = 0; nj < FFRFSIZE; nj++) {
-        incomingFFspikes[ni][nj] = VectorXi::Zero(delaysFF[nj][ni]);
-      }
-    }
+    incomingspikes = initialIncomingspikes;
+    incomingFFspikes = initialIncomingFFspikes;
 
     // Stimulus presentation
     for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES; numstepthispres++) {
