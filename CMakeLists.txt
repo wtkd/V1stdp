@@ -47,15 +47,19 @@ target_include_directories(
 
 enable_testing()
 
+# Ensure directory
+
 add_test(
   NAME remove_directory
-  COMMAND rm -rf ./data && mkdir ./data
+  COMMAND rm -rf ./data
 )
 
 add_test(
   NAME ensure_directory
   COMMAND mkdir ./data
 )
+
+# Learn
 
 add_test(
   NAME run_learn
@@ -65,44 +69,6 @@ set_tests_properties(
   run_learn PROPERTIES
   DEPENDS ensure_directory
 )
-
-add_test(
-  NAME run_test
-  COMMAND $<TARGET_FILE:stdp> test --data-directory ./data --input-directory .. --seed 0 --step-number-testing 1000
-)
-set_tests_properties(
-  run_test PROPERTIES
-  DEPENDS run_learn
-)
-
-add_test(
-  NAME run_pulse
-  COMMAND $<TARGET_FILE:stdp> pulse --data-directory ./data --input-directory .. --seed 0 50
-)
-set_tests_properties(
-  run_pulse PROPERTIES
-  DEPENDS run_learn
-)
-
-add_test(
-  NAME run_mix
-  COMMAND $<TARGET_FILE:stdp> mix --data-directory ./data --input-directory .. --seed 0 50 100
-)
-set_tests_properties(
-  run_mix PROPERTIES
-  DEPENDS run_learn
-)
-
-add_test(
-  NAME run_spontaneous
-  COMMAND $<TARGET_FILE:stdp> spontaneous --data-directory ./data --input-directory .. --seed 0
-)
-set_tests_properties(
-  run_spontaneous PROPERTIES
-  DEPENDS run_learn
-)
-
-# Test outputs of phase "learn"
 
 add_test(
   NAME compare_weight
@@ -257,7 +223,16 @@ set_tests_properties(
   DEPENDS run_learn
 )
 
-# Test outputs of phase "test"
+# Test
+
+add_test(
+  NAME run_test
+  COMMAND $<TARGET_FILE:stdp> test --data-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory .. --seed 0 --step-number-testing 1000
+)
+set_tests_properties(
+  run_test PROPERTIES
+  DEPENDS ensure_directory
+)
 
 add_test(
   NAME compare_lastnspikes_test
@@ -286,7 +261,16 @@ set_tests_properties(
   DEPENDS run_test
 )
 
-# Test outputs of phase "pulse"
+# Pulse
+
+add_test(
+  NAME run_pulse
+  COMMAND $<TARGET_FILE:stdp> pulse --data-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory .. --seed 0 50
+)
+set_tests_properties(
+  run_pulse PROPERTIES
+  DEPENDS ensure_directory
+)
 
 add_test(
   NAME compare_lastnspikes_pulse
@@ -306,7 +290,16 @@ set_tests_properties(
   DEPENDS run_pulse
 )
 
-# Test outputs of phase "spont"
+# Spontaneous
+
+add_test(
+  NAME run_spontaneous
+  COMMAND $<TARGET_FILE:stdp> spontaneous --data-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory .. --seed 0
+)
+set_tests_properties(
+  run_spontaneous PROPERTIES
+  DEPENDS ensure_directory
+)
 
 add_test(
   NAME compare_lastnspikes_spont
@@ -335,4 +328,13 @@ add_test(
 set_tests_properties(
   compare_respssumv_mix PROPERTIES
   DEPENDS run_mix
+)
+
+add_test(
+  NAME run_mix
+  COMMAND $<TARGET_FILE:stdp> mix --data-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory .. --seed 0 50 100
+)
+set_tests_properties(
+  run_mix PROPERTIES
+  DEPENDS ensure_directory
 )
