@@ -50,24 +50,35 @@ enable_testing()
 # Ensure directory
 
 add_test(
-  NAME remove_directory
+  NAME remove_data_directory
   COMMAND rm -rf ./data
+)
+set_tests_properties(
+  remove_data_directory PROPERTIES
+  FIXTURES_SETUP data_directory
 )
 
 add_test(
-  NAME ensure_directory
+  NAME ensure_data_directory
   COMMAND mkdir ./data
+)
+set_tests_properties(
+  ensure_data_directory PROPERTIES
+  FIXTURES_SETUP data_directory
+  DEPENDS remove_data_directory
 )
 
 # Learn
 
 add_test(
   NAME run_learn
-  COMMAND $<TARGET_FILE:stdp> learn --data-directory ./data --input-directory .. --seed 0 --step-number-learning 1000 --save-log-interval 500
+  COMMAND $<TARGET_FILE:stdp> learn --save-directory ./data --input-directory ${PROJECT_SOURCE_DIR} --seed 0 --step-number-learning 1000 --save-log-interval 500
 )
 set_tests_properties(
   run_learn PROPERTIES
-  DEPENDS ensure_directory
+  FIXTURES_SETUP run_learn
+  FIXTURES_REQUIRED data_directory
+  LABELS learn
 )
 
 add_test(
@@ -76,7 +87,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -84,8 +96,9 @@ add_test(
   COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/w.dat ./data/w.dat
 )
 set_tests_properties(
-  compare_weight PROPERTIES
-  DEPENDS run_learn
+  compare_weight_dat PROPERTIES
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -94,7 +107,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_feedforward PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -102,8 +116,9 @@ add_test(
   COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/wff.dat ./data/wff.dat
 )
 set_tests_properties(
-  compare_weight_feedforward PROPERTIES
-  DEPENDS run_learn
+  compare_weight_feedforward_dat PROPERTIES
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -112,7 +127,8 @@ add_test(
 )
 set_tests_properties(
   compare_response PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -121,7 +137,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_0 PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -130,7 +147,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_0_data PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -139,7 +157,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_feedforward_0 PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -148,7 +167,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_feedforward_0_data PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -157,7 +177,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_500 PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -166,7 +187,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_500_data PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -175,7 +197,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_feedforward_500 PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -184,7 +207,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_feedforward_500_data PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -193,7 +217,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_1000 PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -202,7 +227,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_1000_data PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -211,7 +237,8 @@ add_test(
 )
 set_tests_properties(
   compare_weight_feedforward_1000 PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 add_test(
@@ -220,18 +247,21 @@ add_test(
 )
 set_tests_properties(
   compare_weight_feedforward_1000_data PROPERTIES
-  DEPENDS run_learn
+  FIXTURES_REQUIRED run_learn
+  LABELS learn
 )
 
 # Test
 
 add_test(
   NAME run_test
-  COMMAND $<TARGET_FILE:stdp> test --data-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory .. --seed 0 --step-number-testing 1000
+  COMMAND $<TARGET_FILE:stdp> test --save-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory ${PROJECT_SOURCE_DIR} --seed 0 --step-number-testing 1000
 )
 set_tests_properties(
   run_test PROPERTIES
-  DEPENDS ensure_directory
+  FIXTURES_SETUP run_test
+  FIXTURES_REQUIRED data_directory
+  LABELS test
 )
 
 add_test(
@@ -240,7 +270,8 @@ add_test(
 )
 set_tests_properties(
   compare_lastnspikes_test PROPERTIES
-  DEPENDS run_test
+  FIXTURES_REQUIRED run_test
+  LABELS test
 )
 
 add_test(
@@ -249,7 +280,8 @@ add_test(
 )
 set_tests_properties(
   compare_response_test PROPERTIES
-  DEPENDS run_test
+  FIXTURES_REQUIRED run_test
+  LABELS test
 )
 
 add_test(
@@ -258,18 +290,21 @@ add_test(
 )
 set_tests_properties(
   compare_lastnv_test PROPERTIES
-  DEPENDS run_test
+  FIXTURES_REQUIRED run_test
+  LABELS test
 )
 
 # Pulse
 
 add_test(
   NAME run_pulse
-  COMMAND $<TARGET_FILE:stdp> pulse --data-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory .. --seed 0 50
+  COMMAND $<TARGET_FILE:stdp> pulse --save-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory ${PROJECT_SOURCE_DIR} --seed 0 50
 )
 set_tests_properties(
   run_pulse PROPERTIES
-  DEPENDS ensure_directory
+  FIXTURES_SETUP run_pulse
+  FIXTURES_REQUIRED data_directory
+  LABELS pulse
 )
 
 add_test(
@@ -278,7 +313,8 @@ add_test(
 )
 set_tests_properties(
   compare_lastnspikes_pulse PROPERTIES
-  DEPENDS run_pulse
+  FIXTURES_REQUIRED run_pulse
+  LABELS pulse
 )
 
 add_test(
@@ -287,18 +323,21 @@ add_test(
 )
 set_tests_properties(
   compare_response_pulse PROPERTIES
-  DEPENDS run_pulse
+  FIXTURES_REQUIRED run_pulse
+  LABELS pulse
 )
 
 # Spontaneous
 
 add_test(
   NAME run_spontaneous
-  COMMAND $<TARGET_FILE:stdp> spontaneous --data-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory .. --seed 0
+  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory ${PROJECT_SOURCE_DIR} --seed 0
 )
 set_tests_properties(
   run_spontaneous PROPERTIES
-  DEPENDS ensure_directory
+  FIXTURES_SETUP run_spontaneous
+  FIXTURES_REQUIRED data_directory
+  LABELS spontaneous
 )
 
 add_test(
@@ -307,10 +346,22 @@ add_test(
 )
 set_tests_properties(
   compare_lastnspikes_spont PROPERTIES
-  DEPENDS run_spont
+  FIXTURES_REQUIRED run_spontaneous
+  LABELS spontaneous
 )
 
-# Test outputs of phase "mix"
+# mix
+
+add_test(
+  NAME run_mix
+  COMMAND $<TARGET_FILE:stdp> mix --save-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory ${PROJECT_SOURCE_DIR} --seed 0 50 100
+)
+set_tests_properties(
+  run_mix PROPERTIES
+  FIXTURES_SETUP run_mix
+  FIXTURES_REQUIRED data_directory
+  LABELS mix
+)
 
 add_test(
   NAME compare_response_mix
@@ -318,7 +369,8 @@ add_test(
 )
 set_tests_properties(
   compare_response_mix PROPERTIES
-  DEPENDS run_mix
+  FIXTURES_REQUIRED run_mix
+  LABELS mix
 )
 
 add_test(
@@ -327,14 +379,6 @@ add_test(
 )
 set_tests_properties(
   compare_respssumv_mix PROPERTIES
-  DEPENDS run_mix
-)
-
-add_test(
-  NAME run_mix
-  COMMAND $<TARGET_FILE:stdp> mix --data-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-directory .. --seed 0 50 100
-)
-set_tests_properties(
-  run_mix PROPERTIES
-  DEPENDS ensure_directory
+  FIXTURES_REQUIRED run_mix
+  LABELS mix
 )
