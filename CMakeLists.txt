@@ -77,7 +77,7 @@ add_test(
 set_tests_properties(
   run_learn PROPERTIES
   FIXTURES_REQUIRED data_directory
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -87,7 +87,7 @@ add_test(
 set_tests_properties(
   compare_weight PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -97,7 +97,7 @@ add_test(
 set_tests_properties(
   compare_weight_dat PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -107,7 +107,7 @@ add_test(
 set_tests_properties(
   compare_weight_feedforward PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -117,7 +117,7 @@ add_test(
 set_tests_properties(
   compare_weight_feedforward_dat PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -127,7 +127,7 @@ add_test(
 set_tests_properties(
   compare_response PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -137,7 +137,7 @@ add_test(
 set_tests_properties(
   compare_weight_0 PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -147,7 +147,7 @@ add_test(
 set_tests_properties(
   compare_weight_0_data PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -157,7 +157,7 @@ add_test(
 set_tests_properties(
   compare_weight_feedforward_0 PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -167,7 +167,7 @@ add_test(
 set_tests_properties(
   compare_weight_feedforward_0_data PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -177,7 +177,7 @@ add_test(
 set_tests_properties(
   compare_weight_500 PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -187,7 +187,7 @@ add_test(
 set_tests_properties(
   compare_weight_500_data PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -197,7 +197,7 @@ add_test(
 set_tests_properties(
   compare_weight_feedforward_500 PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -207,7 +207,7 @@ add_test(
 set_tests_properties(
   compare_weight_feedforward_500_data PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -217,7 +217,7 @@ add_test(
 set_tests_properties(
   compare_weight_1000 PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -227,7 +227,7 @@ add_test(
 set_tests_properties(
   compare_weight_1000_data PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -237,7 +237,7 @@ add_test(
 set_tests_properties(
   compare_weight_feedforward_1000 PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 add_test(
@@ -247,7 +247,7 @@ add_test(
 set_tests_properties(
   compare_weight_feedforward_1000_data PROPERTIES
   DEPENDS run_learn
-  LABEL learn
+  LABELS learn
 )
 
 # Test
@@ -259,6 +259,7 @@ add_test(
 set_tests_properties(
   run_test PROPERTIES
   FIXTURES_REQUIRED data_directory
+  LABELS test
 )
 
 add_test(
@@ -268,7 +269,7 @@ add_test(
 set_tests_properties(
   compare_lastnspikes_test PROPERTIES
   DEPENDS run_test
-  LABEL test
+  LABELS test
 )
 
 add_test(
@@ -278,7 +279,7 @@ add_test(
 set_tests_properties(
   compare_response_test PROPERTIES
   DEPENDS run_test
-  LABEL test
+  LABELS test
 )
 
 add_test(
@@ -288,7 +289,7 @@ add_test(
 set_tests_properties(
   compare_lastnv_test PROPERTIES
   DEPENDS run_test
-  LABEL test
+  LABELS test
 )
 
 # Pulse
@@ -300,6 +301,7 @@ add_test(
 set_tests_properties(
   run_pulse PROPERTIES
   FIXTURES_REQUIRED data_directory
+  LABELS pulse
 )
 
 add_test(
@@ -309,7 +311,7 @@ add_test(
 set_tests_properties(
   compare_lastnspikes_pulse PROPERTIES
   DEPENDS run_pulse
-  LABEL pulse
+  LABELS pulse
 )
 
 add_test(
@@ -319,7 +321,7 @@ add_test(
 set_tests_properties(
   compare_response_pulse PROPERTIES
   DEPENDS run_pulse
-  LABEL pulse
+  LABELS pulse
 )
 
 # Spontaneous
@@ -331,6 +333,7 @@ add_test(
 set_tests_properties(
   run_spontaneous PROPERTIES
   FIXTURES_REQUIRED data_directory
+  LABELS spontaneous
 )
 
 add_test(
@@ -340,7 +343,7 @@ add_test(
 set_tests_properties(
   compare_lastnspikes_spont PROPERTIES
   DEPENDS run_spontaneous
-  LABEL spontaneous
+  LABELS spontaneous
 )
 
 # mix
@@ -352,6 +355,7 @@ add_test(
 set_tests_properties(
   run_mix PROPERTIES
   FIXTURES_REQUIRED data_directory
+  LABELS mix
 )
 
 add_test(
@@ -361,7 +365,7 @@ add_test(
 set_tests_properties(
   compare_response_mix PROPERTIES
   DEPENDS run_mix
-  LABEL mix
+  LABELS mix
 )
 
 add_test(
@@ -371,5 +375,5 @@ add_test(
 set_tests_properties(
   compare_respssumv_mix PROPERTIES
   DEPENDS run_mix
-  LABEL mix
+  LABELS mix
 )
