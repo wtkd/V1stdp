@@ -1,5 +1,4 @@
 #include <concepts>
-#include <cstdint>
 #include <fstream>
 #include <list>
 #include <map>
@@ -8,6 +7,7 @@
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
+#include <boost/progress.hpp>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
 
@@ -17,8 +17,8 @@
 struct AnalyzeClusteringOptions {
   std::filesystem::path inputFile;
   std::filesystem::path sortedResponseOutputFile;
-  bool neuronSortedIndexOutputFile = false;
-  bool stimulationSortedIndexOutputFile = false;
+  std::filesystem::path neuronSortedIndexOutputFile;
+  std::filesystem::path stimulationSortedIndexOutputFile;
 };
 
 void setupClustering(CLI::App &app) {
@@ -34,8 +34,18 @@ void setupClustering(CLI::App &app) {
       ->check(CLI::ExistingFile);
   sub->add_option("-o,--output-file,output-file", opt->sortedResponseOutputFile, "Name of output text file.")
       ->check(CLI::NonexistentPath);
-  sub->add_option("-n,--neuron", opt->neuronSortedIndexOutputFile, "Run clustering by neuron");
-  sub->add_option("-s,--stimulation", opt->stimulationSortedIndexOutputFile, "Run clustering by stimulation");
+  sub->add_option(
+         "-n,--neuron",
+         opt->neuronSortedIndexOutputFile,
+         "Run clustering by neuron. Argument should be file name to save permutation."
+  )
+      ->check(CLI::NonexistentPath);
+  sub->add_option(
+         "-s,--stimulation",
+         opt->stimulationSortedIndexOutputFile,
+         "Run clustering by stimulation Argument should be file name to save permutation.."
+  )
+      ->check(CLI::NonexistentPath);
 
   sub->callback([opt]() {
     // Row: Neuron, Colomn: Stimulation
@@ -58,15 +68,27 @@ void setupClustering(CLI::App &app) {
 
     Eigen::MatrixXi resultMatrix = responseMatrix;
 
-    if (opt->neuronSortedIndexOutputFile) {
+    if (not opt->stimulationSortedIndexOutputFile.empty()) {
       auto const permutaion = singleClusteringSortPermutation(resultMatrix, correlationDistanceSquare<int>);
-      resultMatrix = applyPermutationRow(resultMatrix, permutaion);
+
+      std::ofstream ofs(opt->stimulationSortedIndexOutputFile);
+      for (auto const &i : permutaion) {
+        ofs << i << std::endl;
+      }
+
+      resultMatrix = applyPermutationCol(resultMatrix, permutaion);
     }
 
-    if (opt->stimulationSortedIndexOutputFile) {
+    if (not opt->neuronSortedIndexOutputFile.empty()) {
       auto const permutaion =
           singleClusteringSortPermutation(Eigen::MatrixXi(responseMatrix.transpose()), correlationDistanceSquare<int>);
-      resultMatrix = applyPermutationCol(resultMatrix, permutaion);
+
+      std::ofstream ofs(opt->neuronSortedIndexOutputFile);
+      for (auto const &i : permutaion) {
+        ofs << i << std::endl;
+      }
+
+      resultMatrix = applyPermutationRow(resultMatrix, permutaion);
     }
 
     std::ofstream ofs(opt->sortedResponseOutputFile);
@@ -112,12 +134,12 @@ double correlationSquare(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y)
   Eigen::ArrayXd const xdeviation = xx.array() - xmean;
   Eigen::ArrayXd const ydeviation = yy.array() - ymean;
 
-  double xStandardDeviation = xdeviation.mean();
-  double yStandardDeviation = ydeviation.mean();
+  double xVariance = xdeviation.square().mean();
+  double yVariance = ydeviation.square().mean();
 
-  double const covarianceSquare = (xdeviation.square() * ydeviation.square()).mean();
+  double const covariance = xdeviation.cwiseProduct(ydeviation).mean();
 
-  return covarianceSquare / (xStandardDeviation * yStandardDeviation);
+  return covariance * covariance / (xVariance * yVariance);
 }
 
 template <typename T>
@@ -129,7 +151,7 @@ double correlation(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y) {
 template <typename T>
   requires std::integral<T> || std::floating_point<T>
 double correlationDistance(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y) {
-  return 1 - correlationSquare(x, y);
+  return 1 - correlation(x, y);
 }
 
 template <typename T>
@@ -164,6 +186,8 @@ std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const
     clusters.erase(inferioredCluster);
   };
 
+  boost::progress_display showProgress(clusters.size());
+
   while (clusters.size() != 1) {
     std::pair<index_type, index_type> minColomnPair;
     auto minDistance = std::numeric_limits<double>::max();
@@ -174,6 +198,7 @@ std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const
         if (colomnToCluster[i] == colomnToCluster[j])
           continue;
 
+        // TODO: Memoize
         double const d = distance2(matrix.col(i), matrix.col(j));
         if (d < minDistance) {
           minDistance = d;
@@ -186,6 +211,7 @@ std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const
     assert(minDistance != std::numeric_limits<double>::max());
 
     fusionCluster(colomnToCluster[minColomnPair.first], colomnToCluster[minColomnPair.second]);
+    ++showProgress;
   }
 
   return std::vector(clusters.begin()->second.begin(), clusters.begin()->second.end());
@@ -196,8 +222,8 @@ template <typename T>
 Eigen::MatrixX<T> applyPermutationCol(Eigen::MatrixX<T> const &matrix, std::ranges::range auto const &permutation) {
   Eigen::MatrixX<T> sortedMatrix(matrix.rows(), matrix.cols());
 
-  for (auto &i : permutation) {
-    sortedMatrix.col(i) = matrix.col(i);
+  for (auto i : permutation | boost::adaptors::indexed()) {
+    sortedMatrix.col(i.index()) = matrix.col(i.value());
   }
 
   return sortedMatrix;
@@ -208,8 +234,8 @@ template <typename T>
 Eigen::MatrixX<T> applyPermutationRow(Eigen::MatrixX<T> const &matrix, std::ranges::range auto const &permutation) {
   Eigen::MatrixX<T> sortedMatrix(matrix.rows(), matrix.cols());
 
-  for (auto &i : permutation) {
-    sortedMatrix.row(i) = matrix.row(i);
+  for (auto i : permutation | boost::adaptors::indexed()) {
+    sortedMatrix.row(i.index()) = matrix.row(i.value());
   }
 
   return sortedMatrix;
