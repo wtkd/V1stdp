@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: lukka/get-cmake@latest
-      - run: sudo apt-get install libcli11-dev libeigen3-dev libboost-all-dev
+      - run: sudo apt-get install libcli11-dev libeigen3-dev libboost-all-dev libarmadillo-dev
       - uses: lukka/run-cmake@v10
         with:
           configurePreset: 'default'

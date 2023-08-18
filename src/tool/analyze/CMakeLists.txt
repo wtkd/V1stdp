@@ -18,8 +18,10 @@ add_library(Analyze STATIC
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(Armadillo REQUIRED)
 
 target_link_libraries(Analyze CLI11::CLI11)
 target_link_libraries(Analyze Eigen3::Eigen)
+target_link_libraries(Analyze ${ARMADILLO_LIBRARIES})
 
 target_compile_features(Analyze PRIVATE cxx_std_20)
