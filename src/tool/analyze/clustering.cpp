@@ -2,6 +2,7 @@
 #include <fstream>
 #include <list>
 #include <map>
+#include <queue>
 #include <ranges>
 #include <vector>
 
@@ -192,6 +193,17 @@ template <typename F, typename T>
   requires std::regular_invocable<F, Eigen::VectorX<T>, Eigen::VectorX<T>>
 std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const &matrix, F const &distance2) {
   using index_type = std::size_t;
+  using distance_type = double;
+  constexpr distance_type maxDistance = std::numeric_limits<distance_type>::max();
+
+  std::map<std::pair<index_type, index_type>, distance_type> distMemo;
+  auto const memoizedDistance2 = [&](index_type xi, index_type yi){
+    if(distMemo.contains({xi, yi})){
+      return distMemo[{xi, yi}];
+    }
+    return distMemo[{xi, yi}] = distance2(matrix.col(xi), matrix.col(yi));
+  };
+
   // (Cluster Number, elements)
   std::map<index_type, std::list<index_type>> clusters;
   std::map<index_type, index_type> colomnToCluster;
@@ -226,7 +238,7 @@ std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const
           continue;
 
         // TODO: Memoize
-        double const d = distance2(matrix.col(i), matrix.col(j));
+        distance_type const d = memoizedDistance2(i, j);
         if (d < minDistance) {
           minDistance = d;
           minColomnPair.first = i;
