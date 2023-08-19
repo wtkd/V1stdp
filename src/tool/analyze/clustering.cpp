@@ -8,7 +8,6 @@
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
-#include <boost/progress.hpp>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
 
@@ -194,23 +193,15 @@ template <typename F, typename T>
 std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const &matrix, F const &distance2) {
   using index_type = std::size_t;
   using distance_type = double;
-  constexpr distance_type maxDistance = std::numeric_limits<distance_type>::max();
-
-  std::map<std::pair<index_type, index_type>, distance_type> distMemo;
-  auto const memoizedDistance2 = [&](index_type xi, index_type yi){
-    if(distMemo.contains({xi, yi})){
-      return distMemo[{xi, yi}];
-    }
-    return distMemo[{xi, yi}] = distance2(matrix.col(xi), matrix.col(yi));
-  };
 
   // (Cluster Number, elements)
   std::map<index_type, std::list<index_type>> clusters;
-  std::map<index_type, index_type> colomnToCluster;
 
-  for (auto const i : boost::counting_range<std::size_t>(0, matrix.cols())) {
+  std::vector<index_type> colomnToCluster(matrix.cols());
+
+  for (auto const i : boost::counting_range<index_type>(0, matrix.cols())) {
     clusters.emplace(i, std::list<index_type>(1, i));
-    colomnToCluster.emplace(i, i);
+    colomnToCluster[i] = i;
   }
 
   auto fusionCluster = [&](index_type const cluster1, index_type const cluster2) {
@@ -225,32 +216,26 @@ std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const
     clusters.erase(inferioredCluster);
   };
 
-  boost::progress_display showProgress(clusters.size());
+  // Distance, i, j where j < i
+  using distanceTuple = std::tuple<distance_type, index_type, index_type>;
+
+  std::priority_queue<distanceTuple, std::vector<distanceTuple>, std::greater<distanceTuple>>
+      elementPairsSortByDistance;
+
+  for (auto const i : boost::counting_range<index_type>(0, matrix.cols())) {
+    for (auto const j : boost::counting_range<index_type>(0, i)) {
+      elementPairsSortByDistance.emplace(distance2(matrix.col(i), matrix.col(j)), i, j);
+    }
+  }
 
   while (clusters.size() != 1) {
-    std::pair<index_type, index_type> minColomnPair;
-    auto minDistance = std::numeric_limits<double>::max();
+    auto const [d, i, j] = elementPairsSortByDistance.top();
+    elementPairsSortByDistance.pop();
 
-    // TODO: Use cache of the distance2. All clusters except merged ones include completely same points.
-    for (auto const i : boost::counting_range<std::size_t>(0, matrix.cols())) {
-      for (auto const j : boost::counting_range<std::size_t>(0, i)) {
-        if (colomnToCluster[i] == colomnToCluster[j])
-          continue;
+    if (colomnToCluster[i] == colomnToCluster[j])
+      continue;
 
-        // TODO: Memoize
-        distance_type const d = memoizedDistance2(i, j);
-        if (d < minDistance) {
-          minDistance = d;
-          minColomnPair.first = i;
-          minColomnPair.second = j;
-        }
-      }
-    }
-
-    assert(minDistance != std::numeric_limits<double>::max());
-
-    fusionCluster(colomnToCluster[minColomnPair.first], colomnToCluster[minColomnPair.second]);
-    ++showProgress;
+    fusionCluster(colomnToCluster[i], colomnToCluster[j]);
   }
 
   return std::vector(clusters.begin()->second.begin(), clusters.begin()->second.end());
