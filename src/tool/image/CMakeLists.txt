@@ -17,12 +17,12 @@ add_library(Image STATIC
   export.cpp
   exporter.cpp)
 
-target_link_libraries(Image Simulation)
-
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Boost CONFIG REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 target_link_libraries(Image CLI11::CLI11)
 target_link_libraries(Image Boost::boost)
+target_link_libraries(Image Eigen3::Eigen)
 
 target_compile_features(Image PRIVATE cxx_std_20)

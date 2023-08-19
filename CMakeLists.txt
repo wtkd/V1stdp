@@ -350,7 +350,7 @@ set_tests_properties(
   LABELS spontaneous
 )
 
-# mix
+# Mix
 
 add_test(
   NAME run_mix
@@ -381,4 +381,139 @@ set_tests_properties(
   compare_respssumv_mix PROPERTIES
   FIXTURES_REQUIRED run_mix
   LABELS mix
+)
+
+# Tool
+
+## Analyze
+
+### Clustering
+
+#### All neuron
+
+add_test(
+  NAME run_clustering_all
+  COMMAND $<TARGET_FILE:stdp> tool analyze clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_all.txt --stimulation ./data/sort_index_stimulation_all.txt --neuron ./data/sort_index_neuron_all.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20
+)
+set_tests_properties(
+  run_clustering_all PROPERTIES
+  FIXTURES_SETUP run_clustering_all
+  FIXTURES_REQUIRED data_directory
+  LABELS clustering
+)
+
+add_test(
+  NAME compare_sorted_response_all
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sorted_response_all.txt ./data/sorted_response_all.txt
+)
+set_tests_properties(
+  compare_sorted_response_all PROPERTIES
+  FIXTURES_REQUIRED run_clustering_all
+  LABELS clustering
+)
+
+add_test(
+  NAME compare_sort_index_neuron_all
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt ./data/sort_index_neuron_all.txt
+)
+set_tests_properties(
+  compare_sort_index_neuron_all PROPERTIES
+  FIXTURES_REQUIRED run_clustering_all
+  LABELS clustering
+)
+
+add_test(
+  NAME compare_sort_index_stimulation_all
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_stimulation_all.txt ./data/sort_index_stimulation_all.txt
+)
+set_tests_properties(
+  compare_sort_index_stimulation_all PROPERTIES
+  FIXTURES_REQUIRED run_clustering_all
+  LABELS clustering
+)
+
+#### Excitatory only
+
+add_test(
+  NAME run_clustering_excitatory_only
+  COMMAND $<TARGET_FILE:stdp> tool analyze clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_excitatory_only.txt --stimulation ./data/sort_index_stimulation_excitatory_only.txt --neuron ./data/sort_index_neuron_excitatory_only.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --excitatory-only
+)
+set_tests_properties(
+  run_clustering_excitatory_only PROPERTIES
+  FIXTURES_SETUP run_clustering_excitatory_only
+  FIXTURES_REQUIRED data_directory
+  LABELS clustering
+)
+
+add_test(
+  NAME compare_sorted_response_excitatory_only
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sorted_response_excitatory_only.txt ./data/sorted_response_excitatory_only.txt
+)
+set_tests_properties(
+  compare_sorted_response_excitatory_only PROPERTIES
+  FIXTURES_REQUIRED run_clustering_excitatory_only
+  LABELS clustering
+)
+
+add_test(
+  NAME compare_sort_index_neuron_excitatory_only
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_excitatory_only.txt ./data/sort_index_neuron_excitatory_only.txt
+)
+set_tests_properties(
+  compare_sort_index_neuron_excitatory_only PROPERTIES
+  FIXTURES_REQUIRED run_clustering_excitatory_only
+  LABELS clustering
+)
+
+add_test(
+  NAME compare_sort_index_stimulation_excitatory_only
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_stimulation_excitatory_only.txt ./data/sort_index_stimulation_excitatory_only.txt
+)
+set_tests_properties(
+  compare_sort_index_stimulation_excitatory_only PROPERTIES
+  FIXTURES_REQUIRED run_clustering_excitatory_only
+  LABELS clustering
+)
+
+#### Inhibitory only
+
+add_test(
+  NAME run_clustering_inhibitory_only
+  COMMAND $<TARGET_FILE:stdp> tool analyze clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_inhibitory_only.txt --stimulation ./data/sort_index_stimulation_inhibitory_only.txt --neuron ./data/sort_index_neuron_inhibitory_only.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --inhibitory-only
+)
+set_tests_properties(
+  run_clustering_inhibitory_only PROPERTIES
+  FIXTURES_SETUP run_clustering_inhibitory_only
+  FIXTURES_REQUIRED data_directory
+  LABELS clustering
+)
+
+add_test(
+  NAME compare_sorted_response_inhibitory_only
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sorted_response_inhibitory_only.txt ./data/sorted_response_inhibitory_only.txt
+)
+set_tests_properties(
+  compare_sorted_response_inhibitory_only PROPERTIES
+  FIXTURES_REQUIRED run_clustering_inhibitory_only
+  LABELS clustering
+)
+
+add_test(
+  NAME compare_sort_index_neuron_inhibitory_only
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_inhibitory_only.txt ./data/sort_index_neuron_inhibitory_only.txt
+)
+set_tests_properties(
+  compare_sort_index_neuron_inhibitory_only PROPERTIES
+  FIXTURES_REQUIRED run_clustering_inhibitory_only
+  LABELS clustering
+)
+
+add_test(
+  NAME compare_sort_index_stimulation_inhibitory_only
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_stimulation_inhibitory_only.txt ./data/sort_index_stimulation_inhibitory_only.txt
+)
+set_tests_properties(
+  compare_sort_index_stimulation_inhibitory_only PROPERTIES
+  FIXTURES_REQUIRED run_clustering_inhibitory_only
+  LABELS clustering
 )

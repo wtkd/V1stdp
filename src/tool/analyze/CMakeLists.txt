@@ -12,17 +12,14 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_library(Tool STATIC
-  tool.cpp)
-
-add_subdirectory(image)
-add_subdirectory(analyze)
-
-target_link_libraries(Tool PUBLIC Image)
-target_link_libraries(Tool PUBLIC Analyze)
+add_library(Analyze STATIC
+  analyze.cpp
+  clustering.cpp)
 
 find_package(CLI11 CONFIG REQUIRED)
+find_package(Eigen3 REQUIRED)
 
-target_link_libraries(Tool PUBLIC CLI11::CLI11)
+target_link_libraries(Analyze PUBLIC CLI11::CLI11)
+target_link_libraries(Analyze PUBLIC Eigen3::Eigen)
 
-target_compile_features(Tool PRIVATE cxx_std_20)
+target_compile_features(Analyze PRIVATE cxx_std_20)
