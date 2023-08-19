@@ -18,11 +18,11 @@ add_library(Tool STATIC
 add_subdirectory(image)
 add_subdirectory(analyze)
 
-target_link_libraries(Tool Image)
-target_link_libraries(Tool Analyze)
+target_link_libraries(Tool PUBLIC Image)
+target_link_libraries(Tool PUBLIC Analyze)
 
 find_package(CLI11 CONFIG REQUIRED)
 
-target_link_libraries(Tool CLI11::CLI11)
+target_link_libraries(Tool PUBLIC CLI11::CLI11)
 
 target_compile_features(Tool PRIVATE cxx_std_20)

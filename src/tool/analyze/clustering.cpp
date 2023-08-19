@@ -7,7 +7,6 @@
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
-#include <armadillo>
 #include <boost/progress.hpp>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
@@ -20,6 +19,10 @@ struct AnalyzeClusteringOptions {
   std::filesystem::path sortedResponseOutputFile;
   std::filesystem::path neuronSortedIndexOutputFile;
   std::filesystem::path stimulationSortedIndexOutputFile;
+  std::uint64_t excitatoryNeuronNumber;
+  std::uint64_t inhibitoryNeuronNumber;
+  bool excitatoryOnly = false;
+  bool inhibitoryOnly = false;
 };
 
 void setupClustering(CLI::App &app) {
@@ -27,7 +30,7 @@ void setupClustering(CLI::App &app) {
   auto sub = app.add_subcommand("clustering", "Clustering stimulations and neurons");
 
   sub->add_option(
-         "-i,--input-file,input-file",
+         "input-file",
          opt->inputFile,
          "Name of input text file which contains response matrix, Usually named resps_test.txt."
   )
@@ -44,15 +47,29 @@ void setupClustering(CLI::App &app) {
   sub->add_option(
          "-s,--stimulation",
          opt->stimulationSortedIndexOutputFile,
-         "Run clustering by stimulation Argument should be file name to save permutation.."
+         "Run clustering by stimulation Argument should be file name to save permutation."
   )
       ->check(CLI::NonexistentPath);
+  sub->add_option("-e,--excitatory-neuron-number", opt->excitatoryNeuronNumber, "The number of excitatory neuron.")
+      ->required();
+  sub->add_option("-i,--inhibitory-neuron-number", opt->inhibitoryNeuronNumber, "The number of inhibitory neuron.")
+      ->required();
+
+  sub->add_flag("-E,--excitatory-only", opt->excitatoryOnly, "Use only the responses of excitatory neurons.");
+  sub->add_flag("-I,--inhibitory-only", opt->inhibitoryOnly, "Use only the responses of inhibitory neurons.");
 
   sub->callback([opt]() {
+    auto const excitatoryNeuronNumber = opt->excitatoryNeuronNumber;
+    auto const inhibitoryNeuronNumber = opt->inhibitoryNeuronNumber;
+
+    // Neuron number
+    auto const row = countLine(opt->inputFile);
+
+    // Stimulation number
+    auto const col = countWord(opt->inputFile) / row;
+
     // Row: Neuron, Colomn: Stimulation
     Eigen::MatrixXi const responseMatrix = [&] {
-      auto const row = countLine(opt->inputFile);
-      auto const col = countWord(opt->inputFile) / row;
       Eigen::MatrixXi responseMatrix(row, col);
 
       std::ifstream ifs(opt->inputFile);
@@ -67,7 +84,11 @@ void setupClustering(CLI::App &app) {
       return responseMatrix;
     }();
 
-    Eigen::MatrixXi resultMatrix = responseMatrix;
+    Eigen::MatrixXi const targetMatrix = opt->excitatoryOnly   ? responseMatrix.topRows(excitatoryNeuronNumber)
+                                         : opt->inhibitoryOnly ? responseMatrix.bottomRows(inhibitoryNeuronNumber)
+                                                               : responseMatrix;
+
+    Eigen::MatrixXi resultMatrix = targetMatrix;
 
     if (not opt->stimulationSortedIndexOutputFile.empty()) {
       auto const permutaion = singleClusteringSortPermutation(resultMatrix, correlationDistanceSquare<int>);
@@ -82,7 +103,7 @@ void setupClustering(CLI::App &app) {
 
     if (not opt->neuronSortedIndexOutputFile.empty()) {
       auto const permutaion =
-          singleClusteringSortPermutation(Eigen::MatrixXi(responseMatrix.transpose()), correlationDistanceSquare<int>);
+          singleClusteringSortPermutation(Eigen::MatrixXi(resultMatrix.transpose()), correlationDistanceSquare<int>);
 
       std::ofstream ofs(opt->neuronSortedIndexOutputFile);
       for (auto const &i : permutaion) {
@@ -147,11 +168,11 @@ template <typename T>
   requires std::integral<T> || std::floating_point<T>
 double correlation(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y) {
   // TODO: Use correlationSquare instead of armadillo. Currently, It uses armadillo for reproductivity.
-  // return std::sqrt(correlationSquare(x, y));
-  arma::vec const xx = arma::conv_to<arma::vec>::from(arma::Col<T>(x.data(), x.rows()));
-  arma::vec const yy = arma::conv_to<arma::vec>::from(arma::Col<T>(y.data(), y.rows()));
-  arma::mat const m = arma::cor(xx, yy);
-  return m(0, 0);
+  return std::sqrt(correlationSquare(x, y));
+  // arma::vec const xx = arma::conv_to<arma::vec>::from(arma::Col<T>(x.data(), x.rows()));
+  // arma::vec const yy = arma::conv_to<arma::vec>::from(arma::Col<T>(y.data(), y.rows()));
+  // arma::mat const m = arma::cor(xx, yy);
+  // return m(0, 0);
 }
 
 template <typename T>
