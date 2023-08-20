@@ -233,7 +233,8 @@ int run(
       VectorXi::Zero(NBNEUR),                                           // isspiking
       initialIncomingspikes,                                            // incomingspikes
       initialIncomingFFspikes,                                          // incomingFFspikes
-      initialV                                                          // v
+      initialV,                                                         // v
+      initialV                                                          // vprev
   };
 
   MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
@@ -267,6 +268,7 @@ int run(
   auto &incomingFFspikes = modelState.incomingFFspikes;
 
   auto &v = modelState.v;
+  auto &vprev = modelState.vprev;
 
   // For each stimulus presentation...
   for (auto const numpres : boost::counting_range<unsigned>(0, NBPRES)) {
@@ -438,8 +440,8 @@ int run(
       VectorXd const I =
           Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
 
-      VectorXd const vprev = v;
       VectorXd const vprevprev = vprev;
+      vprev = v;
 
       // AdEx  neurons:
       if (NOSPIKE) {

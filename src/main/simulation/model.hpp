@@ -78,4 +78,5 @@ struct ModelState {
   std::vector<std::vector<boost::circular_buffer<int>>> incomingspikes;
   std::vector<std::vector<VectorXi>> incomingFFspikes;
   VectorXd v;
+  VectorXd vprev;
 };
