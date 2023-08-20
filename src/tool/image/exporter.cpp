@@ -7,7 +7,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
-#include <boost/progress.hpp>
+#include <boost/timer/progress_display.hpp>
 
 void exporterOne(Eigen::ArrayX<int8_t> const &image, std::filesystem::path const &outputFile) {
   std::ofstream outputFileStream(outputFile);
@@ -35,7 +35,7 @@ void exporterAllEach(Eigen::ArrayXX<int8_t> const &imageVector, std::filesystem:
 
   std::cout << "Total image number: " << imageVector.cols() << std::endl;
 
-  boost::progress_display showProgress(imageVector.cols());
+  boost::timer::progress_display showProgress(imageVector.cols());
   for (int i = 0; auto const &&image : imageVector.colwise()) {
     ++i;
     std::ostringstream baseFileNameStream;
