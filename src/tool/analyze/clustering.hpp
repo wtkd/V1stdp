@@ -1,7 +1,6 @@
 #pragma once
 
 #include <concepts>
-#include <cstddef>
 #include <filesystem>
 #include <vector>
 
@@ -33,11 +32,3 @@ double correlationDistanceSquare(Eigen::VectorX<T> const &x, Eigen::VectorX<T> c
 template <typename F, typename T>
   requires std::regular_invocable<F, Eigen::VectorX<T>, Eigen::VectorX<T>>
 std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const &matrix, F const &distance2);
-
-template <typename T>
-  requires std::integral<T> || std::floating_point<T>
-Eigen::MatrixX<T> applyPermutationCol(Eigen::MatrixX<T> const &matrix, std::ranges::range auto const &permutation);
-
-template <typename T>
-  requires std::integral<T> || std::floating_point<T>
-Eigen::MatrixX<T> applyPermutationRow(Eigen::MatrixX<T> const &matrix, std::ranges::range auto const &permutation);

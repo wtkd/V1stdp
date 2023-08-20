@@ -8,10 +8,10 @@
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
-#include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
 
 #include "analyze.hpp"
+#include "applyPermutation.hpp"
 #include "clustering.hpp"
 
 struct AnalyzeClusteringOptions {
@@ -241,28 +241,4 @@ std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const
   }
 
   return std::vector(clusters.begin()->second.begin(), clusters.begin()->second.end());
-}
-
-template <typename T>
-  requires std::integral<T> || std::floating_point<T>
-Eigen::MatrixX<T> applyPermutationCol(Eigen::MatrixX<T> const &matrix, std::ranges::range auto const &permutation) {
-  Eigen::MatrixX<T> sortedMatrix(matrix.rows(), matrix.cols());
-
-  for (auto i : permutation | boost::adaptors::indexed()) {
-    sortedMatrix.col(i.index()) = matrix.col(i.value());
-  }
-
-  return sortedMatrix;
-}
-
-template <typename T>
-  requires std::integral<T> || std::floating_point<T>
-Eigen::MatrixX<T> applyPermutationRow(Eigen::MatrixX<T> const &matrix, std::ranges::range auto const &permutation) {
-  Eigen::MatrixX<T> sortedMatrix(matrix.rows(), matrix.cols());
-
-  for (auto i : permutation | boost::adaptors::indexed()) {
-    sortedMatrix.row(i.index()) = matrix.row(i.value());
-  }
-
-  return sortedMatrix;
 }
