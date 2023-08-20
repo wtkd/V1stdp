@@ -55,8 +55,10 @@ void setupClustering(CLI::App &app) {
   sub->add_option("-i,--inhibitory-neuron-number", opt->inhibitoryNeuronNumber, "The number of inhibitory neuron.")
       ->required();
 
-  sub->add_flag("-E,--excitatory-only", opt->excitatoryOnly, "Use only the responses of excitatory neurons.");
-  sub->add_flag("-I,--inhibitory-only", opt->inhibitoryOnly, "Use only the responses of inhibitory neurons.");
+  sub->add_flag("-E,--excitatory-only", opt->excitatoryOnly, "Use only the responses of excitatory neurons.")
+      ->excludes("--inhibitory-only");
+  sub->add_flag("-I,--inhibitory-only", opt->inhibitoryOnly, "Use only the responses of inhibitory neurons.")
+      ->excludes("--excitatory-only");
 
   sub->callback([opt]() {
     auto const excitatoryNeuronNumber = opt->excitatoryNeuronNumber;
