@@ -144,12 +144,7 @@ double correlationSquare(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y)
 template <typename T>
   requires std::integral<T> || std::floating_point<T>
 double correlation(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y) {
-  // TODO: Use correlationSquare instead of armadillo. Currently, It uses armadillo for reproductivity.
   return std::sqrt(correlationSquare(x, y));
-  // arma::vec const xx = arma::conv_to<arma::vec>::from(arma::Col<T>(x.data(), x.rows()));
-  // arma::vec const yy = arma::conv_to<arma::vec>::from(arma::Col<T>(y.data(), y.rows()));
-  // arma::mat const m = arma::cor(xx, yy);
-  // return m(0, 0);
 }
 
 template <typename T>
