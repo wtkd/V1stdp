@@ -9,9 +9,6 @@
 
 void setupClustering(CLI::App &app);
 
-std::size_t countLine(std::filesystem::path const &file);
-std::size_t countWord(std::filesystem::path const &file);
-
 template <typename T>
   requires std::integral<T> || std::floating_point<T>
 double euclideanDistanceSquare(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y);

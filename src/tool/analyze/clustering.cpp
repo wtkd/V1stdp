@@ -11,8 +11,8 @@
 #include <boost/range/counting_range.hpp>
 
 #include "analyze.hpp"
-#include "applyPermutation.hpp"
 #include "clustering.hpp"
+#include "utils.hpp"
 
 struct AnalyzeClusteringOptions {
   std::filesystem::path inputFile;
@@ -55,10 +55,13 @@ void setupClustering(CLI::App &app) {
   sub->add_option("-i,--inhibitory-neuron-number", opt->inhibitoryNeuronNumber, "The number of inhibitory neuron.")
       ->required();
 
-  sub->add_flag("-E,--excitatory-only", opt->excitatoryOnly, "Use only the responses of excitatory neurons.")
-      ->excludes("--inhibitory-only");
-  sub->add_flag("-I,--inhibitory-only", opt->inhibitoryOnly, "Use only the responses of inhibitory neurons.")
-      ->excludes("--excitatory-only");
+  auto const excitatoryOnly =
+      sub->add_flag("-E,--excitatory-only", opt->excitatoryOnly, "Use only the responses of excitatory neurons.");
+  auto const inhibitoryOnly =
+      sub->add_flag("-I,--inhibitory-only", opt->inhibitoryOnly, "Use only the responses of inhibitory neurons.");
+
+  excitatoryOnly->excludes(inhibitoryOnly);
+  inhibitoryOnly->excludes(excitatoryOnly);
 
   sub->callback([opt]() {
     auto const excitatoryNeuronNumber = opt->excitatoryNeuronNumber;
@@ -95,10 +98,7 @@ void setupClustering(CLI::App &app) {
     if (not opt->stimulationSortedIndexOutputFile.empty()) {
       auto const permutaion = singleClusteringSortPermutation(resultMatrix, correlationDistanceSquare<int>);
 
-      std::ofstream ofs(opt->stimulationSortedIndexOutputFile);
-      for (auto const &i : permutaion) {
-        ofs << i << std::endl;
-      }
+      writeVector(opt->stimulationSortedIndexOutputFile, permutaion);
 
       resultMatrix = applyPermutationCol(resultMatrix, permutaion);
     }
@@ -107,10 +107,7 @@ void setupClustering(CLI::App &app) {
       auto const permutaion =
           singleClusteringSortPermutation(Eigen::MatrixXi(resultMatrix.transpose()), correlationDistanceSquare<int>);
 
-      std::ofstream ofs(opt->neuronSortedIndexOutputFile);
-      for (auto const &i : permutaion) {
-        ofs << i << std::endl;
-      }
+      writeVector(opt->neuronSortedIndexOutputFile, permutaion);
 
       resultMatrix = applyPermutationRow(resultMatrix, permutaion);
     }
@@ -118,28 +115,6 @@ void setupClustering(CLI::App &app) {
     std::ofstream ofs(opt->sortedResponseOutputFile);
     ofs << resultMatrix;
   });
-}
-
-std::size_t countLine(std::filesystem::path const &file) {
-  std::ifstream ifs(file);
-  std::string s;
-  std::size_t n = 0;
-  while (std::getline(ifs, s)) {
-    if (not s.empty())
-      ++n;
-  }
-
-  return n;
-}
-
-std::size_t countWord(std::filesystem::path const &file) {
-  std::ifstream ifs(file);
-  double d;
-  std::size_t n = 0;
-  while (ifs >> d)
-    ++n;
-
-  return n;
 }
 
 template <typename T>

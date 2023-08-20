@@ -14,7 +14,10 @@ endif()
 
 add_library(Analyze STATIC
   analyze.cpp
-  clustering.cpp)
+  clustering.cpp
+  applyPermutation.cpp
+  utils.cpp
+)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
