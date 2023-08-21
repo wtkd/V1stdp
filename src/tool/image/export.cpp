@@ -21,7 +21,7 @@ void setupImageExport(CLI::App &app) {
   auto opt = std::make_shared<ImageExportOptions>();
   auto sub = app.add_subcommand("export", "Export image to text data");
 
-  sub->add_option("-i,--input-file", opt->inputFile, "File including binary data of images")->required();
+  sub->add_option("input-file", opt->inputFile, "File including binary data of images")->required();
   sub->add_option(
       "-E,--all-each",
       opt->allEachDirectory,
