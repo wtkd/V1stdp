@@ -9,13 +9,18 @@
 #include <Eigen/Dense>
 #include <boost/timer/progress_display.hpp>
 
-void exporterOne(Eigen::ArrayX<int8_t> const &image, std::filesystem::path const &outputFile) {
+void exporterOne(
+    Eigen::ArrayX<int8_t> const &image,
+    std::filesystem::path const &outputFile,
+    std::uint64_t const &edgeRow,
+    std::uint64_t const &edgeColomn
+) {
   std::ofstream outputFileStream(outputFile);
   if (!outputFileStream.is_open()) {
     throw std::ios_base::failure("Failed to open the output file " + outputFile.string() + ".");
   }
 
-  outputFileStream << image << std::endl;
+  outputFileStream << image.reshaped(edgeRow, edgeColomn) << std::endl;
 }
 
 void exporterAllInOne(Eigen::ArrayXX<int8_t> const &imageVector, std::filesystem::path const &outputFile) {
@@ -27,7 +32,12 @@ void exporterAllInOne(Eigen::ArrayXX<int8_t> const &imageVector, std::filesystem
   outputFileStream << imageVector << std::endl;
 }
 
-void exporterAllEach(Eigen::ArrayXX<int8_t> const &imageVector, std::filesystem::path const &outputDirectory) {
+void exporterAllEach(
+    Eigen::ArrayXX<int8_t> const &imageVector,
+    std::filesystem::path const &outputDirectory,
+    std::uint64_t const &edgeRow,
+    std::uint64_t const &edgeColomn
+) {
 
   if (not std::filesystem::exists(outputDirectory)) {
     throw std::ios_base::failure("Failed to open the output directory " + outputDirectory.string() + ".");
@@ -43,7 +53,7 @@ void exporterAllEach(Eigen::ArrayXX<int8_t> const &imageVector, std::filesystem:
     std::string const baseFileName = baseFileNameStream.str();
 
     auto const outputFile = outputDirectory / baseFileName;
-    exporterOne(image, outputFile);
+    exporterOne(image, outputFile, edgeRow, edgeColomn);
 
     ++showProgress;
   }

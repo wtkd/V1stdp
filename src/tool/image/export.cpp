@@ -1,11 +1,11 @@
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
 
-#include "../../simulation/constant.hpp"
 #include "exporter.hpp"
 
 #include "export.hpp"
@@ -15,6 +15,7 @@ struct ImageExportOptions {
   std::filesystem::path allEachDirectory;
   std::filesystem::path allInOneFileName;
   std::vector<size_t> imageNumbers;
+  std::uint64_t edgeLength = 17;
 };
 
 void setupImageExport(CLI::App &app) {
@@ -30,6 +31,7 @@ void setupImageExport(CLI::App &app) {
   sub->add_option(
       "-O,--all-one", opt->allInOneFileName, "Export text data in one file. The argument is file name to export to."
   );
+  sub->add_option("-l,--edge-length", opt->edgeLength, "Edge length of image. All images should have square size.");
 
   sub->callback([opt]() {
     auto const &inputFile = opt->inputFile;
@@ -51,14 +53,17 @@ void setupImageExport(CLI::App &app) {
 
     auto const fileSize = imageData.size();
     auto const dataSize = fileSize / sizeof(int8_t);
-    auto const totalImageNumber = dataSize / (PATCHSIZE * PATCHSIZE) - 1;
+
+    auto const &edgeLength = opt->edgeLength;
+
+    auto const totalImageNumber = dataSize / (edgeLength * edgeLength) - 1;
 
     Eigen::Map<Eigen::ArrayXX<int8_t> const> const imageVector(
-        imageData.data(), (PATCHSIZE * PATCHSIZE), totalImageNumber
+        imageData.data(), (edgeLength * edgeLength), totalImageNumber
     );
 
     if (not opt->allEachDirectory.empty()) {
-      exporterAllEach(imageVector, opt->allEachDirectory);
+      exporterAllEach(imageVector, opt->allEachDirectory, edgeLength, edgeLength);
     }
 
     if (not opt->allInOneFileName.empty()) {
