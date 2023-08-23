@@ -364,7 +364,7 @@ set_tests_properties(
 
 add_test(
   NAME run_clustering_all
-  COMMAND $<TARGET_FILE:stdp> tool analyze clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_all.txt --stimulation ./data/sort_index_stimulation_all.txt --neuron ./data/sort_index_neuron_all.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20
+  COMMAND $<TARGET_FILE:stdp> tool analyze response clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_all.txt --stimulation ./data/sort_index_stimulation_all.txt --neuron ./data/sort_index_neuron_all.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20
 )
 set_tests_properties(
   run_clustering_all PROPERTIES
@@ -407,7 +407,7 @@ set_tests_properties(
 
 add_test(
   NAME run_clustering_excitatory_only
-  COMMAND $<TARGET_FILE:stdp> tool analyze clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_excitatory_only.txt --stimulation ./data/sort_index_stimulation_excitatory_only.txt --neuron ./data/sort_index_neuron_excitatory_only.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --excitatory-only
+  COMMAND $<TARGET_FILE:stdp> tool analyze response clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_excitatory_only.txt --stimulation ./data/sort_index_stimulation_excitatory_only.txt --neuron ./data/sort_index_neuron_excitatory_only.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --excitatory-only
 )
 set_tests_properties(
   run_clustering_excitatory_only PROPERTIES
@@ -450,7 +450,7 @@ set_tests_properties(
 
 add_test(
   NAME run_clustering_inhibitory_only
-  COMMAND $<TARGET_FILE:stdp> tool analyze clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_inhibitory_only.txt --stimulation ./data/sort_index_stimulation_inhibitory_only.txt --neuron ./data/sort_index_neuron_inhibitory_only.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --inhibitory-only
+  COMMAND $<TARGET_FILE:stdp> tool analyze response clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_inhibitory_only.txt --stimulation ./data/sort_index_stimulation_inhibitory_only.txt --neuron ./data/sort_index_neuron_inhibitory_only.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --inhibitory-only
 )
 set_tests_properties(
   run_clustering_inhibitory_only PROPERTIES

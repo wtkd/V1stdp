@@ -10,9 +10,8 @@
 #include <Eigen/Dense>
 #include <boost/range/counting_range.hpp>
 
-#include "analyze.hpp"
 #include "clustering.hpp"
-#include "utils.hpp"
+#include "statistics.hpp"
 
 struct AnalyzeClusteringOptions {
   std::filesystem::path inputFile;
