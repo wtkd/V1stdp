@@ -26,3 +26,5 @@ target_link_libraries(Image Boost::boost)
 target_link_libraries(Image Eigen3::Eigen)
 
 target_compile_features(Image PRIVATE cxx_std_20)
+
+target_include_directories(Image PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

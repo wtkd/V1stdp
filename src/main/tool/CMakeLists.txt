@@ -26,3 +26,5 @@ find_package(CLI11 CONFIG REQUIRED)
 target_link_libraries(Tool PUBLIC CLI11::CLI11)
 
 target_compile_features(Tool PRIVATE cxx_std_20)
+
+target_include_directories(Tool PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

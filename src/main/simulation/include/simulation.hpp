@@ -3,7 +3,7 @@
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
 
-#include "model.hpp"
+#include "../model.hpp"
 
 void setupModel(CLI::App &app, Model &model);
 

@@ -26,3 +26,5 @@ target_link_libraries(Simulation CLI11::CLI11)
 target_link_libraries(Simulation Boost::boost)
 
 target_compile_features(Simulation PRIVATE cxx_std_20)
+
+target_include_directories(Simulation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

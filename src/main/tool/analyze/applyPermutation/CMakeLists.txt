@@ -25,3 +25,5 @@ target_link_libraries(ApplyPermutation PUBLIC CLI11::CLI11)
 target_link_libraries(ApplyPermutation PUBLIC Eigen3::Eigen)
 
 target_compile_features(ApplyPermutation PRIVATE cxx_std_20)
+
+target_include_directories(ApplyPermutation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

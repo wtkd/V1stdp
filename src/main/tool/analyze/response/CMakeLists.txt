@@ -28,3 +28,5 @@ target_link_libraries(Response PUBLIC Eigen3::Eigen)
 target_link_libraries(Response PUBLIC Boost::boost)
 
 target_compile_features(Response PRIVATE cxx_std_20)
+
+target_include_directories(Response PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

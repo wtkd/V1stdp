@@ -7,8 +7,8 @@
 #include <Eigen/Dense>
 
 #include "config.hpp"
-#include "simulation/simulation.hpp"
-#include "tool/tool.hpp"
+#include "simulation.hpp"
+#include "tool.hpp"
 
 using namespace Eigen;
 

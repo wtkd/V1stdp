@@ -1,7 +1,7 @@
 #include <CLI/CLI.hpp>
 
-#include "applyPermutation/applyPermutation.hpp"
-#include "response/response.hpp"
+#include "applyPermutation.hpp"
+#include "response.hpp"
 
 #include "analyze.hpp"
 
