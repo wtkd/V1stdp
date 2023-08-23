@@ -560,6 +560,31 @@ set_tests_properties(
   LABELS apply_permutation
 )
 
+#### Cluster map
+add_test(
+  NAME run_cluster_map
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt --length 120 --correlation-threshold 0.9 ./data/cluster_map.txt
+)
+set_tests_properties(
+  run_cluster_map PROPERTIES
+  FIXTURES_SETUP run_cluster_map
+  FIXTURES_REQUIRED data_directory
+  LABELS cluster_map
+)
+
+
+add_test(
+  NAME compare_cluster_map
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/cluster_map.txt ./data/cluster_map.txt
+)
+set_tests_properties(
+  compare_cluster_map PROPERTIES
+  FIXTURES_SETUP run_cluster_map
+  FIXTURES_REQUIRED data_directory
+  LABELS cluster_map
+)
+
+
 #### Cut
 
 ##### Excitatory only
