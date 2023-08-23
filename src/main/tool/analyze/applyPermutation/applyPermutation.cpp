@@ -37,25 +37,7 @@ void setupApplyPermutation(CLI::App &app) {
       ->check(CLI::ExistingFile);
 
   sub->callback([opt]() {
-    // Neuron number
-    auto const row = countLine(opt->inputFile);
-    // Stimulation number
-    auto const col = countWord(opt->inputFile) / row;
-
-    Eigen::MatrixXd const responseMatrix = [&] {
-      Eigen::MatrixXd responseMatrix(row, col);
-
-      std::ifstream ifs(opt->inputFile);
-
-      for (auto const i : boost::counting_range<std::size_t>(0, row))
-        for (auto const j : boost::counting_range<std::size_t>(0, col)) {
-          ifs >> responseMatrix(i, j);
-        }
-
-      std::ranges::for_each(responseMatrix.reshaped(), [&](auto &&i) { ifs >> i; });
-
-      return responseMatrix;
-    }();
+    Eigen::MatrixXd const responseMatrix = readMatrix<double>(opt->inputFile);
 
     Eigen::MatrixXd resultMatrix = responseMatrix;
 
