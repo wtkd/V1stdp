@@ -14,8 +14,10 @@ endif()
 
 add_library(Weight STATIC
   weight.cpp
+  cut.cpp
 )
 
+target_link_libraries(Weight PUBLIC IO)
 target_link_libraries(Weight PUBLIC Statistics)
 
 find_package(CLI11 CONFIG REQUIRED)

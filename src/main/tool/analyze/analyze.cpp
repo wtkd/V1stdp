@@ -10,5 +10,6 @@ void setupAnalyze(CLI::App &app) {
   auto sub = app.add_subcommand("analyze", "Analyze the result of simulation")->require_subcommand();
 
   setupResponse(*sub);
+  setupWeight(*sub);
   setupApplyPermutation(*sub);
 }
