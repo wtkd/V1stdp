@@ -2,6 +2,7 @@
 
 #include "applyPermutation.hpp"
 #include "response.hpp"
+#include "weight.hpp"
 
 #include "analyze.hpp"
 
