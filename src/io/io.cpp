@@ -1,6 +1,8 @@
 #include <filesystem>
 #include <fstream>
 
+#include "io.hpp"
+
 std::size_t countLine(std::filesystem::path const &file) {
   std::ifstream ifs(file);
   std::string s;

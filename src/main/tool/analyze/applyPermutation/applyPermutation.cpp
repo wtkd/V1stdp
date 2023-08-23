@@ -4,8 +4,10 @@
 #include <CLI/CLI.hpp>
 #include <boost/range/counting_range.hpp>
 
-#include "applyPermutation.hpp"
+#include "io.hpp"
 #include "statistics.hpp"
+
+#include "applyPermutation.hpp"
 
 struct AnalyzeClusteringOptions {
   std::filesystem::path inputFile;

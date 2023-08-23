@@ -17,6 +17,7 @@ add_library(Response STATIC
   clustering.cpp
 )
 
+target_link_libraries(Response PUBLIC IO)
 target_link_libraries(Response PUBLIC Statistics)
 
 find_package(CLI11 CONFIG REQUIRED)

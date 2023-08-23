@@ -16,6 +16,7 @@ add_library(ApplyPermutation STATIC
   applyPermutation.cpp
 )
 
+target_link_libraries(ApplyPermutation PUBLIC IO)
 target_link_libraries(ApplyPermutation PUBLIC Statistics)
 
 find_package(Eigen3 REQUIRED)

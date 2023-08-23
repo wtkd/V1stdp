@@ -12,7 +12,16 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_subdirectory(config)
-add_subdirectory(io)
-add_subdirectory(statistics)
-add_subdirectory(main)
+add_library(IO STATIC
+  io.cpp
+)
+
+target_compile_features(IO PRIVATE cxx_std_20)
+
+find_package(Eigen3 REQUIRED)
+find_package(Boost REQUIRED)
+
+target_link_libraries(IO Eigen3::Eigen)
+target_link_libraries(IO Boost::boost)
+
+target_include_directories(IO PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

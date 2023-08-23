@@ -12,16 +12,14 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_library(Statistics STATIC
-  statistics.cpp
+add_library(Statistics INTERFACE
+  statistics.hpp
 )
-
-target_compile_features(Statistics PRIVATE cxx_std_20)
 
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
 
-target_link_libraries(Statistics Eigen3::Eigen)
-target_link_libraries(Statistics Boost::boost)
+target_link_libraries(Statistics INTERFACE Eigen3::Eigen)
+target_link_libraries(Statistics INTERFACE Boost::boost)
 
-target_include_directories(Statistics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(Statistics INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
