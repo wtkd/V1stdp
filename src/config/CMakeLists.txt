@@ -12,6 +12,15 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_subdirectory(config)
-add_subdirectory(statistics)
-add_subdirectory(main)
+add_library(config INTERFACE
+  config.hpp.in)
+
+# Configure VERSION constant.
+execute_process(
+  COMMAND git describe
+  OUTPUT_VARIABLE VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+configure_file(config.hpp.in config.hpp)
+
+target_include_directories(config INTERFACE ${CMAKE_CURRENT_BINARY_DIR})

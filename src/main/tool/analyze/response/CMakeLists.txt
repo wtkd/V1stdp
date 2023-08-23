@@ -12,19 +12,19 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_library(Analyze STATIC
-  analyze.cpp
+add_library(Response STATIC
+  response.cpp
   clustering.cpp
-  applyPermutation.cpp
-  utils.cpp
 )
+
+target_link_libraries(Response PUBLIC Statistics)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
 
-target_link_libraries(Analyze PUBLIC CLI11::CLI11)
-target_link_libraries(Analyze PUBLIC Eigen3::Eigen)
-target_link_libraries(Analyze PUBLIC Boost::boost)
+target_link_libraries(Response PUBLIC CLI11::CLI11)
+target_link_libraries(Response PUBLIC Eigen3::Eigen)
+target_link_libraries(Response PUBLIC Boost::boost)
 
-target_compile_features(Analyze PRIVATE cxx_std_20)
+target_compile_features(Response PRIVATE cxx_std_20)

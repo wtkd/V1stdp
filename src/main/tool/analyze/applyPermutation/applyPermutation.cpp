@@ -5,7 +5,7 @@
 #include <boost/range/counting_range.hpp>
 
 #include "applyPermutation.hpp"
-#include "utils.hpp"
+#include "statistics.hpp"
 
 struct AnalyzeClusteringOptions {
   std::filesystem::path inputFile;

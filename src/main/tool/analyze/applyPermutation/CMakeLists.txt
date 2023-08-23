@@ -12,6 +12,16 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_subdirectory(config)
-add_subdirectory(statistics)
-add_subdirectory(main)
+add_library(ApplyPermutation STATIC
+  applyPermutation.cpp
+)
+
+target_link_libraries(ApplyPermutation PUBLIC Statistics)
+
+find_package(Eigen3 REQUIRED)
+find_package(CLI11 CONFIG REQUIRED)
+
+target_link_libraries(ApplyPermutation PUBLIC CLI11::CLI11)
+target_link_libraries(ApplyPermutation PUBLIC Eigen3::Eigen)
+
+target_compile_features(ApplyPermutation PRIVATE cxx_std_20)
