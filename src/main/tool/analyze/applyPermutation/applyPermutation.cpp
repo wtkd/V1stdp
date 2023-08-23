@@ -22,7 +22,7 @@ void setupApplyPermutation(CLI::App &app) {
       ->required()
       ->check(CLI::ExistingFile);
 
-  sub->add_option("output-file", opt->outputFile, "Name of output text file to which write permutated matrix.")
+  sub->add_option("output-file", opt->outputFile, "Name of output text file that will contain permutated matrix.")
       ->required()
       ->check(CLI::NonexistentPath);
 
