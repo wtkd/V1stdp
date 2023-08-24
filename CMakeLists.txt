@@ -491,6 +491,75 @@ set_tests_properties(
   LABELS clustering
 )
 
+#### Apply permutation
+
+##### Both row and colomn
+
+add_test(
+  NAME run_apply_permutation_both
+  COMMAND $<TARGET_FILE:stdp> tool analyze apply-permutation ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt --colomn ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt --row ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt ./data/correlationMatrix_neuron_permutated_both.txt
+)
+set_tests_properties(
+  run_apply_permutation_both PROPERTIES
+  FIXTURES_SETUP run_apply_permutation
+  FIXTURES_REQUIRED data_directory
+  LABELS apply_permutation
+)
+
+add_test(
+  NAME compare_apply_permutation_both
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt ./data/correlationMatrix_neuron_permutated_both.txt
+)
+set_tests_properties(
+  compare_apply_permutation_both PROPERTIES
+  FIXTURES_REQUIRED run_apply_permutation_both
+  LABELS apply_permutation
+)
+
+##### Row
+
+add_test(
+  NAME run_apply_permutation_row
+  COMMAND $<TARGET_FILE:stdp> tool analyze apply-permutation ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt --colomn ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt ./data/correlationMatrix_neuron_permutated_row.txt
+)
+set_tests_properties(
+  run_apply_permutation_row PROPERTIES
+  FIXTURES_SETUP run_apply_permutation
+  FIXTURES_REQUIRED data_directory
+  LABELS apply_permutation
+)
+
+add_test(
+  NAME compare_apply_permutation_row
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_row.txt ./data/correlationMatrix_neuron_permutated_row.txt
+)
+set_tests_properties(
+  compare_apply_permutation_row PROPERTIES
+  FIXTURES_REQUIRED run_apply_permutation_row
+  LABELS apply_permutation
+)
+
+add_test(
+  NAME run_apply_permutation_colomn
+  COMMAND $<TARGET_FILE:stdp> tool analyze apply-permutation ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt --colomn ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt ./data/correlationMatrix_neuron_permutated_colomn.txt
+)
+set_tests_properties(
+  run_apply_permutation_colomn PROPERTIES
+  FIXTURES_SETUP run_apply_permutation
+  FIXTURES_REQUIRED data_directory
+  LABELS apply_permutation
+)
+
+add_test(
+  NAME compare_apply_permutation_colomn
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_colomn.txt ./data/correlationMatrix_neuron_permutated_colomn.txt
+)
+set_tests_properties(
+  compare_apply_permutation_colomn PROPERTIES
+  FIXTURES_REQUIRED run_apply_permutation_colomn
+  LABELS apply_permutation
+)
+
 #### Cut
 
 ##### Excitatory only
