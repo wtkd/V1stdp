@@ -48,7 +48,6 @@ int run(
 
   int const NBSTEPSPERPRES = (int)(PRESTIME / dt);
   int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
-  int const NBSTEPS = NBSTEPSPERPRES * NBPRES;
 
   std::cout << "Reading input data...." << std::endl;
 
