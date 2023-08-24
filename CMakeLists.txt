@@ -626,3 +626,36 @@ set_tests_properties(
   FIXTURES_REQUIRED run_clustering_all_with_inhibitory
   LABELS "clustering;response_cut"
 )
+
+#### Correlation matrix
+
+add_test(
+  NAME run_correlation_matrix
+  COMMAND $<TARGET_FILE:stdp> tool analyze response correlation-matrix ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --neuron-number 120 --stimulation-number 1000 -n ./data/correlationMatrix_neuron.txt -s ./data/correlationMatrix_stimulation.txt
+)
+set_tests_properties(
+  run_correlation_matrix PROPERTIES
+  FIXTURES_SETUP run_correlation_matrix
+  FIXTURES_REQUIRED data_directory
+  LABELS correlation_matrix
+)
+
+add_test(
+  NAME compare_correlation_matrix_neuron
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt ./data/correlationMatrix_neuron.txt
+)
+set_tests_properties(
+  compare_correlation_matrix_neuron PROPERTIES
+  FIXTURES_REQUIRED run_correlation_matrix
+  LABELS correlation_matrix
+)
+
+add_test(
+  NAME compare_correlation_matrix_stimulation
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_stimulation.txt ./data/correlationMatrix_stimulation.txt
+)
+set_tests_properties(
+  compare_correlation_matrix_stimulation PROPERTIES
+  FIXTURES_REQUIRED run_correlation_matrix
+  LABELS correlation_matrix
+)
