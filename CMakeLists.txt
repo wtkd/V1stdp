@@ -14,6 +14,9 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
+set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+
 add_subdirectory(src)
 
 enable_testing()
