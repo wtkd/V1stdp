@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cmath>
 #include <concepts>
+#include <cstddef>
 #include <list>
 #include <map>
 #include <queue>
@@ -9,6 +11,8 @@
 #include <Eigen/Dense>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
+
+enum class ColomnOrRow { Col, Row };
 
 template <typename T>
   requires std::integral<T> || std::floating_point<T>
@@ -128,4 +132,28 @@ Eigen::MatrixX<T> applyPermutationRow(Eigen::MatrixX<T> const &matrix, std::rang
   }
 
   return sortedMatrix;
+}
+
+template <ColomnOrRow ApplyToEach, typename F, typename T>
+  requires std::regular_invocable<F, Eigen::VectorX<T>, Eigen::VectorX<T>> &&
+           (std::integral<T> || std::floating_point<T>)
+Eigen::MatrixX<T> calculateCorrelationMatrix(Eigen::MatrixX<T> const &responseMatrix, F const &correlation) {
+  auto const targetNumber = ApplyToEach == ColomnOrRow::Col ? responseMatrix.cols() : responseMatrix.rows();
+  auto const targetLength = ApplyToEach == ColomnOrRow::Col ? responseMatrix.rows() : responseMatrix.cols();
+
+  Eigen::MatrixXd correlationMatrix(targetNumber, targetNumber);
+
+  for (auto &&x : boost::counting_range<std::size_t>(0, targetNumber)) {
+    for (auto &&y : boost::counting_range<std::size_t>(0, targetNumber)) {
+      if constexpr (ApplyToEach == ColomnOrRow::Col) {
+        correlationMatrix(x, y) = correlation(responseMatrix.col(x), responseMatrix.col(y));
+      } else if constexpr (ApplyToEach == ColomnOrRow::Row) {
+        correlationMatrix(x, y) = correlation(responseMatrix.row(x).transpose(), responseMatrix.row(y).transpose());
+      } else {
+        assert(false);
+      }
+    }
+  }
+
+  return correlationMatrix;
 }

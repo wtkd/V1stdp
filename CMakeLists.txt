@@ -358,9 +358,11 @@ set_tests_properties(
 
 ## Analyze
 
-### Clustering
+### Response
 
-#### All neuron
+#### Clustering
+
+##### All neuron
 
 add_test(
   NAME run_clustering_all
@@ -403,7 +405,7 @@ set_tests_properties(
   LABELS clustering
 )
 
-#### Excitatory only
+##### Excitatory only
 
 add_test(
   NAME run_clustering_excitatory_only
@@ -446,7 +448,7 @@ set_tests_properties(
   LABELS clustering
 )
 
-#### Inhibitory only
+##### Inhibitory only
 
 add_test(
   NAME run_clustering_inhibitory_only
@@ -487,4 +489,267 @@ set_tests_properties(
   compare_sort_index_stimulation_inhibitory_only PROPERTIES
   FIXTURES_REQUIRED run_clustering_inhibitory_only
   LABELS clustering
+)
+
+#### Apply permutation
+
+##### Both row and colomn
+
+add_test(
+  NAME run_apply_permutation_both
+  COMMAND $<TARGET_FILE:stdp> tool analyze apply-permutation ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt --colomn ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt --row ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt ./data/correlationMatrix_neuron_permutated_both.txt
+)
+set_tests_properties(
+  run_apply_permutation_both PROPERTIES
+  FIXTURES_SETUP run_apply_permutation
+  FIXTURES_REQUIRED data_directory
+  LABELS apply_permutation
+)
+
+add_test(
+  NAME compare_apply_permutation_both
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt ./data/correlationMatrix_neuron_permutated_both.txt
+)
+set_tests_properties(
+  compare_apply_permutation_both PROPERTIES
+  FIXTURES_REQUIRED run_apply_permutation_both
+  LABELS apply_permutation
+)
+
+##### Row
+
+add_test(
+  NAME run_apply_permutation_row
+  COMMAND $<TARGET_FILE:stdp> tool analyze apply-permutation ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt --colomn ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt ./data/correlationMatrix_neuron_permutated_row.txt
+)
+set_tests_properties(
+  run_apply_permutation_row PROPERTIES
+  FIXTURES_SETUP run_apply_permutation
+  FIXTURES_REQUIRED data_directory
+  LABELS apply_permutation
+)
+
+add_test(
+  NAME compare_apply_permutation_row
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_row.txt ./data/correlationMatrix_neuron_permutated_row.txt
+)
+set_tests_properties(
+  compare_apply_permutation_row PROPERTIES
+  FIXTURES_REQUIRED run_apply_permutation_row
+  LABELS apply_permutation
+)
+
+add_test(
+  NAME run_apply_permutation_colomn
+  COMMAND $<TARGET_FILE:stdp> tool analyze apply-permutation ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt --colomn ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt ./data/correlationMatrix_neuron_permutated_colomn.txt
+)
+set_tests_properties(
+  run_apply_permutation_colomn PROPERTIES
+  FIXTURES_SETUP run_apply_permutation
+  FIXTURES_REQUIRED data_directory
+  LABELS apply_permutation
+)
+
+add_test(
+  NAME compare_apply_permutation_colomn
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_colomn.txt ./data/correlationMatrix_neuron_permutated_colomn.txt
+)
+set_tests_properties(
+  compare_apply_permutation_colomn PROPERTIES
+  FIXTURES_REQUIRED run_apply_permutation_colomn
+  LABELS apply_permutation
+)
+
+#### Cluster map
+add_test(
+  NAME run_cluster_map
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt --length 120 --correlation-threshold 0.9 ./data/cluster_map.txt
+)
+set_tests_properties(
+  run_cluster_map PROPERTIES
+  FIXTURES_SETUP run_cluster_map
+  FIXTURES_REQUIRED data_directory
+  LABELS cluster_map
+)
+
+
+add_test(
+  NAME compare_cluster_map
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/cluster_map.txt ./data/cluster_map.txt
+)
+set_tests_properties(
+  compare_cluster_map PROPERTIES
+  FIXTURES_SETUP run_cluster_map
+  FIXTURES_REQUIRED data_directory
+  LABELS cluster_map
+)
+
+
+#### Cut
+
+##### Excitatory only
+
+add_test(
+  NAME run_response_cut_excitatory
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 1000 --excitatory-only-output ./data/response_excitatory.txt
+)
+set_tests_properties(
+  run_response_cut_excitatory PROPERTIES
+  FIXTURES_SETUP run_response_cut_excitatory
+  FIXTURES_REQUIRED data_directory
+  LABELS response_cut
+)
+
+add_test(
+  NAME compare_response_excitatory
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/response_excitatory.txt ./data/response_excitatory.txt
+)
+set_tests_properties(
+  compare_response_excitatory PROPERTIES
+  FIXTURES_REQUIRED run_response_cut_excitatory
+  LABELS response_cut
+)
+
+##### Inhibitory only
+
+add_test(
+  NAME run_response_cut_inhibitory
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 1000 --inhibitory-only-output ./data/response_inhibitory.txt
+)
+set_tests_properties(
+  run_response_cut_inhibitory PROPERTIES
+  FIXTURES_SETUP run_response_cut_inhibitory
+  FIXTURES_REQUIRED data_directory
+  LABELS response_cut
+)
+
+add_test(
+  NAME compare_response_inhibitory
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/response_inhibitory.txt ./data/response_inhibitory.txt
+)
+set_tests_properties(
+  compare_response_inhibitory PROPERTIES
+  FIXTURES_REQUIRED run_response_cut_inhibitory
+  LABELS response_cut
+)
+
+##### Run clustering with cut response should output same result
+
+###### Excitatory only
+
+add_test(
+  NAME run_clustering_all_with_cut_excitatory
+  COMMAND $<TARGET_FILE:stdp> tool analyze response clustering ${CMAKE_SOURCE_DIR}/test/data/response_excitatory.txt -o ./data/sorted_response_all_with_cut_excitatory.txt --stimulation ./data/sort_index_stimulation_all_with_cut_excitatory.txt --neuron ./data/sort_index_neuron_all_with_cut_excitatory.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 0
+)
+set_tests_properties(
+  run_clustering_all_with_cut_excitatory PROPERTIES
+  FIXTURES_SETUP run_clustering_all_with_cut_excitatory
+  FIXTURES_REQUIRED data_directory
+  LABELS "clustering;response_cut"
+)
+
+add_test(
+  NAME compare_sorted_response_all_with_cut_excitatory
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sorted_response_excitatory_only.txt ./data/sorted_response_all_with_cut_excitatory.txt
+)
+set_tests_properties(
+  compare_sorted_response_all_with_cut_excitatory PROPERTIES
+  FIXTURES_REQUIRED run_clustering_all_with_cut_excitatory
+  LABELS "clustering;response_cut"
+)
+
+add_test(
+  NAME compare_sort_index_neuron_all_with_cut_excitatory
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_excitatory_only.txt ./data/sort_index_neuron_all_with_cut_excitatory.txt
+)
+set_tests_properties(
+  compare_sort_index_neuron_all_with_cut_excitatory PROPERTIES
+  FIXTURES_REQUIRED run_clustering_all_with_cut_excitatory
+  LABELS "clustering;response_cut"
+)
+
+add_test(
+  NAME compare_sort_index_stimulation_all_with_cut_excitatory
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_stimulation_excitatory_only.txt ./data/sort_index_stimulation_all_with_cut_excitatory.txt
+)
+set_tests_properties(
+  compare_sort_index_stimulation_all_with_cut_excitatory PROPERTIES
+  FIXTURES_REQUIRED run_clustering_all_with_cut_excitatory
+  LABELS "clustering;response_cut"
+)
+
+###### Inhibitory only
+
+add_test(
+  NAME run_clustering_all_with_inhibitory
+  COMMAND $<TARGET_FILE:stdp> tool analyze response clustering ${CMAKE_SOURCE_DIR}/test/data/response_inhibitory.txt -o ./data/sorted_response_all_with_inhibitory.txt --stimulation ./data/sort_index_stimulation_all_with_inhibitory.txt --neuron ./data/sort_index_neuron_all_with_inhibitory.txt --excitatory-neuron-number 0 --inhibitory-neuron-number 20
+)
+set_tests_properties(
+  run_clustering_all_with_inhibitory PROPERTIES
+  FIXTURES_SETUP run_clustering_all_with_inhibitory
+  FIXTURES_REQUIRED data_directory
+  LABELS "clustering;response_cut"
+)
+
+add_test(
+  NAME compare_sorted_response_all_with_cut_inhibitory
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sorted_response_inhibitory_only.txt ./data/sorted_response_all_with_inhibitory.txt
+)
+set_tests_properties(
+  compare_sorted_response_all_with_cut_inhibitory PROPERTIES
+  FIXTURES_REQUIRED run_clustering_all_with_inhibitory
+  LABELS "clustering;response_cut"
+)
+
+add_test(
+  NAME compare_sort_index_neuron_all_with_cut_inhibitory
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_inhibitory_only.txt ./data/sort_index_neuron_all_with_inhibitory.txt
+)
+set_tests_properties(
+  compare_sort_index_neuron_all_with_cut_inhibitory PROPERTIES
+  FIXTURES_REQUIRED run_clustering_all_with_inhibitory
+  LABELS "clustering;response_cut"
+)
+
+add_test(
+  NAME compare_sort_index_stimulation_all_with_cut_inhibitory
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/sort_index_stimulation_inhibitory_only.txt ./data/sort_index_stimulation_all_with_inhibitory.txt
+)
+set_tests_properties(
+  compare_sort_index_stimulation_all_with_cut_inhibitory PROPERTIES
+  FIXTURES_REQUIRED run_clustering_all_with_inhibitory
+  LABELS "clustering;response_cut"
+)
+
+#### Correlation matrix
+
+add_test(
+  NAME run_correlation_matrix
+  COMMAND $<TARGET_FILE:stdp> tool analyze response correlation-matrix ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --neuron-number 120 --stimulation-number 1000 -n ./data/correlationMatrix_neuron.txt -s ./data/correlationMatrix_stimulation.txt
+)
+set_tests_properties(
+  run_correlation_matrix PROPERTIES
+  FIXTURES_SETUP run_correlation_matrix
+  FIXTURES_REQUIRED data_directory
+  LABELS correlation_matrix
+)
+
+add_test(
+  NAME compare_correlation_matrix_neuron
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt ./data/correlationMatrix_neuron.txt
+)
+set_tests_properties(
+  compare_correlation_matrix_neuron PROPERTIES
+  FIXTURES_REQUIRED run_correlation_matrix
+  LABELS correlation_matrix
+)
+
+add_test(
+  NAME compare_correlation_matrix_stimulation
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_stimulation.txt ./data/correlationMatrix_stimulation.txt
+)
+set_tests_properties(
+  compare_correlation_matrix_stimulation PROPERTIES
+  FIXTURES_REQUIRED run_correlation_matrix
+  LABELS correlation_matrix
 )

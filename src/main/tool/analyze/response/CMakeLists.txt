@@ -14,7 +14,10 @@ endif()
 
 add_library(Response STATIC
   response.cpp
+  clusterMap.cpp
   clustering.cpp
+  correlationMatrix.cpp
+  cut.cpp
 )
 
 target_link_libraries(Response PUBLIC IO)
