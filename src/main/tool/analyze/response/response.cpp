@@ -2,6 +2,7 @@
 
 #include "clustering.hpp"
 #include "correlationMatrix.hpp"
+#include "cut.hpp"
 
 #include "response.hpp"
 
@@ -10,4 +11,5 @@ void setupResponse(CLI::App &app) {
 
   setupClustering(*sub);
   setupCorrelationMatrix(*sub);
+  setupCut(*sub);
 }
