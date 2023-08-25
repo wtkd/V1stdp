@@ -516,7 +516,7 @@ add_test(
 )
 set_tests_properties(
   run_apply_permutation_both PROPERTIES
-  FIXTURES_SETUP run_apply_permutation
+  FIXTURES_SETUP run_apply_permutation_both
   FIXTURES_REQUIRED data_directory
   LABELS apply_permutation
 )
