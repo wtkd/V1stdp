@@ -33,6 +33,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - run: sudo apt-get install libcli11-dev libeigen3-dev libboost-all-dev
+      - uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'default-with-lint'
+          buildPreset: 'default-with-lint'
       - uses: jidicula/clang-format-action@v4.11.0
         with:
           clang-format-version: '15'

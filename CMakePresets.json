@@ -2,7 +2,7 @@
   "version": 6,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 12,
+    "minor": 20,
     "patch": 0
   },
   "configurePresets": [
@@ -11,6 +11,15 @@
       "displayName": "Default Config",
       "description": "Default build",
       "binaryDir": "build"
+    },
+    {
+      "name": "default-with-lint",
+      "displayName": "Default Config with Linters",
+      "description": "Default build with linters",
+      "binaryDir": "build",
+      "cacheVariables": {
+        "ENABLE_LINT": "ON"
+      }
     },
     {
       "name": "configure-with-version-dir",
@@ -23,6 +32,10 @@
     {
       "name": "default",
       "configurePreset": "default"
+    },
+    {
+      "name": "default-with-lint",
+      "configurePreset": "default-with-lint"
     },
     {
       "name": "build-with-version-dir",

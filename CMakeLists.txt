@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.12)
+## ENABLE_LINT=ON if you want to run linters
+
+cmake_minimum_required(VERSION 3.20)
 
 # Inhibit in-source build
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
@@ -14,8 +16,10 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
-set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+if (ENABLE_LINT)
+  find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
+  set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+endif()
 
 if (MSVC)
     # warning level 4
