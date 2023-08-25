@@ -535,7 +535,7 @@ add_test(
 )
 set_tests_properties(
   run_apply_permutation_row PROPERTIES
-  FIXTURES_SETUP run_apply_permutation
+  FIXTURES_SETUP run_apply_permutation_row
   FIXTURES_REQUIRED data_directory
   LABELS apply_permutation
 )
@@ -556,7 +556,7 @@ add_test(
 )
 set_tests_properties(
   run_apply_permutation_colomn PROPERTIES
-  FIXTURES_SETUP run_apply_permutation
+  FIXTURES_SETUP run_apply_permutation_colomn
   FIXTURES_REQUIRED data_directory
   LABELS apply_permutation
 )
