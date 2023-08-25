@@ -4,7 +4,7 @@
 
 #include "io.hpp"
 
-struct CutOptions {
+struct WeightCutOptions {
   std::filesystem::path inputFile;
   std::uint64_t excitatoryNeuronNumber;
   std::uint64_t inhibitoryNeuronNumber;
@@ -12,8 +12,8 @@ struct CutOptions {
   std::filesystem::path inhibitoryOnlyOutputFile;
 };
 
-void setupCut(CLI::App &app) {
-  auto opt = std::make_shared<CutOptions>();
+void setupWeightCut(CLI::App &app) {
+  auto opt = std::make_shared<WeightCutOptions>();
   auto sub =
       app.add_subcommand("cut", "Cut out the lateral weight matrix into excitatory-only or/and inhibitory only.");
 

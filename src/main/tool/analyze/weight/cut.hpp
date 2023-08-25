@@ -1,3 +1,3 @@
 #include <CLI/CLI.hpp>
 
-void setupCut(CLI::App &app);
+void setupWeightCut(CLI::App &app);
