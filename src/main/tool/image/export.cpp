@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <CLI/CLI.hpp>
@@ -12,8 +13,10 @@
 
 struct ImageExportOptions {
   std::filesystem::path inputFile;
-  std::filesystem::path allEachDirectory;
-  std::filesystem::path allInOneFileName;
+  std::optional<std::filesystem::path> allEachDirectory;
+  std::optional<std::filesystem::path> onImageDirectory;
+  std::optional<std::filesystem::path> offImageDirectory;
+  std::optional<std::filesystem::path> allInOneFileName;
   std::vector<size_t> imageNumbers;
   std::uint64_t edgeLength = 17;
 };
@@ -24,13 +27,27 @@ void setupImageExport(CLI::App &app) {
 
   sub->add_option("input-file", opt->inputFile, "File including binary data of images")->required();
   sub->add_option(
-      "-E,--all-each",
-      opt->allEachDirectory,
-      "Export text data in each file. The argumentis directory to output the text file."
-  );
+         "-E,--all-each",
+         opt->allEachDirectory,
+         "Export image as text data in each file. The argument is directory to output the text file."
+  )
+      ->check(CLI::ExistingDirectory);
   sub->add_option(
-      "-O,--all-one", opt->allInOneFileName, "Export text data in one file. The argument is file name to export to."
-  );
+         "--on-image-directory",
+         opt->onImageDirectory,
+         "Export on-center image as text data in each file. The argument is directory to output the text file."
+  )
+      ->check(CLI::ExistingDirectory);
+  sub->add_option(
+         "--off-image-directory",
+         opt->offImageDirectory,
+         "Export off-center image as text data in each file. The argument is directory to output the text file."
+  )
+      ->check(CLI::ExistingDirectory);
+  sub->add_option(
+         "-O,--all-one", opt->allInOneFileName, "Export text data in one file. The argument is file name to export to."
+  )
+      ->check(CLI::NonexistentPath);
   sub->add_option("-l,--edge-length", opt->edgeLength, "Edge length of image. All images should have square size.");
 
   sub->callback([opt]() {
@@ -62,12 +79,20 @@ void setupImageExport(CLI::App &app) {
         imageData.data(), (edgeLength * edgeLength), totalImageNumber
     );
 
-    if (not opt->allEachDirectory.empty()) {
-      exporterAllEach(imageVector, opt->allEachDirectory, edgeLength, edgeLength);
+    if (opt->allEachDirectory.has_value()) {
+      exporterAllEach(imageVector, opt->allEachDirectory.value(), edgeLength, edgeLength);
     }
 
-    if (not opt->allInOneFileName.empty()) {
-      exporterAllInOne(imageVector, opt->allInOneFileName);
+    if (opt->onImageDirectory.has_value()) {
+      exporterAllEach(imageVector.cwiseMax(0), opt->onImageDirectory.value(), edgeLength, edgeLength);
+    }
+
+    if (opt->offImageDirectory.has_value()) {
+      exporterAllEach(-imageVector.cwiseMin(0), opt->offImageDirectory.value(), edgeLength, edgeLength);
+    }
+
+    if (opt->allInOneFileName.has_value()) {
+      exporterAllInOne(imageVector, opt->allInOneFileName.value());
     }
   });
 }
