@@ -35,7 +35,7 @@ void setupImageExport(CLI::App &app) {
 
   sub->callback([opt]() {
     auto const &inputFile = opt->inputFile;
-    auto const &outputDirectory = opt->allEachDirectory;
+
     auto const imageData = [&]() {
       // The stimulus patches are 17x17x2 in length, arranged linearly. See below
       // for the setting of feedforward firing rates based on patch data. See also

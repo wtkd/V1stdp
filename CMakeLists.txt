@@ -17,6 +17,14 @@ endif()
 find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
 set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
 
+if (MSVC)
+    # warning level 4
+    add_compile_options(/W4)
+else()
+    # additional warnings
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
 add_subdirectory(src)
 
 enable_testing()

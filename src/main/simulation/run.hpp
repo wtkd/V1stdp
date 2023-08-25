@@ -10,7 +10,7 @@ int run(
     Model const &model,
     int const PRESTIME,
     int const NBLASTSPIKESPRES,
-    int const NBPRES,
+    unsigned const NBPRES,
     int const NBRESPS,
     Phase const phase,
     int const STIM1,

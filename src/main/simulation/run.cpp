@@ -2,7 +2,9 @@
 #include <fstream>
 
 #include <Eigen/Dense>
+#include <boost/range/counting_range.hpp>
 
+#include "constant.hpp"
 #include "model.hpp"
 #include "phase.hpp"
 #include "utils.hpp"
@@ -15,7 +17,7 @@ int run(
     Model const &model,
     int const PRESTIME,
     int const NBLASTSPIKESPRES,
-    int const NBPRES,
+    unsigned const NBPRES,
     int const NBRESPS,
     Phase const phase,
     int const STIM1,
@@ -128,7 +130,7 @@ int run(
 
   std::vector<double> const mixvals = [&]() {
     std::vector<double> mixvals(NBMIXES);
-    for (int nn = 0; nn < NBMIXES; nn++)
+    for (auto const nn : boost::counting_range<unsigned>(0, NBMIXES))
       // NBMIXES values equally spaced from 0 to 1 inclusive.
       mixvals[nn] = (double)nn / (double)(NBMIXES - 1);
     return mixvals;
@@ -149,8 +151,8 @@ int run(
     // ways to do it.
 
     // DELAYPARAM should be a small value (3 to 6). It controls the median of the exponential.
-    for (int ni = 0; ni < NBNEUR; ni++) {
-      for (int nj = 0; nj < NBNEUR; nj++) {
+    for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
+      for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
 
         double val = (double)rand() / (double)RAND_MAX;
         double crit = 1.0 / DELAYPARAM; // .1666666666;
@@ -175,8 +177,8 @@ int run(
   auto const delaysFF = [&]() {
     std::vector<std::vector<int>> delaysFF(FFRFSIZE, std::vector<int>(NBNEUR));
 
-    for (int ni = 0; ni < NBNEUR; ni++) {
-      for (int nj = 0; nj < FFRFSIZE; nj++) {
+    for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
+      for (auto const nj : boost::counting_range<unsigned>(0, FFRFSIZE)) {
 
         double val = (double)rand() / (double)RAND_MAX;
         double crit = .2;
@@ -223,8 +225,8 @@ int run(
     std::vector<std::vector<boost::circular_buffer<int>>> initialIncomingspikes(
         NBNEUR, std::vector<boost::circular_buffer<int>>(NBNEUR)
     );
-    for (int ni = 0; ni < NBNEUR; ni++) {
-      for (int nj = 0; nj < NBNEUR; nj++) {
+    for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
+      for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
         initialIncomingspikes[ni][nj] = boost::circular_buffer<int>(delays[nj][ni], 0);
       }
     }
@@ -233,8 +235,8 @@ int run(
 
   std::vector<std::vector<VectorXi>> const initialIncomingFFspikes = [&] {
     std::vector<std::vector<VectorXi>> initialIncomingFFspikes(NBNEUR, std::vector<VectorXi>(FFRFSIZE));
-    for (int ni = 0; ni < NBNEUR; ni++) {
-      for (int nj = 0; nj < FFRFSIZE; nj++) {
+    for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
+      for (auto const nj : boost::counting_range<unsigned>(0, FFRFSIZE)) {
         initialIncomingFFspikes[ni][nj] = VectorXi::Zero(delaysFF[nj][ni]);
       }
     }
@@ -296,7 +298,7 @@ int run(
   Map<ArrayXX<int8_t> const> const imageVector(imagedata.data(), FFRFSIZE / 2, nbpatchesinfile);
 
   // For each stimulus presentation...
-  for (int numpres = 0; numpres < NBPRES; numpres++) {
+  for (auto const numpres : boost::counting_range<unsigned>(0, NBPRES)) {
     // Save data
     if (phase == Phase::learning && numpres % saveLogInterval == 0) {
       saveAllWeights(saveDirectory, numpres, w, wff);
@@ -304,7 +306,7 @@ int run(
 
     // Where are we in the data file?
     int const currentDataNumber = (phase == Phase::pulse ? STIM1 : numpres);
-    int const posindata = (currentDataNumber % nbpatchesinfile) * FFRFSIZE / 2;
+    unsigned const posindata = (currentDataNumber % nbpatchesinfile) * FFRFSIZE / 2;
 
     if (posindata >= totaldatasize - FFRFSIZE / 2) {
       std::cerr << "Error: tried to read beyond data end.\n";
@@ -328,12 +330,12 @@ int run(
     VectorXd const lgnrates =
         [&]() -> ArrayXd {
       if (phase == Phase::mixing) {
-        int const posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
+        unsigned const posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
         if (posindata1 >= totaldatasize - FFRFSIZE / 2) {
           std::cerr << "Error: tried to read beyond data end.\n";
           std::exit(-1);
         }
-        int const posindata2 = ((STIM2 % nbpatchesinfile) * FFRFSIZE / 2);
+        unsigned const posindata2 = ((STIM2 % nbpatchesinfile) * FFRFSIZE / 2);
         if (posindata2 >= totaldatasize - FFRFSIZE / 2) {
           std::cerr << "Error: tried to read beyond data end.\n";
           std::exit(-1);
@@ -369,7 +371,7 @@ int run(
     incomingFFspikes = initialIncomingFFspikes;
 
     // Stimulus presentation
-    for (int numstepthispres = 0; numstepthispres < NBSTEPSPERPRES; numstepthispres++) {
+    for (auto const numstepthispres : boost::counting_range<unsigned>(0, NBSTEPSPERPRES)) {
       // We determine FF spikes, based on the specified lgnrates:
       VectorXd const lgnfirings = [&]() -> ArrayXd {
         if (phase == Phase::spontaneous) {
@@ -435,8 +437,8 @@ int run(
       auto const [LatInput, spikesthisstep] = [&]() {
         VectorXd LatInput = VectorXd::Zero(NBNEUR);
         MatrixXi spikesthisstep = MatrixXi::Zero(NBNEUR, NBNEUR);
-        for (int ni = 0; ni < NBNEUR; ni++) {
-          for (int nj = 0; nj < NBNEUR; nj++) {
+        for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
+          for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
             // If NOELAT, E-E synapses are disabled.
             // XXX: Number of excitatory neurons are hard-coded
             if (NOELAT && (nj < 100) && (ni < 100))
@@ -474,10 +476,10 @@ int run(
 
       // AdEx  neurons:
       if (NOSPIKE) {
-        for (int nn = 0; nn < NBNEUR; nn++)
+        for (auto const nn : boost::counting_range<unsigned>(0, NBNEUR))
           v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + z(nn) - wadap(nn)) + I(nn);
       } else {
-        for (int nn = 0; nn < NBNEUR; nn++)
+        for (auto const nn : boost::counting_range<unsigned>(0, NBNEUR))
           v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
                                wadap(nn)) +
                    I(nn);
@@ -515,8 +517,8 @@ int run(
         isspiking = (firings.array() > 0).select(NBSPIKINGSTEPS, isspiking);
 
         // Send the spike through the network. Remember that incomingspikes is a circular array.
-        for (int ni = 0; ni < NBNEUR; ni++) {
-          for (int nj = 0; nj < NBNEUR; nj++) {
+        for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
+          for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
             incomingspikes[nj][ni].push_back(firings[ni] ? 1 : 0);
           }
         }
@@ -586,9 +588,9 @@ int run(
         // wff.topRows(NBE) += EachNeurLTD.head(NBE).asDiagonal() * (1.0 + wff.topRows(NBE).array() *
         // WPENSCALE).matrix() *
         //                     (lgnfirings.array() > 1e-10).matrix().cast<double>().asDiagonal();
-        for (int syn = 0; syn < FFRFSIZE; syn++)
+        for (auto const syn : boost::counting_range<unsigned>(0, FFRFSIZE))
           if (lgnfirings(syn) > 1e-10)
-            for (int nn = 0; nn < NBE; nn++)
+            for (auto const nn : boost::counting_range<unsigned>(0, NBE))
               // if (spikesthisstepFF(nn, syn) > 0)
               wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
 
@@ -599,9 +601,9 @@ int run(
         //      (EachNeurLTD.head(NBE).asDiagonal() * (1.0 + w.topLeftCorner(NBE, NBE).array() * WPENSCALE).matrix())
         //          .array())
         //         .matrix();
-        for (int syn = 0; syn < NBE; syn++)
+        for (auto const syn : boost::counting_range<unsigned>(0, NBE))
           //    if (firingsprev(syn) > 1e-10)
-          for (int nn = 0; nn < NBE; nn++)
+          for (auto const nn : boost::counting_range<unsigned>(0, NBE))
             if (spikesthisstep(nn, syn) > 0)
               w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
 

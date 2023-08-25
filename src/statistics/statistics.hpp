@@ -139,7 +139,6 @@ template <ColomnOrRow ApplyToEach, typename F, typename T>
            (std::integral<T> || std::floating_point<T>)
 Eigen::MatrixX<T> calculateCorrelationMatrix(Eigen::MatrixX<T> const &responseMatrix, F const &correlation) {
   auto const targetNumber = ApplyToEach == ColomnOrRow::Col ? responseMatrix.cols() : responseMatrix.rows();
-  auto const targetLength = ApplyToEach == ColomnOrRow::Col ? responseMatrix.rows() : responseMatrix.cols();
 
   Eigen::MatrixXd correlationMatrix(targetNumber, targetNumber);
 

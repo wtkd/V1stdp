@@ -1,8 +1,10 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #include <Eigen/Dense>
+#include <boost/range/counting_range.hpp>
 
 #include "utils.hpp"
 
@@ -71,26 +73,26 @@ MatrixXd poissonMatrix(MatrixXd const &lambd) {
 */
 
 void saveWeights(MatrixXd const &wgt, std::filesystem::path const fname) {
-  double wdata[wgt.rows() * wgt.cols()];
+  std::vector<double> wdata(wgt.rows() * wgt.cols());
   int idx = 0;
   // cout << endl << "Saving weights..." << endl;
-  for (int cc = 0; cc < wgt.cols(); cc++)
+  for (auto const cc : boost::counting_range<decltype(wgt.cols())>(0, wgt.cols()))
     for (int rr = 0; rr < wgt.rows(); rr++)
       wdata[idx++] = wgt(rr, cc);
 
   std::ofstream myfile(fname, std::ios::binary | std::ios::trunc);
-  if (!myfile.write((char *)wdata, wgt.rows() * wgt.cols() * sizeof(double)))
+  if (!myfile.write((char *)wdata.data(), wgt.rows() * wgt.cols() * sizeof(double)))
     throw std::runtime_error("Error while saving matrix of weights.\n");
   myfile.close();
 }
 
 MatrixXd readWeights(Eigen::Index rowSize, Eigen::Index colSize, std::filesystem::path const fname) {
-  double wdata[colSize * rowSize];
+  std::vector<double> wdata(colSize * rowSize);
 
   int idx = 0;
   std::cout << std::endl << "Reading weights from file " << fname << std::endl;
   std::ifstream myfile(fname, std::ios::binary);
-  if (!myfile.read((char *)wdata, rowSize * colSize * sizeof(double)))
+  if (!myfile.read((char *)wdata.data(), rowSize * colSize * sizeof(double)))
     throw std::runtime_error("Error while reading matrix of weights.\n");
   myfile.close();
 
