@@ -814,3 +814,55 @@ set_tests_properties(
   FIXTURES_REQUIRED run_correlation_matrix
   LABELS correlation_matrix
 )
+
+### Divide line
+
+#### Ensure directory
+
+add_test(
+  NAME remove_divide_line_directory
+  COMMAND rm -rf ./data/divide-line
+)
+set_tests_properties(
+  remove_divide_line_directory PROPERTIES
+  FIXTURES_REQUIRED data_directory
+  FIXTURES_SETUP divide_line_directory
+  LABELS divide_line
+)
+
+add_test(
+  NAME ensure_divide_line_directory
+  COMMAND mkdir ./data/divide-line
+)
+set_tests_properties(
+  ensure_divide_line_directory PROPERTIES
+  FIXTURES_REQUIRED data_directory
+  FIXTURES_SETUP divide_line_directory
+  DEPENDS remove_divide_line_directory
+  LABELS divide_line
+)
+
+#### Run divide line
+
+add_test(
+  NAME run_divide_line
+  COMMAND $<TARGET_FILE:stdp> tool analyze divide-line ${CMAKE_SOURCE_DIR}/test/data/cluster_map_with_index_map.txt ./data/divide-line --zero-padding 0
+)
+set_tests_properties(
+  run_divide_line PROPERTIES
+  FIXTURES_REQUIRED divide_line_directory
+  LABELS divide_line
+)
+
+foreach(X RANGE 0 104)
+  add_test(
+    NAME compare_divide_line_${X}
+    COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/divide-line/${X}.txt ./data/divide-line/${X}.txt
+  )
+  set_tests_properties(
+    compare_divide_line_${X} PROPERTIES
+    FIXTURES_REQUIRED run_divide_line
+    LABELS divide_line
+  )
+
+endforeach()
