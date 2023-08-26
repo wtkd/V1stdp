@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <numeric>
+#include <optional>
 #include <vector>
 
 #include <CLI/CLI.hpp>
@@ -8,17 +9,18 @@
 
 #include "io.hpp"
 
-auto calculateClusterMap(Eigen::MatrixXd const &correlationMatrix, double const correlationThreshold) {
+auto calculateClusterMap(
+    Eigen::MatrixXd const &correlationMatrix,
+    double const correlationThreshold,
+    std::vector<std::size_t> const &indexMap
+) {
   using index_type = std::size_t;
 
   index_type const size = correlationMatrix.cols();
   std::vector<std::vector<index_type>> clusterMap;
 
   auto push = [&](index_type left, index_type right) {
-    std::vector<index_type> v(right - left);
-    std::iota(v.begin(), v.end(), left);
-
-    clusterMap.push_back(std::move(v));
+    clusterMap.emplace_back(indexMap.cbegin() + left, indexMap.cbegin() + right);
   };
 
   index_type left = 0;
@@ -46,8 +48,10 @@ auto calculateClusterMap(Eigen::MatrixXd const &correlationMatrix, double const 
 struct ClusterMapOptions {
   std::filesystem::path inputFile;
   std::filesystem::path outputFile;
-  std::uint64_t length;
+  std::uint64_t inputSize;
   double correlationThreshold;
+  std::uint64_t minimumClusterSize = 0;
+  std::optional<std::filesystem::path> indexFile;
 };
 
 void setupClusterMap(CLI::App &app) {
@@ -78,11 +82,12 @@ void setupClusterMap(CLI::App &app) {
          ("Name of output file which will contain clusters.\n"
           "Each line means each cluster, and each number in the line means each neuron in the cluster.")
   )
-      ->required();
+      ->required()
+      ->check(CLI::NonexistentPath);
 
   sub->add_option(
-         "-l,--length",
-         opt->length,
+         "-l,--input-size",
+         opt->inputSize,
          ("The number of row and colomn of input file.\n"
           "Usually, it is the number of (excitatory) neurons.")
   )
@@ -98,15 +103,47 @@ void setupClusterMap(CLI::App &app) {
       ->required()
       ->check(CLI::Range(0.0, 1.0));
 
+  sub->add_option(
+      "-m,--minimum-cluster-size",
+      opt->minimumClusterSize,
+      "Minimum cluster size. A cluster whose size is smaller than this value is removed from the output."
+  );
+
+  sub->add_option(
+         "-I,--index-file",
+         opt->indexFile,
+         ("A file which contains index map.\n"
+          "Each line corresponds to each row/colomn in correlation matrix, and the value means actual index of image.")
+
+  )
+      ->check(CLI::ExistingFile);
+
   sub->callback([opt]() {
     // Row: Neuron, Colomn: Stimulation
-    auto const correlationMatrix = readMatrix<double>(opt->inputFile, opt->length, opt->length);
+    auto const correlationMatrix = readMatrix<double>(opt->inputFile, opt->inputSize, opt->inputSize);
 
-    auto const clusterMap = calculateClusterMap(correlationMatrix, opt->correlationThreshold);
+    auto const indexMap = [&]() {
+      if (opt->indexFile.has_value()) {
+        return readVector<std::size_t>(opt->indexFile.value());
+      }
+
+      std::vector<std::size_t> v(opt->inputSize);
+      std::iota(v.begin(), v.end(), 0);
+      return v;
+    }();
+
+    if (indexMap.size() != opt->inputSize) {
+      throw std::runtime_error("Error while saving matrix of weights.\n");
+    }
+
+    auto const clusterMap = calculateClusterMap(correlationMatrix, opt->correlationThreshold, indexMap);
 
     std::ofstream ofs(opt->outputFile);
 
     for (auto const &v : clusterMap) {
+      if (v.size() < opt->minimumClusterSize)
+        continue;
+
       for (auto const &t : v) {
         ofs << t << " ";
       }

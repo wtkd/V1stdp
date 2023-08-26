@@ -576,9 +576,12 @@ set_tests_properties(
 )
 
 #### Cluster map
+
+##### Normal
+
 add_test(
   NAME run_cluster_map
-  COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt --length 120 --correlation-threshold 0.9 ./data/cluster_map.txt
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt --input-size 120 --correlation-threshold 0.9 ./data/cluster_map.txt
 )
 set_tests_properties(
   run_cluster_map PROPERTIES
@@ -587,18 +590,61 @@ set_tests_properties(
   LABELS cluster_map
 )
 
-
 add_test(
   NAME compare_cluster_map
   COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/cluster_map.txt ./data/cluster_map.txt
 )
 set_tests_properties(
   compare_cluster_map PROPERTIES
-  FIXTURES_SETUP run_cluster_map
+  FIXTURES_REQUIRED run_cluster_map
+  LABELS cluster_map
+)
+
+##### With index map
+
+add_test(
+  NAME run_cluster_map_with_index_map
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt --input-size 120 --correlation-threshold 0.9 ./data/cluster_map_with_index_map.txt --index-file ${CMAKE_SOURCE_DIR}/test/data/sort_index_neuron_all.txt
+)
+set_tests_properties(
+  run_cluster_map_with_index_map PROPERTIES
+  FIXTURES_SETUP run_cluster_map_with_index_map
   FIXTURES_REQUIRED data_directory
   LABELS cluster_map
 )
 
+add_test(
+  NAME compare_cluster_map_with_index_map
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/cluster_map_with_index_map.txt ./data/cluster_map_with_index_map.txt
+)
+set_tests_properties(
+  compare_cluster_map_with_index_map PROPERTIES
+  FIXTURES_REQUIRED run_cluster_map_with_index_map
+  LABELS cluster_map
+)
+
+##### With minimum size
+
+add_test(
+  NAME run_cluster_map_with_minimum_size
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt --input-size 120 --correlation-threshold 0.9 ./data/cluster_map_with_minimum_size.txt --minimum-cluster-size 5
+)
+set_tests_properties(
+  run_cluster_map_with_minimum_size PROPERTIES
+  FIXTURES_SETUP run_cluster_map_with_minimum_size
+  FIXTURES_REQUIRED data_directory
+  LABELS cluster_map
+)
+
+add_test(
+  NAME compare_cluster_map_with_minimum_size
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/cluster_map_with_minimum_size.txt ./data/cluster_map_with_minimum_size.txt
+)
+set_tests_properties(
+  compare_cluster_map_with_minimum_size PROPERTIES
+  FIXTURES_REQUIRED run_cluster_map_with_minimum_size
+  LABELS cluster_map
+)
 
 #### Cut
 
