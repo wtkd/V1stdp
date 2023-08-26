@@ -18,7 +18,7 @@ struct ImageExportOptions {
   std::optional<std::filesystem::path> offImageDirectory;
   std::optional<std::filesystem::path> allInOneFileName;
   std::vector<size_t> imageNumbers;
-  std::uint64_t edgeLength = 17;
+  std::uint64_t edgeLength;
 };
 
 void setupImageExport(CLI::App &app) {
@@ -48,7 +48,13 @@ void setupImageExport(CLI::App &app) {
          "-O,--all-one", opt->allInOneFileName, "Export text data in one file. The argument is file name to export to."
   )
       ->check(CLI::NonexistentPath);
-  sub->add_option("-l,--edge-length", opt->edgeLength, "Edge length of image. All images should have square size.");
+  sub->add_option(
+         "-l,--edge-length",
+         opt->edgeLength,
+         ("Edge length of image. All images should have square size.\n"
+          "Usually 17.")
+  )
+      ->required();
 
   sub->callback([opt]() {
     auto const &inputFile = opt->inputFile;

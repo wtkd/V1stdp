@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include <boost/range/adaptors.hpp>
 #include <boost/timer/progress_display.hpp>
 
 void exporterOne(
@@ -46,14 +47,13 @@ void exporterAllEach(
   std::cout << "Total image number: " << imageVector.cols() << std::endl;
 
   boost::timer::progress_display showProgress(imageVector.cols());
-  for (int i = 0; auto const &&image : imageVector.colwise()) {
-    ++i;
+  for (auto const &&image : imageVector.colwise() | boost::adaptors::indexed()) {
     std::ostringstream baseFileNameStream;
-    baseFileNameStream << std::setfill('0') << std::setw(std::log10(imageVector.cols()) + 1) << i << ".txt";
+    baseFileNameStream << std::setfill('0') << std::setw(std::log10(imageVector.cols()) + 1) << image.index() << ".txt";
     std::string const baseFileName = baseFileNameStream.str();
 
     auto const outputFile = outputDirectory / baseFileName;
-    exporterOne(image, outputFile, edgeRow, edgeColomn);
+    exporterOne(image.value(), outputFile, edgeRow, edgeColomn);
 
     ++showProgress;
   }
