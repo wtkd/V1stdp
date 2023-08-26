@@ -15,6 +15,7 @@
 
 std::size_t countLine(std::filesystem::path const &file);
 std::size_t countWord(std::filesystem::path const &file);
+std::vector<std::vector<std::string>> readVectorVector(std::filesystem::path const &file);
 
 template <typename T> std::vector<T> readVector(std::filesystem::path const &file) {
   std::vector<T> v;

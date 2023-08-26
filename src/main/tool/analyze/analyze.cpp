@@ -1,6 +1,7 @@
 #include <CLI/CLI.hpp>
 
 #include "applyPermutation.hpp"
+#include "divideLine.hpp"
 #include "response.hpp"
 #include "weight.hpp"
 
@@ -12,4 +13,5 @@ void setupAnalyze(CLI::App &app) {
   setupResponse(*sub);
   setupWeight(*sub);
   setupApplyPermutation(*sub);
+  setupDivideLine(*sub);
 }
