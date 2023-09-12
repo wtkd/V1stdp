@@ -5,5 +5,5 @@ set autoscale yfixmin
 set autoscale xfixmin
 set autoscale yfixmax
 set autoscale xfixmax
-plot "correlation-matrix-neuron.txt" matrix with image pixels
+plot "correlation-matrix-neuron.txt" matrix with image pixels notitle
 reset
