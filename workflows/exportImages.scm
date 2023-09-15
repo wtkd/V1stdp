@@ -1,0 +1,95 @@
+(define genarate-text-images
+  (command #:inputs
+           (stdp-executable #:type File)
+           (transformed-image-data #:type File)
+           (edge-length #:type int)
+           (on-image-directory-name #:type string)
+           (off-image-directory-name #:type string)
+           (text-image-directory-name #:type string)
+           #:run
+           stdp-executable "tool" "image" "export"
+           transformed-image-data
+           "--edge-length" edge-length
+           "--on-image-directory" on-image-directory-name
+           "--off-image-directory" off-image-directory-name
+           "--all-each" text-image-directory-name
+           #:outputs
+           (on-images-text-directory
+            #:type Directory
+            #:binding '((glob . "$(inputs[\"on-image-directory-name\"])")))
+           (off-images-text-directory
+            #:type Directory
+            #:binding '((glob . "$(inputs[\"off-image-directory-name\"])")))
+           (text-images-directory
+            #:type Directory
+            #:binding '((glob . "$(inputs[\"text-image-directory-name\"])")))))
+
+(define generate-svg-images
+  (command #:inputs
+           (stdp-executable #:type File)
+           (image-number #:type int)
+           (on-images-text #:type Directory)
+           (off-images-text #:type Directory)
+           (output-directory #:type string)
+           (gnuplot-script #:type File
+                           #:default '((class . "File")
+                                       (location . "../script/onOffImages.gnuplot")))
+           #:run
+           "gnuplot"
+           "-e" "n=$(inputs[\"image-number\"])"
+           "-e" "onInputDirectory='$(inputs[\"on-images-text\"].path)'"
+           "-e" "offInputDirectory='$(inputs[\"off-images-text\"].path)'"
+           "-e" "outputDirectory='$(inputs[\"output-directory\"])'"
+           "-e" "stdpExecutable='$(inputs[\"stdp-executable\"].path)'"
+           gnuplot-script
+           #:outputs
+           (svg-images-directory
+            #:type Directory
+            ;; #:secondaryFiles
+            ;; '((class . "File")
+            ;;   (location . "$(inputs[\"output-directory\"].location)"))
+            #:binding '((glob . "$(inputs[\"output-directory\"])"))
+            )))
+
+(workflow ((stdp-executable #:type File
+                            #:default '((class . "File")
+                                        (location . "../build/src/main/stdp")))
+           (transformed-image-data #:type File
+                                   #:default '((class . "File")
+                                               (location . "../patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat")))
+           (image-number #:type int #:default 109999)
+           (edge-length #:type int #:default 17)
+           (on-image-directory-name #:type string
+                                    #:default "onImagesText")
+           (off-image-directory-name #:type string
+                                     #:default "offImagesText")
+           (text-image-directory-name #:type string
+                                     #:default "imagesText")
+           (svg-image-directory-name #:type string
+                                     #:default "svgInputImages")
+
+           (generate-svg-images-script #:type File
+                                       #:default '((class . "File")
+                                                   (location . "../script/onOffImages.gnuplot")))
+
+           (output-generate-svg-images #:type string
+                                       #:default "inputImages"))
+          (pipe
+           (genarate-text-images
+            #:stdp-executable stdp-executable
+            #:transformed-image-data transformed-image-data
+            #:edge-length edge-length
+            #:on-image-directory-name on-image-directory-name
+            #:off-image-directory-name off-image-directory-name
+            #:text-image-directory-name text-image-directory-name)
+           (tee
+            (rename #:text-images-directory text-image-directory
+                    #:on-images-directory on-image-directory
+                    #:off-images-directory off-image-directory)
+            (generate-svg-images
+             #:stdp-executable stdp-executable
+             #:image-number image-number
+             #:on-images-text on-images-text-directory
+             #:off-images-text off-images-text-directory
+             #:output-directory svg-image-directory-name
+             #:gnuplot-script generate-svg-images-script))))
