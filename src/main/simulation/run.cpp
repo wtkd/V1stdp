@@ -25,7 +25,7 @@ int run(
     int const PULSETIME,
     MatrixXd const &initwff,
     MatrixXd const &initw,
-    std::filesystem::path const inputDirectory,
+    std::filesystem::path const inputFile,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval
 ) {
@@ -57,10 +57,7 @@ int run(
     // The stimulus patches are 17x17x2 in length, arranged linearly. See below
     // for the setting of feedforward firing rates based on patch data. See also
     // makepatchesImageNetInt8.m
-    std::ifstream DataFile(
-        inputDirectory / std::filesystem::path("patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat"),
-        std::ios::binary
-    );
+    std::ifstream DataFile(inputFile, std::ios::binary);
     if (!DataFile.is_open()) {
       throw std::ios_base::failure("Failed to open the binary data file!");
       exit(1);

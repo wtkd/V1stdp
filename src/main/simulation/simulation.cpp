@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <memory>
 
 #include "phase.hpp"
@@ -29,7 +30,7 @@ struct LearnOptions {
   int randomSeed = 0;
   int step = 500'000;
   std::filesystem::path dataDirectory = ".";
-  std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
   std::filesystem::path saveDirectory;
   int saveLogInterval = 50'000;
   int timepres = 350;
@@ -44,7 +45,7 @@ void setupLearn(CLI::App &app) {
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-N,--step,--step-number-learning", opt->step, "Step number of times on learning");
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--timepres", opt->timepres, "Presentation time");
@@ -58,7 +59,7 @@ void setupLearn(CLI::App &app) {
     auto const &step = opt->step;
 
     auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
 
     auto const &saveLogInterval = opt->saveLogInterval;
@@ -117,7 +118,7 @@ void setupLearn(CLI::App &app) {
         -1, // PULSETIME is not used
         wff,
         w,
-        inputDirectory,
+        inputFile,
         saveDirectory,
         saveLogInterval);
   });
@@ -128,7 +129,7 @@ struct TestOptions {
   int randomSeed = 0;
   int step = 1'000;
   std::filesystem::path dataDirectory = ".";
-  std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
   std::filesystem::path saveDirectory;
   std::filesystem::path loadDirectory;
   int saveLogInterval = 50'000;
@@ -144,7 +145,7 @@ void setupTest(CLI::App &app) {
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-N,--step-number-testing", opt->step, "Step number of times on testing");
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
@@ -159,7 +160,7 @@ void setupTest(CLI::App &app) {
     auto const &step = opt->step;
 
     auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
     auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
 
@@ -194,7 +195,7 @@ void setupTest(CLI::App &app) {
         -1, // PULSETIME is not used
         wff,
         w,
-        inputDirectory,
+        inputFile,
         saveDirectory,
         saveLogInterval);
   });
@@ -204,7 +205,7 @@ struct MixOptions {
   Model model;
   int randomSeed = 0;
   std::filesystem::path dataDirectory = ".";
-  std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::filesystem::path loadDirectory;
   int saveLogInterval = 50'000;
@@ -219,7 +220,7 @@ void setupMix(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
@@ -232,7 +233,7 @@ void setupMix(CLI::App &app) {
     setAndPrintRandomSeed(randomSeed);
 
     auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
     auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
 
@@ -269,7 +270,7 @@ void setupMix(CLI::App &app) {
         -1, // PULSETIME is not used
         wff,
         w,
-        inputDirectory,
+        inputFile,
         saveDirectory,
         saveLogInterval);
   });
@@ -280,7 +281,7 @@ struct PulseOptions {
   int randomSeed = 0;
   int step = 50;
   std::filesystem::path dataDirectory = ".";
-  std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::filesystem::path loadDirectory;
   int saveLogInterval = 50'000;
@@ -296,7 +297,7 @@ void setupPulse(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
@@ -317,7 +318,7 @@ void setupPulse(CLI::App &app) {
     int const &NBPATTERNSPULSE = opt->step;
 
     auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
     auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
 
@@ -354,7 +355,7 @@ void setupPulse(CLI::App &app) {
         PULSETIME,
         wff,
         w,
-        inputDirectory,
+        inputFile,
         saveDirectory,
         saveLogInterval);
   });
@@ -364,7 +365,7 @@ struct SpontaneousOptions {
   Model model;
   int randomSeed = 0;
   std::filesystem::path dataDirectory = ".";
-  std::filesystem::path inputDirectory;
+  std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::filesystem::path loadDirectory;
   int saveLogInterval = 50'000;
@@ -378,7 +379,7 @@ void setupSpontaneous(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-directory", opt->inputDirectory, "Directory to input image data");
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
@@ -390,7 +391,7 @@ void setupSpontaneous(CLI::App &app) {
     setAndPrintRandomSeed(randomSeed);
 
     auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputDirectory = opt->inputDirectory.empty() ? dataDirectory : opt->inputDirectory;
+    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
     auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
 
@@ -419,7 +420,7 @@ void setupSpontaneous(CLI::App &app) {
         -1, // PULSE is not used
         wff,
         w,
-        inputDirectory,
+        inputFile,
         saveDirectory,
         saveLogInterval);
   });
