@@ -131,7 +131,8 @@ struct TestOptions {
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
   std::filesystem::path saveDirectory;
-  std::filesystem::path loadDirectory;
+  std::filesystem::path lateralWeight;
+  std::filesystem::path feedforwardWeight;
   int saveLogInterval = 50'000;
   int timepres = 350;
 };
@@ -146,8 +147,12 @@ void setupTest(CLI::App &app) {
   sub->add_option("-N,--step-number-testing", opt->step, "Step number of times on testing");
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
   sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
-  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
-  sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")->required();
+  sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
+      ->required();
+  sub->add_option(
+      "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
+  );
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--timepres", opt->timepres, "Presentation time");
 
@@ -162,7 +167,6 @@ void setupTest(CLI::App &app) {
     auto const &dataDirectory = opt->dataDirectory;
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
-    auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -175,8 +179,8 @@ void setupTest(CLI::App &app) {
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = NBPRES;
 
-    MatrixXd const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
-    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
+    MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
+    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
     std::cout << "First row of w (lateral weights): " << w.row(0) << std::endl;
     std::cout << "w(1,2) and w(2,1): " << w(1, 2) << " " << w(2, 1) << std::endl;
@@ -207,7 +211,8 @@ struct MixOptions {
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
-  std::filesystem::path loadDirectory;
+  std::filesystem::path lateralWeight;
+  std::filesystem::path feedforwardWeight;
   int saveLogInterval = 50'000;
   std::pair<int, int> stimulationNumbers;
 };
@@ -222,7 +227,11 @@ void setupMix(CLI::App &app) {
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
   sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
-  sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
+  sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
+      ->required();
+  sub->add_option(
+      "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
+  );
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("stimulation-number", opt->stimulationNumbers, "Two numbers of stimulation to mix")->required();
 
@@ -235,7 +244,6 @@ void setupMix(CLI::App &app) {
     auto const &dataDirectory = opt->dataDirectory;
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
-    auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -254,8 +262,8 @@ void setupMix(CLI::App &app) {
     int const NBRESPS = NBPRES;
 
     int const PRESTIME = PRESTIMEMIXING;
-    auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
-    auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
+    MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
+    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
     std::cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << std::endl;
 
@@ -283,7 +291,8 @@ struct PulseOptions {
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
-  std::filesystem::path loadDirectory;
+  std::filesystem::path lateralWeight;
+  std::filesystem::path feedforwardWeight;
   int saveLogInterval = 50'000;
   int stimulationNumber;
   int pulsetime = 100;
@@ -299,7 +308,11 @@ void setupPulse(CLI::App &app) {
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
   sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
-  sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
+  sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
+      ->required();
+  sub->add_option(
+      "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
+  );
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("stimulation-number", opt->stimulationNumber, "Numbers of stimulation")->required();
   sub->add_option(
@@ -320,7 +333,6 @@ void setupPulse(CLI::App &app) {
     auto const &dataDirectory = opt->dataDirectory;
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
-    auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -341,8 +353,8 @@ void setupPulse(CLI::App &app) {
     std::cout << "Stim1: " << STIM1 << std::endl;
     std::cout << "Pulse input time: " << PULSETIME << " ms" << std::endl;
 
-    auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
-    auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
+    MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
+    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
     run(model,
         PRESTIME,
@@ -367,7 +379,8 @@ struct SpontaneousOptions {
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
-  std::filesystem::path loadDirectory;
+  std::filesystem::path lateralWeight;
+  std::filesystem::path feedforwardWeight;
   int saveLogInterval = 50'000;
 };
 
@@ -381,7 +394,11 @@ void setupSpontaneous(CLI::App &app) {
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
   sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
-  sub->add_option("-L,--load-directory", opt->loadDirectory, "Directory to load weight data");
+  sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
+      ->required();
+  sub->add_option(
+      "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
+  );
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
 
   sub->callback([opt]() {
@@ -393,7 +410,6 @@ void setupSpontaneous(CLI::App &app) {
     auto const &dataDirectory = opt->dataDirectory;
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
-    auto const &loadDirectory = opt->loadDirectory.empty() ? dataDirectory : opt->loadDirectory;
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -406,8 +422,8 @@ void setupSpontaneous(CLI::App &app) {
     int const NBRESPS = NBPRES;
     std::cout << "Spontaneous activity - no stimulus !" << std::endl;
 
-    auto const w = readWeights(NBNEUR, NBNEUR, loadDirectory / "w.dat");
-    auto const wff = readWeights(NBNEUR, FFRFSIZE, loadDirectory / "wff.dat");
+    MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
+    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
     run(model,
         PRESTIME,

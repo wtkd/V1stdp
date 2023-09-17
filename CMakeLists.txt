@@ -241,7 +241,7 @@ set_tests_properties(
 
 add_test(
   NAME run_test
-  COMMAND $<TARGET_FILE:stdp> test --save-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --step-number-testing 1000
+  COMMAND $<TARGET_FILE:stdp> test --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --step-number-testing 1000
 )
 set_tests_properties(
   run_test PROPERTIES
@@ -284,7 +284,7 @@ set_tests_properties(
 
 add_test(
   NAME run_pulse
-  COMMAND $<TARGET_FILE:stdp> pulse --save-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 50
+  COMMAND $<TARGET_FILE:stdp> pulse --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 50
 )
 set_tests_properties(
   run_pulse PROPERTIES
@@ -317,7 +317,7 @@ set_tests_properties(
 
 add_test(
   NAME run_spontaneous
-  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0
+  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0
 )
 set_tests_properties(
   run_spontaneous PROPERTIES
@@ -340,7 +340,7 @@ set_tests_properties(
 
 add_test(
   NAME run_mix
-  COMMAND $<TARGET_FILE:stdp> mix --save-directory ./data --load-directory ${CMAKE_SOURCE_DIR}/test/data/ --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 50 100
+  COMMAND $<TARGET_FILE:stdp> mix --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 50 100
 )
 set_tests_properties(
   run_mix PROPERTIES
