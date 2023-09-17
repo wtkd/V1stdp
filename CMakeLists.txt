@@ -851,6 +851,7 @@ add_test(
 set_tests_properties(
   run_divide_line PROPERTIES
   FIXTURES_REQUIRED divide_line_directory
+  FIXTURES_SETUP run_divide_line
   LABELS divide_line
 )
 
