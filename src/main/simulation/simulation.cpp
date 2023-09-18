@@ -144,7 +144,7 @@ void setupTest(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
-  sub->add_option("-N,--step-number-testing", opt->step, "Step number of times on testing");
+  sub->add_option("-N,--step,--step-number-testing", opt->step, "Step number of times on testing");
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
   sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")->required();
