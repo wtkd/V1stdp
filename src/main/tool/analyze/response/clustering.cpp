@@ -14,10 +14,8 @@ struct AnalyzeClusteringOptions {
   std::filesystem::path sortedResponseOutputFile;
   std::filesystem::path neuronSortedIndexOutputFile;
   std::filesystem::path stimulationSortedIndexOutputFile;
-  std::uint64_t excitatoryNeuronNumber;
-  std::uint64_t inhibitoryNeuronNumber;
-  bool excitatoryOnly = false;
-  bool inhibitoryOnly = false;
+  std::uint64_t neuronNumber;
+  std::uint64_t stimulationNumber;
 };
 
 void setupClustering(CLI::App &app) {
@@ -45,37 +43,18 @@ void setupClustering(CLI::App &app) {
          "Run clustering by stimulation Argument should be file name to save permutation."
   )
       ->check(CLI::NonexistentPath);
-  sub->add_option("-e,--excitatory-neuron-number", opt->excitatoryNeuronNumber, "The number of excitatory neuron.")
-      ->required();
-  sub->add_option("-i,--inhibitory-neuron-number", opt->inhibitoryNeuronNumber, "The number of inhibitory neuron.")
-      ->required();
-
-  auto const excitatoryOnly =
-      sub->add_flag("-E,--excitatory-only", opt->excitatoryOnly, "Use only the responses of excitatory neurons.");
-  auto const inhibitoryOnly =
-      sub->add_flag("-I,--inhibitory-only", opt->inhibitoryOnly, "Use only the responses of inhibitory neurons.");
-
-  excitatoryOnly->excludes(inhibitoryOnly);
-  inhibitoryOnly->excludes(excitatoryOnly);
+  sub->add_option("-N,--neuron-number", opt->neuronNumber, "The number of neurons.")->required();
+  sub->add_option("-S,--stimulation-number", opt->stimulationNumber, "The number of stimulations.")->required();
 
   sub->callback([opt]() {
-    auto const excitatoryNeuronNumber = opt->excitatoryNeuronNumber;
-    auto const inhibitoryNeuronNumber = opt->inhibitoryNeuronNumber;
-
-    // Neuron number
-    auto const row = countLine(opt->inputFile);
-
-    // Stimulation number
-    auto const col = countWord(opt->inputFile) / row;
-
     // Row: Neuron, Colomn: Stimulation
     Eigen::MatrixXi const responseMatrix = [&] {
-      Eigen::MatrixXi responseMatrix(row, col);
+      Eigen::MatrixXi responseMatrix(opt->neuronNumber, opt->stimulationNumber);
 
       std::ifstream ifs(opt->inputFile);
 
-      for (auto const i : boost::counting_range<std::size_t>(0, row))
-        for (auto const j : boost::counting_range<std::size_t>(0, col)) {
+      for (auto const i : boost::counting_range<std::size_t>(0, opt->neuronNumber))
+        for (auto const j : boost::counting_range<std::size_t>(0, opt->stimulationNumber)) {
           ifs >> responseMatrix(i, j);
         }
 
@@ -84,9 +63,7 @@ void setupClustering(CLI::App &app) {
       return responseMatrix;
     }();
 
-    Eigen::MatrixXi const targetMatrix = opt->excitatoryOnly   ? responseMatrix.topRows(excitatoryNeuronNumber)
-                                         : opt->inhibitoryOnly ? responseMatrix.bottomRows(inhibitoryNeuronNumber)
-                                                               : responseMatrix;
+    Eigen::MatrixXi const targetMatrix = responseMatrix;
 
     Eigen::MatrixXi resultMatrix = targetMatrix;
 
