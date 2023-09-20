@@ -1,7 +1,9 @@
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <optional>
+#include <system_error>
 #include <vector>
 
 #include <CLI/CLI.hpp>
@@ -31,19 +33,19 @@ void setupImageExport(CLI::App &app) {
          opt->allEachDirectory,
          "Export image as text data in each file. The argument is directory to output the text file."
   )
-      ->check(CLI::ExistingDirectory);
+      ->check(CLI::NonexistentPath);
   sub->add_option(
          "--on-image-directory",
          opt->onImageDirectory,
          "Export on-center image as text data in each file. The argument is directory to output the text file."
   )
-      ->check(CLI::ExistingDirectory);
+      ->check(CLI::NonexistentPath);
   sub->add_option(
          "--off-image-directory",
          opt->offImageDirectory,
          "Export off-center image as text data in each file. The argument is directory to output the text file."
   )
-      ->check(CLI::ExistingDirectory);
+      ->check(CLI::NonexistentPath);
   sub->add_option(
          "-O,--all-one", opt->allInOneFileName, "Export text data in one file. The argument is file name to export to."
   )
@@ -85,19 +87,32 @@ void setupImageExport(CLI::App &app) {
         imageData.data(), (edgeLength * edgeLength), totalImageNumber
     );
 
+    auto const createDirectory = [](std::filesystem::path const &p) {
+      bool const success = std::filesystem::create_directory(p);
+      if (not success) {
+        throw std::filesystem::filesystem_error(
+            "Cannot create directory", p, std::make_error_code(std::errc::file_exists)
+        );
+      }
+    };
+
     if (opt->allEachDirectory.has_value()) {
+      createDirectory(opt->allEachDirectory.value());
       exporterAllEach(imageVector, opt->allEachDirectory.value(), edgeLength, edgeLength);
     }
 
     if (opt->onImageDirectory.has_value()) {
+      createDirectory(opt->onImageDirectory.value());
       exporterAllEach(imageVector.cwiseMax(0), opt->onImageDirectory.value(), edgeLength, edgeLength);
     }
 
     if (opt->offImageDirectory.has_value()) {
+      createDirectory(opt->offImageDirectory.value());
       exporterAllEach(-imageVector.cwiseMin(0), opt->offImageDirectory.value(), edgeLength, edgeLength);
     }
 
     if (opt->allInOneFileName.has_value()) {
+      createDirectory(opt->allInOneFileName.value());
       exporterAllInOne(imageVector, opt->allInOneFileName.value());
     }
   });
