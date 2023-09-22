@@ -49,7 +49,8 @@ void exporterAllEach(
   boost::timer::progress_display showProgress(imageVector.cols());
   for (auto const &&image : imageVector.colwise() | boost::adaptors::indexed()) {
     std::ostringstream baseFileNameStream;
-    baseFileNameStream << std::setfill('0') << std::setw(std::log10(imageVector.cols()) + 1) << image.index() << ".txt";
+    baseFileNameStream << std::setfill('0') << std::setw(std::log10(imageVector.cols()) + 1) << image.index() + 1
+                       << ".txt";
     std::string const baseFileName = baseFileNameStream.str();
 
     auto const outputFile = outputDirectory / baseFileName;
