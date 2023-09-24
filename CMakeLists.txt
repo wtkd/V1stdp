@@ -643,7 +643,7 @@ set_tests_properties(
 
 ### Divide line
 
-#### Ensure directory
+#### Remove directory
 
 add_test(
   NAME remove_divide_line_directory
@@ -653,18 +653,6 @@ set_tests_properties(
   remove_divide_line_directory PROPERTIES
   FIXTURES_REQUIRED data_directory
   FIXTURES_SETUP divide_line_directory
-  LABELS divide_line
-)
-
-add_test(
-  NAME ensure_divide_line_directory
-  COMMAND mkdir ./data/divide-line
-)
-set_tests_properties(
-  ensure_divide_line_directory PROPERTIES
-  FIXTURES_REQUIRED data_directory
-  FIXTURES_SETUP divide_line_directory
-  DEPENDS remove_divide_line_directory
   LABELS divide_line
 )
 

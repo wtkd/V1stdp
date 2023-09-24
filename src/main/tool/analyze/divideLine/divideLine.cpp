@@ -23,7 +23,7 @@ void setupDivideLine(CLI::App &app) {
 
   sub->add_option("output-file", opt->outputDirectory, "Name of output directory.")
       ->required()
-      ->check(CLI::ExistingDirectory);
+      ->check(CLI::NonexistentPath);
 
   sub->add_option(
       "-z,--zero-padding", opt->zeroPadding, "Length of zero padding length. If omitted, determined automatically."
@@ -31,6 +31,17 @@ void setupDivideLine(CLI::App &app) {
 
   sub->callback([opt]() {
     std::vector<std::vector<std::string>> const data = readVectorVector(opt->inputFile);
+
+    auto const createDirectory = [](std::filesystem::path const &p) {
+      bool const success = std::filesystem::create_directories(p);
+      if (not success) {
+        throw std::filesystem::filesystem_error(
+            "Cannot create directory", p, std::make_error_code(std::errc::file_exists)
+        );
+      }
+    };
+
+    createDirectory(opt->outputDirectory);
 
     auto const zeroPadding = opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(data.size()) + 1;
 
