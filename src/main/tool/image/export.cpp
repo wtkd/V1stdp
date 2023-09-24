@@ -88,7 +88,7 @@ void setupImageExport(CLI::App &app) {
     );
 
     auto const createDirectory = [](std::filesystem::path const &p) {
-      bool const success = std::filesystem::create_directory(p);
+      bool const success = std::filesystem::create_directories(p);
       if (not success) {
         throw std::filesystem::filesystem_error(
             "Cannot create directory", p, std::make_error_code(std::errc::file_exists)
