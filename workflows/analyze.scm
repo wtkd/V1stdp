@@ -93,15 +93,15 @@
            (stdp-executable #:type File)
            (correlation-matrix #:type File)
            (input-size #:type int)
-           (correlation-threshold #:type int)
+           (correlation-threshold #:type float)
            (minimum-cluster-size #:type int)
            (output-name #:type string)
            #:run
-           stdp-executable "tool" "analyze" "cluster-map"
-           response output-name
+           stdp-executable "tool" "analyze" "response" "cluster-map"
+           response correlation-matrix output-name
            "--input-size" input-size
            "--correlation-threshold" correlation-threshold
-           "minimum-cluster-size" minimum-cluster-size
+           "--minimum-cluster-size" minimum-cluster-size
            #:outputs
            (cluster-map #:type File
                         #:binding '((glob . "$(inputs[\"output-name\"])")))))
@@ -110,13 +110,13 @@
   (command #:inputs
            (stdp-executable #:type File)
            (cluster-map #:type File)
-           (output-directory #:type Directory)
+           (output-directory #:type string)
            #:run
            stdp-executable "tool" "analyze" "divide-line"
            cluster-map output-directory
            #:outputs
-           (divided-directory #:type File
-                              #:binding '((glob . "$(inputs.output\\-directory)")))))
+           (divided-directory #:type Directory
+                              #:binding '((glob . "$(inputs[\"output-directory\"])")))))
 
 (define plot-correlation-neuron
   (command #:inputs
@@ -176,9 +176,9 @@
            (inhibitory-neuron-number #:type int #:default 20)
            (test-stimulation-number #:type int #:default 1000)
            (correlation-threshold-neuron #:type float #:default 0.9)
-           (minimum-cluster-size-neuron #:type float #:default 10)
+           (minimum-cluster-size-neuron #:type int #:default 10)
            (correlation-threshold-stimulation #:type float #:default 0.9)
-           (minimum-cluster-size-stimulation #:type float #:default 10)
+           (minimum-cluster-size-stimulation #:type int #:default 10)
 
            (correlation-plot-script
             #:type File
@@ -202,7 +202,13 @@
            (title-correlation-matrix-neuron #:type string #:default "Correlation matrix of response of each neuron")
 
            (output-correlation-matrix-stimulation #:type string #:default "correlation-matrix-stimulation.svg")
-           (title-correlation-matrix-stimulation #:type string #:default "Correlation matrix of response of each stimulation"))
+           (title-correlation-matrix-stimulation #:type string #:default "Correlation matrix of response of each stimulation")
+
+           (output-cluster-map-neuron #:type string #:default "cluster-map-neuron.txt")
+           (output-directory-cluster-map-neuron #:type string #:default "cluster-map-neuron")
+
+           (output-cluster-map-stimulation #:type string #:default "cluster-map-stimulation.txt")
+           (output-directory-cluster-map-stimulation #:type string #:default "cluster-map-stimulation"))
           (pipe
            (tee
             (lateral-weight-cut-out-excitatory
@@ -251,29 +257,31 @@
                #:correlation-matrix correlation-matrix-stimulation
                #:output-name output-correlation-matrix-stimulation
                #:title title-correlation-matrix-stimulation)
-              ;; (pipe
-              ;;  (cluster-map (cluster-map-neuron)
-              ;;               #:stdp-executable stdp-executable
-              ;;               #:correlation-matrix correlation-matrix-neuron
-              ;;               #:input-size excitatory-neuron-number
-              ;;               #:correlation-threshold correlation-threshold-neuron
-              ;;               #:minimum-cluster-size minimum-cluster-size-neuron
-              ;;               #:output-name "cluster-map-neuron.txt")
-              ;;  (divide-line (divide-line-neuron)
-              ;;               #:stdp-executable stdp-executable
-              ;;               #:cluster-map cluster-map
-              ;;               #:output-directory "cluster-map-neuron"))
-              ;; (pipe
-              ;;  (cluster-map (cluster-map-stimulation)
-              ;;               #:stdp-executable stdp-executable
-              ;;               #:correlation-matrix correlation-matrix-stimulation
-              ;;               #:input-size test-stimulation-number
-              ;;               #:correlation-threshold correlation-threshold-stimulation
-              ;;               #:minimum-cluster-size minimum-cluster-size-stimulation
-              ;;               #:output-name "cluster-map-stimulation.txt")
-              ;;  (divide-line (divide-line-stimulation)
-              ;;               #:stdp-executable stdp-executable
-              ;;               #:cluster-map cluster-map
-              ;;               #:output-directory "cluster-map-stimulation"))
+              (pipe
+               (cluster-map (cluster-map-neuron)
+                            #:stdp-executable stdp-executable
+                            #:correlation-matrix correlation-matrix-neuron
+                            #:input-size excitatory-neuron-number
+                            #:correlation-threshold correlation-threshold-neuron
+                            #:minimum-cluster-size minimum-cluster-size-neuron
+                            #:output-name output-cluster-map-neuron)
+               (divide-line (divide-line-neuron)
+                            #:stdp-executable stdp-executable
+                            #:cluster-map cluster-map
+                            #:output-directory output-directory-cluster-map-neuron)
+               (rename #:divided-directory-neuron divided-directory))
+              (pipe
+               (cluster-map (cluster-map-stimulation)
+                            #:stdp-executable stdp-executable
+                            #:correlation-matrix correlation-matrix-stimulation
+                            #:input-size test-stimulation-number
+                            #:correlation-threshold correlation-threshold-stimulation
+                            #:minimum-cluster-size minimum-cluster-size-stimulation
+                            #:output-name output-cluster-map-stimulation)
+               (divide-line (divide-line-stimulation)
+                            #:stdp-executable stdp-executable
+                            #:cluster-map cluster-map
+                            #:output-directory output-directory-cluster-map-stimulation)
+               (rename #:divided-directory-stimulation divided-directory))
               )))
            ))
