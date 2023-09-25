@@ -6,7 +6,7 @@
 
 if (!exists("zeroPadding")) zeroPadding=0
 
-do for [i=1:n] {
+do for [i=0:n-1] {
     baseName = sprintf(sprintf('%%0%dd', zeroPadding), i);
     onInputFile = sprintf("%s/%s.txt", onInputDirectory, baseName);
     offInputFile = sprintf("%s/%s.txt", offInputDirectory, baseName);
