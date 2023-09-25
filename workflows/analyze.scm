@@ -111,12 +111,16 @@
            (stdp-executable #:type File)
            (cluster-map #:type File)
            (output-directory #:type string)
+           (output-number-file #:type string)
            #:run
            stdp-executable "tool" "analyze" "divide-line"
            cluster-map output-directory
+           "--number-output" output-number-file
            #:outputs
            (divided-directory #:type Directory
-                              #:binding '((glob . "$(inputs[\"output-directory\"])")))))
+                              #:binding '((glob . "$(inputs[\"output-directory\"])")))
+           (number-file #:type File
+                        #:binding '((glob . "$(inputs[\"output-number-file\"])")))))
 
 (define plot-correlation-neuron
   (command #:inputs
@@ -168,9 +172,34 @@
            (matrix-plot #:type File
                         #:binding '((glob . "$(inputs[\"output-name\"])")))))
 
+(define each-cluster-images
+  (command #:inputs
+           (stdp-executable #:type File)
+           (gnuplot-script #:type File
+                           #:default '((class . "File")
+                                       (location . "../script/each-cluster-images.gnuplot")))
+           (text-image-directory #:type Directory)
+           (cluster-directory #:type Directory)
+           (number-file #:type File)
+           (images-number #:type int)
+           (output-directory #:type string)
+           #:run
+           "gnuplot"
+           "-e" "textImageDirectory='$(inputs[\"text-image-directory\"].path)'"
+           "-e" "clusterDirectory='$(inputs[\"cluster-directory\"].path)'"
+           "-e" "numberFile='$(inputs[\"number-file\"].path)'"
+           "-e" "numberOfImages='$(inputs[\"images-number\"])'"
+           "-e" "outputDirectory='$(inputs[\"output-directory\"])'"
+           "-e" "stdpExecutable='$(inputs[\"stdp-executable\"].path)'"
+           gnuplot-script
+           #:outputs
+           (image-directory #:type Directory
+                            #:binding '((glob . "$(inputs[\"output-directory\"])")))))
+
 (workflow ((stdp-executable #:type File)
            (response-test #:type File)
            (lateral-weight #:type File)
+           (text-image-directory #:type Directory)
 
            (excitatory-neuron-number #:type int #:default 100)
            (inhibitory-neuron-number #:type int #:default 20)
@@ -179,6 +208,7 @@
            (minimum-cluster-size-neuron #:type int #:default 10)
            (correlation-threshold-stimulation #:type float #:default 0.9)
            (minimum-cluster-size-stimulation #:type int #:default 10)
+           (images-number #:type int #:default 109999)
 
            (correlation-plot-script
             #:type File
@@ -192,6 +222,10 @@
             #:type File
             #:default '((class . "File")
                         (location . "../script/matrix.gnuplot")))
+           (each-cluster-images-script #:type File
+                                       #:default '((class . "File")
+                                                   (location . "../script/each-cluster-images.gnuplot")))
+
 
            (output-weight-sorted-txt #:type string #:default "weight-sorted.txt")
 
@@ -206,9 +240,13 @@
 
            (output-cluster-map-neuron #:type string #:default "cluster-map-neuron.txt")
            (output-directory-cluster-map-neuron #:type string #:default "cluster-map-neuron")
+           (output-number-cluster-map-neuron #:type string #:default "cluster-map-neuron-number.txt")
 
            (output-cluster-map-stimulation #:type string #:default "cluster-map-stimulation.txt")
-           (output-directory-cluster-map-stimulation #:type string #:default "cluster-map-stimulation"))
+           (output-directory-cluster-map-stimulation #:type string #:default "cluster-map-stimulation")
+           (output-number-cluster-map-stimulation #:type string #:default "cluster-map-stimulation.txt")
+
+           (output-cluster-images-directory #:type string #:default "clusterImages"))
           (pipe
            (tee
             (lateral-weight-cut-out-excitatory
@@ -268,8 +306,10 @@
                (divide-line (divide-line-neuron)
                             #:stdp-executable stdp-executable
                             #:cluster-map cluster-map
-                            #:output-directory output-directory-cluster-map-neuron)
-               (rename #:divided-directory-neuron divided-directory))
+                            #:output-directory output-directory-cluster-map-neuron
+                            #:output-number-file output-number-cluster-map-neuron)
+               (rename #:divided-directory-neuron divided-directory
+                       #:cluster-number-neuron output-number-file))
               (pipe
                (cluster-map (cluster-map-stimulation)
                             #:stdp-executable stdp-executable
@@ -281,7 +321,16 @@
                (divide-line (divide-line-stimulation)
                             #:stdp-executable stdp-executable
                             #:cluster-map cluster-map
-                            #:output-directory output-directory-cluster-map-stimulation)
-               (rename #:divided-directory-stimulation divided-directory))
-              )))
-           ))
+                            #:output-directory output-directory-cluster-map-stimulation
+                            #:output-number-file output-number-cluster-map-stimulation)
+               (rename #:divided-directory-stimulation divided-directory
+                       #:cluster-number-file-stimulation number-file)
+               (each-cluster-images
+                #:gnuplot-script each-cluster-images-script
+                #:stdp-executable stdp-executable
+                #:text-image-directory text-image-directory
+                #:cluster-directory divided-directory-stimulation
+                #:number-file cluster-number-file-stimulation
+                #:images-number images-number
+                #:output-directory output-cluster-images-directory)
+               ))))))
