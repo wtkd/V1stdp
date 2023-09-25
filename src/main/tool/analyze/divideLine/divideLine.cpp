@@ -10,6 +10,7 @@
 struct DivideLineOptions {
   std::filesystem::path inputFile;
   std::filesystem::path outputDirectory;
+  std::optional<std::filesystem::path> numberFile;
   std::optional<std::uint64_t> zeroPadding;
 };
 
@@ -25,12 +26,19 @@ void setupDivideLine(CLI::App &app) {
       ->required()
       ->check(CLI::NonexistentPath);
 
+  sub->add_option("--number-output", opt->numberFile, "Name of output file which will contain total line number.")
+      ->check(CLI::NonexistentPath);
+
   sub->add_option(
       "-z,--zero-padding", opt->zeroPadding, "Length of zero padding length. If omitted, determined automatically."
   );
 
   sub->callback([opt]() {
     std::vector<std::vector<std::string>> const data = readVectorVector(opt->inputFile);
+
+    if (opt->numberFile.has_value()) {
+      writeVector(opt->numberFile.value(), std::vector{data.size()});
+    }
 
     auto const createDirectory = [](std::filesystem::path const &p) {
       bool const success = std::filesystem::create_directories(p);

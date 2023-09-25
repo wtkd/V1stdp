@@ -660,12 +660,22 @@ set_tests_properties(
 
 add_test(
   NAME run_divide_line
-  COMMAND $<TARGET_FILE:stdp> tool analyze divide-line ${CMAKE_SOURCE_DIR}/test/data/cluster_map_with_index_map.txt ./data/divide-line --zero-padding 0
+  COMMAND $<TARGET_FILE:stdp> tool analyze divide-line ${CMAKE_SOURCE_DIR}/test/data/cluster_map_with_index_map.txt ./data/divide-line --zero-padding 0 --number-output ./data/divide-line-number.txt
 )
 set_tests_properties(
   run_divide_line PROPERTIES
   FIXTURES_REQUIRED divide_line_directory
   FIXTURES_SETUP run_divide_line
+  LABELS divide_line
+)
+
+add_test(
+  NAME compare_divide_line_number
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/divide-line-number.txt ./data/divide-line-number.txt
+)
+set_tests_properties(
+  compare_divide_line_number PROPERTIES
+  FIXTURES_REQUIRED run_divide_line
   LABELS divide_line
 )
 
