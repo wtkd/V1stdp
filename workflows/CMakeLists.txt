@@ -54,4 +54,12 @@ add_custom_command(
   VERBATIM)
 add_custom_target(generate_exportImages_cwl DEPENDS exportImages.cwl)
 
-add_custom_target(GenerateCWL DEPENDS generate_test_cwl generate_learn_cwl generate_simulation_cwl generate_analyze_cwl generate_exportImages_cwl)
+add_custom_command(
+  OUTPUT all.cwl
+  COMMAND ${CCWL_EXECUTABLE} compile all.scm > all.cwl
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  DEPENDS all.scm learn.cwl test.cwl analyze.cwl exportImages.cwl
+  VERBATIM)
+add_custom_target(generate_all_cwl DEPENDS all.cwl)
+
+add_custom_target(GenerateCWL DEPENDS generate_test_cwl generate_learn_cwl generate_simulation_cwl generate_analyze_cwl generate_exportImages_cwl generate_all_cwl)
