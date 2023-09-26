@@ -302,7 +302,7 @@ int run(
     }
 
     // Where are we in the data file?
-    int const currentDataNumber = (phase == Phase::pulse ? STIM1 : numpres);
+    int const currentDataNumber = (phase == Phase::pulse ? STIM1 : numpres % nbpatchesinfile);
     unsigned const posindata = (currentDataNumber % nbpatchesinfile) * FFRFSIZE / 2;
 
     if (posindata >= totaldatasize - FFRFSIZE / 2) {
