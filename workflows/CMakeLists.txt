@@ -14,6 +14,8 @@ if (NOT GNUPLOT_EXECUTABLE)
   )
 endif()
 
+# TODO: DEPENDS does not works well, because OUTPUT file is expected to be in binary dir, but it is in source directory
+
 add_custom_command(
   OUTPUT learn.cwl
   COMMAND ${CCWL_EXECUTABLE} compile learn.scm > learn.cwl
