@@ -226,6 +226,8 @@
                                        #:default '((class . "File")
                                                    (location . "../script/each-cluster-images.gnuplot")))
 
+           (output-response-svg #:type string #:default "response-sorted.svg")
+           (title-response-svg #:type string #:default "Response of excitatory neurons on each stimulation")
 
            (output-weight-sorted-txt #:type string #:default "weight-sorted.txt")
 
@@ -244,7 +246,7 @@
 
            (output-cluster-map-stimulation #:type string #:default "cluster-map-stimulation.txt")
            (output-directory-cluster-map-stimulation #:type string #:default "cluster-map-stimulation")
-           (output-number-cluster-map-stimulation #:type string #:default "cluster-map-stimulation.txt")
+           (output-number-cluster-map-stimulation #:type string #:default "cluster-map-stimulation-number.txt")
 
            (output-cluster-images-directory #:type string #:default "clusterImages"))
           (pipe
@@ -267,6 +269,13 @@
                    #:stimulation-number test-stimulation-number)))
            (tee
             (pipe
+             (plot-matrix (plot-response)
+                          #:gnuplot-script matrix-plot-script
+                          #:matrix response-sorted
+                          #:output-name output-response-svg
+                          #:title title-response-svg)
+             (rename #:plot-response-matrix matrix-plot))
+            (pipe
              (sort-lateral-weight
               #:stdp-executable stdp-executable
               #:weight-excitatory weight-excitatory
@@ -274,10 +283,11 @@
               #:sort-index-neuron-colomn sort-index-neuron
               #:output-name output-weight-sorted-txt)
              (plot-matrix (plot-weight)
-              #:gnuplot-script matrix-plot-script
-              #:matrix weight-sorted
-              #:output-name output-weight-sorted-svg
-              #:title title-weight-sorted))
+                          #:gnuplot-script matrix-plot-script
+                          #:matrix weight-sorted
+                          #:output-name output-weight-sorted-svg
+                          #:title title-weight-sorted)
+             (rename #:plot-weight-matrix matrix-plot))
             (pipe
              (response-correlation-matrix
               #:stdp-executable stdp-executable
@@ -309,7 +319,7 @@
                             #:output-directory output-directory-cluster-map-neuron
                             #:output-number-file output-number-cluster-map-neuron)
                (rename #:divided-directory-neuron divided-directory
-                       #:cluster-number-neuron output-number-file))
+                       #:cluster-number-neuron number-file))
               (pipe
                (cluster-map (cluster-map-stimulation)
                             #:stdp-executable stdp-executable

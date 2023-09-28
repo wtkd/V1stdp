@@ -41,6 +41,9 @@
                                        #:default '((class . "File")
                                                    (location . "../script/each-cluster-images.gnuplot")))
 
+           (output-response-svg #:type string #:default "response-sorted.svg")
+           (title-response-svg #:type string #:default "Response of excitatory neurons on each stimulation")
+
            (output-weight-sorted-txt #:type string #:default "weight-sorted.txt")
 
            (output-weight-sorted-svg #:type string #:default "weight-sorted.svg")
@@ -58,7 +61,7 @@
 
            (output-cluster-map-stimulation #:type string #:default "cluster-map-stimulation.txt")
            (output-directory-cluster-map-stimulation #:type string #:default "cluster-map-stimulation")
-           (output-number-cluster-map-stimulation #:type string #:default "cluster-map-stimulation.txt")
+           (output-number-cluster-map-stimulation #:type string #:default "cluster-map-stimulation-number.txt")
 
            (output-cluster-images-directory #:type string #:default "clusterImages")
 
@@ -106,7 +109,7 @@
                          #:feedforward-weight feedforward-weight-txt)
                  (test #:stdp-executable stdp-executable
                        #:transformed-image-data transformed-image-data
-                       #:step step-learn
+                       #:step step-test
                        #:seed seed
                        #:lateral-weight-dat lateral-weight-dat
                        #:feedforward-weight-dat feedforward-weight-dat))
@@ -127,6 +130,8 @@
                  #:correlation-plot-script-without-pixels correlation-plot-script-without-pixels
                  #:matrix-plot-script matrix-plot-script
                  #:each-cluster-images-script each-cluster-images-script
+                 #:output-response-svg output-response-svg
+                 #:title-response-svg title-response-svg
                  #:output-weight-sorted-txt output-weight-sorted-txt
                  #:output-weight-sorted-svg output-weight-sorted-svg
                  #:title-weight-sorted title-weight-sorted
