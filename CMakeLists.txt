@@ -691,3 +691,40 @@ foreach(X RANGE 0 104)
   )
 
 endforeach()
+
+#### feedforward
+
+##### export
+
+add_test(
+  NAME run_weight_feedforward_export
+  COMMAND $<TARGET_FILE:stdp> tool analyze weight feedforward export ${CMAKE_SOURCE_DIR}/test/data/wff.txt --edge-length 17 --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --on-center-directory ./data/weight/on --off-center-directory ./data/weight/off --zero-padding 0
+)
+set_tests_properties(
+  run_weight_feedforward_export PROPERTIES
+  FIXTURES_REQUIRED data_directory
+  FIXTURES_SETUP run_weight_feedforward_export
+  LABELS weight_feedforward_export
+)
+
+foreach(X RANGE 0 119)
+  add_test(
+    NAME compare_weight_feedforward_export_on_${X}
+    COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/weight/on/${X}.txt ./data/weight/on/${X}.txt
+  )
+  set_tests_properties(
+    compare_weight_feedforward_export_on_${X} PROPERTIES
+    FIXTURES_REQUIRED run_weight_feedforward_export
+    LABELS weight_feedforward_export
+  )
+
+  add_test(
+    NAME compare_weight_feedforward_export_off_${X}
+    COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/weight/off/${X}.txt ./data/weight/off/${X}.txt
+  )
+  set_tests_properties(
+    compare_weight_feedforward_export_off_${X} PROPERTIES
+    FIXTURES_REQUIRED run_weight_feedforward_export
+    LABELS weight_feedforward_export
+  )
+endforeach()
