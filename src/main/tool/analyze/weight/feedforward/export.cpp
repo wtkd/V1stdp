@@ -1,8 +1,12 @@
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <functional>
+#include <iterator>
 #include <optional>
 #include <ostream>
+#include <ranges>
 #include <utility>
 
 #include <CLI/CLI.hpp>
@@ -16,6 +20,7 @@ struct WeightFeefforwardExportOptions {
   std::filesystem::path inputFile;
   std::optional<std::filesystem::path> onDirectory;
   std::optional<std::filesystem::path> offDirectory;
+  std::optional<std::filesystem::path> diffDirectory;
   std::uint64_t excitatoryNeuronNumber;
   std::uint64_t inhibitoryNeuronNumber;
   std::uint64_t edgeLength;
@@ -32,6 +37,12 @@ void setupWeightFeedforwardExport(CLI::App &app) {
   sub->add_option("--on-center-directory", opt->onDirectory, "Directory to save on-center feedforward weight.")
       ->check(CLI::NonexistentPath);
   sub->add_option("--off-center-directory", opt->offDirectory, "Directory to save off-center feedforward weight.")
+      ->check(CLI::NonexistentPath);
+  sub->add_option(
+         "--diff-directory",
+         opt->diffDirectory,
+         "Directory to save difference of on-center and off-center feedforward weight."
+  )
       ->check(CLI::NonexistentPath);
   sub->add_option("-e,--excitatory-neuron-number", opt->excitatoryNeuronNumber, "The number of excitatory neuron.")
       ->required();
@@ -100,12 +111,25 @@ void setupWeightFeedforwardExport(CLI::App &app) {
       createDirectory(opt->onDirectory.value());
       exportMatrices(onWeights, opt->onDirectory.value(), zeroPadding);
     }
+
     if (opt->offDirectory.has_value()) {
       auto const zeroPadding =
           opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(offWeights.size()) + 1;
 
       createDirectory(opt->offDirectory.value());
       exportMatrices(offWeights, opt->offDirectory.value(), zeroPadding);
+    }
+
+    if (opt->diffDirectory.has_value()) {
+      auto const zeroPadding =
+          opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(onWeights.size()) + 1;
+
+      createDirectory(opt->diffDirectory.value());
+
+      std::vector<Eigen::MatrixXd> differences;
+      std::ranges::transform(onWeights, offWeights, std::back_inserter(differences), std::minus<Eigen::MatrixXd>());
+
+      exportMatrices(differences, opt->diffDirectory.value(), zeroPadding);
     }
   });
 }
