@@ -19,7 +19,6 @@ struct ImageExportOptions {
   std::optional<std::filesystem::path> onImageDirectory;
   std::optional<std::filesystem::path> offImageDirectory;
   std::optional<std::filesystem::path> allInOneFileName;
-  std::vector<size_t> imageNumbers;
   std::uint64_t edgeLength;
 };
 
