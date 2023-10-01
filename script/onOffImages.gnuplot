@@ -3,8 +3,11 @@
 # outputDirectory: Directory which will contain output images
 # n: The number of images to output
 # zeroPadding: The number of length of zero padding
+# stdpExecutable: Executable of this repository
 
-if (!exists("zeroPadding")) zeroPadding=0
+if (!exists("zeroPadding")) zeroPadding=floor(log10(n)+1)
+
+system sprintf("%s tool filesystem make-directory %s", stdpExecutable, outputDirectory)
 
 do for [i=0:n-1] {
     baseName = sprintf(sprintf('%%0%dd', zeroPadding), i);
