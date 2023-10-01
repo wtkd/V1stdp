@@ -12,6 +12,8 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+add_subdirectory(feedforward)
+
 add_library(Weight STATIC
   weight.cpp
   cut.cpp
@@ -19,6 +21,7 @@ add_library(Weight STATIC
 
 target_link_libraries(Weight PUBLIC IO)
 target_link_libraries(Weight PUBLIC Statistics)
+target_link_libraries(Weight PUBLIC Feedforward)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
