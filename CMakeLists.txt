@@ -698,7 +698,7 @@ endforeach()
 
 add_test(
   NAME run_weight_feedforward_export
-  COMMAND $<TARGET_FILE:stdp> tool analyze weight feedforward export ${CMAKE_SOURCE_DIR}/test/data/wff.txt --edge-length 17 --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --on-center-directory ./data/weight/on --off-center-directory ./data/weight/off --zero-padding 0
+  COMMAND $<TARGET_FILE:stdp> tool analyze weight feedforward export ${CMAKE_SOURCE_DIR}/test/data/wff.txt --edge-length 17 --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --on-center-directory ./data/weight/on --off-center-directory ./data/weight/off --diff-directory ./data/weight/diff --zero-padding 0
 )
 set_tests_properties(
   run_weight_feedforward_export PROPERTIES
@@ -724,6 +724,16 @@ foreach(X RANGE 0 119)
   )
   set_tests_properties(
     compare_weight_feedforward_export_off_${X} PROPERTIES
+    FIXTURES_REQUIRED run_weight_feedforward_export
+    LABELS weight_feedforward_export
+  )
+
+  add_test(
+    NAME compare_weight_feedforward_export_diff_${X}
+    COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/weight/diff/${X}.txt ./data/weight/diff/${X}.txt
+  )
+  set_tests_properties(
+    compare_weight_feedforward_export_diff_${X} PROPERTIES
     FIXTURES_REQUIRED run_weight_feedforward_export
     LABELS weight_feedforward_export
   )
