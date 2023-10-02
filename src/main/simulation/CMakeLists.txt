@@ -17,6 +17,8 @@ add_library(Simulation STATIC
   run.cpp
   utils.cpp)
 
+target_link_libraries(Simulation IO)
+
 find_package(Eigen3 REQUIRED)
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Boost REQUIRED)

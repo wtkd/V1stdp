@@ -18,7 +18,7 @@ int run(
     int const PULSETIME,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
-    std::filesystem::path const inputDirectory,
+    Eigen::ArrayXX<int8_t> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval
 );

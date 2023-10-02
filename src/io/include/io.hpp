@@ -16,6 +16,7 @@
 std::size_t countLine(std::filesystem::path const &file);
 std::size_t countWord(std::filesystem::path const &file);
 std::vector<std::vector<std::string>> readVectorVector(std::filesystem::path const &file);
+Eigen::ArrayXX<int8_t> readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLength);
 
 template <typename T> std::vector<T> readVector(std::filesystem::path const &file) {
   std::vector<T> v;

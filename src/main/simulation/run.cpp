@@ -5,6 +5,7 @@
 #include <boost/range/counting_range.hpp>
 
 #include "constant.hpp"
+#include "io.hpp"
 #include "model.hpp"
 #include "phase.hpp"
 #include "utils.hpp"
@@ -25,7 +26,7 @@ int run(
     int const PULSETIME,
     MatrixXd const &initwff,
     MatrixXd const &initw,
-    std::filesystem::path const inputFile,
+    Eigen::ArrayXX<int8_t> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval
 ) {
@@ -50,38 +51,13 @@ int run(
 
   int const NBSTEPSPERPRES = (int)(PRESTIME / dt);
   int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
-
-  std::cout << "Reading input data...." << std::endl;
-
-  auto const imagedata = [&]() {
-    // The stimulus patches are 17x17x2 in length, arranged linearly. See below
-    // for the setting of feedforward firing rates based on patch data. See also
-    // makepatchesImageNetInt8.m
-    std::ifstream DataFile(inputFile, std::ios::binary);
-    if (!DataFile.is_open()) {
-      throw std::ios_base::failure("Failed to open the binary data file!");
-      exit(1);
-    }
-    std::vector<int8_t> const v((std::istreambuf_iterator<char>(DataFile)), std::istreambuf_iterator<char>());
-    DataFile.close();
-
-    return v;
-    // double* imagedata = (double*) membuf;
-  }();
-  auto const fsize = imagedata.size();
-
-  std::cout << "Data read!" << std::endl;
   // totaldatasize = fsize / sizeof(double); // To change depending on whether
   // the data is float/single (4) or double (8)
 
   // XXX: This should use type of the vector imagedata.
   // To change depending on whether the data is float/single (4) or double (8)
-  int const totaldatasize = fsize / sizeof(int8_t);
-  int const nbpatchesinfile =
-      totaldatasize / (PATCHSIZE * PATCHSIZE) - 1; // The -1 is just there to ignore the last patch (I think)
-  std::cout << "Total data size (number of values): " << totaldatasize
-            << ", number of patches in file: " << nbpatchesinfile << std::endl;
-  std::cout << imagedata[5654] << " " << imagedata[6546] << " " << imagedata[9000] << std::endl;
+  int const nbpatchesinfile = imageVector.cols() - 1; // The -1 is just there to ignore the last patch (I think)
+  std::cout << "Number of patches in file: " << nbpatchesinfile << std::endl;
 
   // The noise excitatory input is a Poisson process (separate for each cell) with a constant rate (in KHz / per ms)
   // We store it as "frozen noise" to save time.
@@ -292,8 +268,6 @@ int run(
 
   auto &v = modelState.v;
 
-  Map<ArrayXX<int8_t> const> const imageVector(imagedata.data(), FFRFSIZE / 2, nbpatchesinfile);
-
   // For each stimulus presentation...
   for (auto const numpres : boost::counting_range<unsigned>(0, NBPRES)) {
     // Save data
@@ -303,9 +277,7 @@ int run(
 
     // Where are we in the data file?
     int const currentDataNumber = (phase == Phase::pulse ? STIM1 : numpres % nbpatchesinfile);
-    unsigned const posindata = (currentDataNumber % nbpatchesinfile) * FFRFSIZE / 2;
-
-    if (posindata >= totaldatasize - FFRFSIZE / 2) {
+    if (nbpatchesinfile <= currentDataNumber) {
       std::cerr << "Error: tried to read beyond data end.\n";
       return -1;
     }
@@ -327,13 +299,11 @@ int run(
     VectorXd const lgnrates =
         [&]() -> ArrayXd {
       if (phase == Phase::mixing) {
-        unsigned const posindata1 = ((STIM1 % nbpatchesinfile) * FFRFSIZE / 2);
-        if (posindata1 >= totaldatasize - FFRFSIZE / 2) {
+        if (nbpatchesinfile <= STIM1) {
           std::cerr << "Error: tried to read beyond data end.\n";
           std::exit(-1);
         }
-        unsigned const posindata2 = ((STIM2 % nbpatchesinfile) * FFRFSIZE / 2);
-        if (posindata2 >= totaldatasize - FFRFSIZE / 2) {
+        if (nbpatchesinfile <= STIM2) {
           std::cerr << "Error: tried to read beyond data end.\n";
           std::exit(-1);
         }

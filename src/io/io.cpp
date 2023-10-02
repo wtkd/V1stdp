@@ -1,9 +1,13 @@
 #include <algorithm>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include <Eigen/Dense>
 
 #include "io.hpp"
 
@@ -47,4 +51,25 @@ std::vector<std::vector<std::string>> readVectorVector(std::filesystem::path con
   }
 
   return result;
+}
+
+Eigen::ArrayXX<int8_t> readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLength) {
+  // The stimulus patches are 17x17x2 in length, arranged linearly. See below
+  // for the setting of feedforward firing rates based on patch data. See also
+  // makepatchesImageNetInt8.m
+
+  std::cout << "Reading input data...." << std::endl;
+
+  std::ifstream DataFile(inputFile, std::ios::binary);
+  if (!DataFile.is_open()) {
+    throw std::ios_base::failure("Failed to open the binary data file!");
+    exit(1);
+  }
+  std::vector<std::int8_t> const v((std::istreambuf_iterator<char>(DataFile)), std::istreambuf_iterator<char>());
+  DataFile.close();
+  std::cout << "Data read!" << std::endl;
+
+  return Eigen::Map<Eigen::ArrayXX<int8_t> const>(
+      v.data(), edgeLength * edgeLength, v.size() / (edgeLength * edgeLength)
+  );
 }

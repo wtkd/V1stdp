@@ -1,6 +1,8 @@
 #include <filesystem>
 #include <memory>
 
+#include "constant.hpp"
+#include "io.hpp"
 #include "phase.hpp"
 #include "run.hpp"
 #include "simulation.hpp"
@@ -34,6 +36,7 @@ struct LearnOptions {
   std::filesystem::path saveDirectory;
   int saveLogInterval = 50'000;
   int timepres = 350;
+  int imageRange = 0;
 };
 
 void setupLearn(CLI::App &app) {
@@ -49,6 +52,13 @@ void setupLearn(CLI::App &app) {
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--timepres", opt->timepres, "Presentation time");
+  sub->add_option(
+      "-R,--image-range",
+      opt->imageRange,
+      ("Image range to use. 0 means using all.\n"
+       "The positive value N means using top N of image.\n"
+       "The negative value -N means using all except bottom N of image.")
+  );
 
   sub->callback([opt]() {
     Model const &model = opt->model;
@@ -107,6 +117,13 @@ void setupLearn(CLI::App &app) {
       return wff;
     }();
 
+    auto const imageVector = readImages(inputFile, PATCHSIZE);
+
+    decltype(imageVector) narrowedImageVector = opt->imageRange == 0 ? imageVector
+                                                : opt->imageRange > 0
+                                                    ? imageVector.leftCols(opt->imageRange)
+                                                    : imageVector.leftCols(imageVector.cols() + opt->imageRange);
+
     run(model,
         timepres,
         NBLASTSPIKESPRES,
@@ -118,7 +135,7 @@ void setupLearn(CLI::App &app) {
         -1, // PULSETIME is not used
         wff,
         w,
-        inputFile,
+        narrowedImageVector,
         saveDirectory,
         saveLogInterval);
   });
@@ -135,6 +152,7 @@ struct TestOptions {
   std::filesystem::path feedforwardWeight;
   int saveLogInterval = 50'000;
   int timepres = 350;
+  int imageRange = 0;
 };
 
 void setupTest(CLI::App &app) {
@@ -155,6 +173,13 @@ void setupTest(CLI::App &app) {
   );
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--timepres", opt->timepres, "Presentation time");
+  sub->add_option(
+      "-R,--image-range",
+      opt->imageRange,
+      ("Image range to use. 0 means using all.\n"
+       "The positive value N means using bottom N of image.\n"
+       "The negative value -N means using all except top N of image.")
+  );
 
   sub->callback([opt]() {
     Model const &model = opt->model;
@@ -188,6 +213,12 @@ void setupTest(CLI::App &app) {
     // w.bottomRows(NBI).leftCols(NBE).fill(1.0); // Inhbitory neurons receive excitatory inputs from excitatory neurons
     // w.rightCols(NBI).fill(-1.0); // Everybody receives fixed, negative inhibition (including inhibitory neurons)
 
+    auto const imageVector = readImages(inputFile, PATCHSIZE);
+    decltype(imageVector) narrowedImageVector = opt->imageRange == 0 ? imageVector
+                                                : opt->imageRange > 0
+                                                    ? imageVector.rightCols(opt->imageRange)
+                                                    : imageVector.leftCols(imageVector.cols() + opt->imageRange);
+
     run(model,
         PRESTIME,
         NBLASTSPIKESPRES,
@@ -199,7 +230,7 @@ void setupTest(CLI::App &app) {
         -1, // PULSETIME is not used
         wff,
         w,
-        inputFile,
+        narrowedImageVector,
         saveDirectory,
         saveLogInterval);
   });
@@ -267,6 +298,8 @@ void setupMix(CLI::App &app) {
 
     std::cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << std::endl;
 
+    auto const imageVector = readImages(inputFile, PATCHSIZE);
+
     run(model,
         PRESTIME,
         NBLASTSPIKESPRES,
@@ -278,7 +311,7 @@ void setupMix(CLI::App &app) {
         -1, // PULSETIME is not used
         wff,
         w,
-        inputFile,
+        imageVector,
         saveDirectory,
         saveLogInterval);
   });
@@ -296,6 +329,7 @@ struct PulseOptions {
   int saveLogInterval = 50'000;
   int stimulationNumber;
   int pulsetime = 100;
+  int imageRange = 0;
 };
 
 void setupPulse(CLI::App &app) {
@@ -320,6 +354,13 @@ void setupPulse(CLI::App &app) {
       opt->pulsetime,
       "This is the time during which stimulus is active during PULSE trials "
       "(different from PRESTIMEPULSE which is total trial time)"
+  );
+  sub->add_option(
+      "-R,--image-range",
+      opt->imageRange,
+      ("Image range to use. 0 means using all.\n"
+       "The positive value N means using top N of image.\n"
+       "The negative value -N means using all except bottom N of image.")
   );
 
   sub->callback([opt]() {
@@ -356,6 +397,12 @@ void setupPulse(CLI::App &app) {
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
+    auto const imageVector = readImages(inputFile, PATCHSIZE);
+    decltype(imageVector) narrowedImageVector = opt->imageRange == 0 ? imageVector
+                                                : opt->imageRange > 0
+                                                    ? imageVector.rightCols(opt->imageRange)
+                                                    : imageVector.leftCols(imageVector.cols() + opt->imageRange);
+
     run(model,
         PRESTIME,
         NBLASTSPIKESPRES,
@@ -367,7 +414,7 @@ void setupPulse(CLI::App &app) {
         PULSETIME,
         wff,
         w,
-        inputFile,
+        narrowedImageVector,
         saveDirectory,
         saveLogInterval);
   });
@@ -382,6 +429,7 @@ struct SpontaneousOptions {
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
   int saveLogInterval = 50'000;
+  int imageRange = 0;
 };
 
 void setupSpontaneous(CLI::App &app) {
@@ -425,6 +473,8 @@ void setupSpontaneous(CLI::App &app) {
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
+    auto const imageVector = readImages(inputFile, PATCHSIZE);
+
     run(model,
         PRESTIME,
         NBLASTSPIKESPRES,
@@ -436,7 +486,7 @@ void setupSpontaneous(CLI::App &app) {
         -1, // PULSE is not used
         wff,
         w,
-        inputFile,
+        imageVector,
         saveDirectory,
         saveLogInterval);
   });
