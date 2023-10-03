@@ -225,6 +225,24 @@
            (feedforward-plot #:type Directory
                              #:binding '((glob . "$(inputs[\"output-directory\"])")))))
 
+(define plot-all-feedforward-weight
+  (command #:inputs
+           (stdp-executable #:type File)
+           (neuron-number #:type int)
+           (diff-feedforward-text #:type Directory)
+           (output-file #:type string)
+           (gnuplot-script #:type File
+                           #:default '((class . "File")
+                                       (location . "../script/all-feedforward-weight.gnuplot")))
+           #:run
+           "gnuplot"
+           "-e" "n=$(inputs[\"neuron-number\"])"
+           "-e" "diffInputDirectory='$(inputs[\"diff-feedforward-text\"].path)'"
+           "-e" "outputFile='$(inputs[\"output-file\"])'"
+           gnuplot-script
+           #:outputs
+           (feedforward-plots #:type File
+                              #:binding '((glob . "$(inputs[\"output-file\"])")))))
 
 (define plot-each-cluster-images
   (command #:inputs
@@ -282,11 +300,12 @@
                                        #:default '((class . "File")
                                                    (location . "../script/each-cluster-images.gnuplot")))
 
-           (output-on-feedforward-weight #:type string #:default "weight/feedforward/on")
-           (output-off-feedforward-weight #:type string #:default "weight/feedforward/off")
-           (output-diff-feedforward-weight #:type string #:default "weight/feedforward/diff")
+           (output-on-feedforward-weight #:type string #:default "feedforward-weight-on")
+           (output-off-feedforward-weight #:type string #:default "feedforward-weight-off")
+           (output-diff-feedforward-weight #:type string #:default "feedforward-weight-diff")
 
            (output-feedforward-weight-images #:type string #:default "feedforward-weight-images")
+           (output-feedforward-weight-image #:type string #:default "feedforward-weight-image.svg")
 
            (output-response-svg #:type string #:default "response-sorted.svg")
            (title-response-svg #:type string #:default "Response of excitatory neurons on each stimulation")
@@ -333,7 +352,12 @@
               #:on-feedforward-text on-feedforward-weight
               #:off-feedforward-text off-feedforward-weight
               #:diff-feedforward-text diff-feedforward-weight
-              #:output-directory output-feedforward-weight-images)))
+              #:output-directory output-feedforward-weight-images)
+             (plot-all-feedforward-weight
+              #:stdp-executable stdp-executable
+              #:neuron-number excitatory-neuron-number
+              #:diff-feedforward-text diff-feedforward-weight
+              #:output-file output-feedforward-weight-image)))
            (pipe
             (tee
              (lateral-weight-cut-out-excitatory
