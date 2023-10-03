@@ -322,13 +322,18 @@
              #:excitatory-neuron-number excitatory-neuron-number
              #:inhibitory-neuron-number inhibitory-neuron-number
              #:edge-length edge-length)
-            (plot-each-feedforward-weight
-             #:stdp-executable stdp-executable
-             #:neuron-number excitatory-neuron-number
-             #:on-feedforward-text on-feedforward-weight
-             #:off-feedforward-text off-feedforward-weight
-             #:diff-feedforward-text diff-feedforward-weight
-             #:output-directory output-feedforward-weight-images))
+            (tee
+             (rename
+              #:on-feedforward-weight on-feedforward-weight
+              #:off-feedforward-weight off-feedforward-weight
+              #:diff-feedforward-weight diff-feedforward-weight)
+             (plot-each-feedforward-weight
+              #:stdp-executable stdp-executable
+              #:neuron-number excitatory-neuron-number
+              #:on-feedforward-text on-feedforward-weight
+              #:off-feedforward-text off-feedforward-weight
+              #:diff-feedforward-text diff-feedforward-weight
+              #:output-directory output-feedforward-weight-images)))
            (pipe
             (tee
              (lateral-weight-cut-out-excitatory
