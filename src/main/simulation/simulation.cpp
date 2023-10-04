@@ -169,8 +169,9 @@ void setupTest(CLI::App &app) {
   sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
       ->required();
   sub->add_option(
-      "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
-  );
+         "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
+  )
+      ->required();
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--timepres", opt->timepres, "Presentation time");
   sub->add_option(
@@ -261,8 +262,9 @@ void setupMix(CLI::App &app) {
   sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
       ->required();
   sub->add_option(
-      "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
-  );
+         "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
+  )
+      ->required();
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("stimulation-number", opt->stimulationNumbers, "Two numbers of stimulation to mix")->required();
 
@@ -345,8 +347,9 @@ void setupPulse(CLI::App &app) {
   sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
       ->required();
   sub->add_option(
-      "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
-  );
+         "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
+  )
+      ->required();
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("stimulation-number", opt->stimulationNumber, "Numbers of stimulation")->required();
   sub->add_option(
@@ -445,8 +448,9 @@ void setupSpontaneous(CLI::App &app) {
   sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
       ->required();
   sub->add_option(
-      "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
-  );
+         "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
+  )
+      ->required();
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
 
   sub->callback([opt]() {
