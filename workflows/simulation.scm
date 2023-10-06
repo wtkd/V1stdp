@@ -12,7 +12,8 @@
           (pipe (learn #:stdp-executable stdp-executable
                        #:transformed-image-data transformed-image-data
                        #:seed seed
-                       #:step step-learn)
+                       #:step step-learn
+                       #:step-test step-test)
                 (test #:stdp-executable stdp-executable
                       #:transformed-image-data transformed-image-data
                       #:seed seed

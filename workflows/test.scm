@@ -6,8 +6,16 @@
            (seed #:type int)
            (lateral-weight-dat #:type File)
            (feedforward-weight-dat #:type File)
-           #:run stdp-executable "test" "--save-directory" "." "--input-file" transformed-image-data "--step" step "--seed" seed
-           "--lateral-weight" lateral-weight-dat "--feedforward-weight" feedforward-weight-dat
+           #:run
+           stdp-executable "test"
+           "--save-directory" "."
+           "--input-file" transformed-image-data
+           "--step" step
+           "--seed" seed
+           "--lateral-weight" lateral-weight-dat
+           "--feedforward-weight" feedforward-weight-dat
+           ;; Use input images unused by learning
+           "--image-range" "$(inputs[\"step\"])"
            #:outputs
            (log #:type stdout)
            (lastnspikes #:type File

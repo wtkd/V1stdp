@@ -53,7 +53,7 @@
            (transformed-image-data #:type File
                                    #:default '((class . "File")
                                                (location . "../patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat")))
-           (image-number #:type int #:default 109999)
+           (total-image-number #:type int #:default 109999)
            (edge-length #:type int #:default 17)
 
            (on-image-directory-name #:type string
@@ -71,11 +71,12 @@
                  (learn #:stdp-executable stdp-executable
                        #:transformed-image-data transformed-image-data
                        #:step step-learn
-                       #:seed seed)
+                       #:seed seed
+                       #:step-test step-test)
                  (export-images
                   #:stdp-executable stdp-executable
                   #:transformed-image-data transformed-image-data
-                  #:image-number image-number
+                  #:total-image-number total-image-number
                   #:edge-length edge-length
 
                   #:on-image-directory-name on-image-directory-name
@@ -105,7 +106,7 @@
                  #:minimum-cluster-size-neuron minimum-cluster-size-neuron
                  #:correlation-threshold-stimulation correlation-threshold-stimulation
                  #:minimum-cluster-size-stimulation minimum-cluster-size-stimulation
-                 #:images-number image-number
+                 #:total-image-number total-image-number
                  #:output-response-svg output-response-svg
                  #:title-response-svg title-response-svg
                  #:output-weight-sorted-txt output-weight-sorted-txt

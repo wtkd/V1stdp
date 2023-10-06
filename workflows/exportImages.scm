@@ -27,7 +27,7 @@
 (define generate-svg-images
   (command #:inputs
            (stdp-executable #:type File)
-           (image-number #:type int)
+           (total-image-number #:type int)
            (on-images-text #:type Directory)
            (off-images-text #:type Directory)
            (output-directory #:type string)
@@ -36,7 +36,7 @@
                                        (location . "../script/onOffImages.gnuplot")))
            #:run
            "gnuplot"
-           "-e" "n=$(inputs[\"image-number\"])"
+           "-e" "n=$(inputs[\"total-image-number\"])"
            "-e" "onInputDirectory='$(inputs[\"on-images-text\"].path)'"
            "-e" "offInputDirectory='$(inputs[\"off-images-text\"].path)'"
            "-e" "outputDirectory='$(inputs[\"output-directory\"])'"
@@ -57,7 +57,7 @@
            (transformed-image-data #:type File
                                    #:default '((class . "File")
                                                (location . "../patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat")))
-           (image-number #:type int #:default 109999)
+           (total-image-number #:type int #:default 109999)
            (edge-length #:type int #:default 17)
            (on-image-directory-name #:type string
                                     #:default "onImagesText")
@@ -84,7 +84,7 @@
                     #:off-images-directory off-image-directory)
             (generate-svg-images
              #:stdp-executable stdp-executable
-             #:image-number image-number
+             #:total-image-number total-image-number
              #:on-images-text on-images-text-directory
              #:off-images-text off-images-text-directory
              #:output-directory svg-image-directory-name))))

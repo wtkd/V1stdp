@@ -2,9 +2,10 @@
 # textImageDirectory: Directory which contains input text images
 # clusterDirectory: Directory which contains cluster files
 # outputDirectory: Directory which will contain output images
+# totalImageNumber: Total image number included on the input file
+# imageRange: Indicate range of images used on test. See --image-range option of "stdp test" command.
 # numberFile: File which contains the number of clusters
 # n: The number of clusters
-# numberOfImages: The number of input images
 # clusterZeroPadding: The number of length of zero padding on cluster file
 # textImageZeroPadding: The number of length of zero padding used on file names of text images
 
@@ -23,7 +24,13 @@ if(!exists("clusterZeroPadding")) {
 }
 
 if(!exists("textImageZeroPadding")) {
-    textImageZeroPadding=floor(log10(numberOfImages)+1)
+    textImageZeroPadding=floor(log10(totalImageNumber)+1)
+}
+
+if (0 < imageRange){
+    imageTop = totalImageNumber - imageRange
+} else {
+    imageTop = 0
 }
 
 do for [cluster=0:n-1] {
@@ -43,8 +50,8 @@ do for [cluster=0:n-1] {
     set size ratio 1
 
     do for [i=1:size] {
-        imageNumber=clusters[i]
-        baseName = sprintf(sprintf('%%0%dd', textImageZeroPadding), imageNumber);
+        imageNumberFromTop=clusters[i]
+        baseName = sprintf(sprintf('%%0%dd', textImageZeroPadding), imageNumberFromTop + imageTop);
         inputFile = sprintf("%s/%s.txt", textImageDirectory, baseName);
 
         set title sprintf("Input image %s", baseName)

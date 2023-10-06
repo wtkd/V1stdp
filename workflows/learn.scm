@@ -4,7 +4,15 @@
            (transformed-image-data #:type File)
            (step #:type int)
            (seed #:type int)
-           #:run stdp-executable "learn" "--save-directory" "." "--input-file" transformed-image-data "--step" step "--seed" seed
+           (step-test #:type int #:default 1000)
+           #:run
+           stdp-executable "learn"
+           "--save-directory" "."
+           "--input-file" transformed-image-data
+           "--step" step
+           "--seed" seed
+           ;; To exclude input images for test
+           "--image-range" "-$(inputs[\"step-test\"])"
            #:outputs
            (log #:type stdout)
            (lateral-weight-txt
@@ -27,8 +35,10 @@
                                    #:default '((class . "File")
                                                (location . "../patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat")))
            (step #:type int #:default 1000000)
-           (seed #:type int #:default 0))
+           (seed #:type int #:default 0)
+           (step-test #:type int #:default 1000))
           (learn #:stdp-executable stdp-executable
                  #:transformed-image-data transformed-image-data
                  #:step step
-                 #:seed seed))
+                 #:seed seed
+                 #:step-test step-test))

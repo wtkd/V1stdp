@@ -259,14 +259,16 @@
            (text-image-directory #:type Directory)
            (cluster-directory #:type Directory)
            (number-file #:type File)
-           (images-number #:type int)
+           (image-range #:type int)
+           (total-image-number #:type int)
            (output-directory #:type string)
            #:run
            "gnuplot"
            "-e" "textImageDirectory='$(inputs[\"text-image-directory\"].path)'"
            "-e" "clusterDirectory='$(inputs[\"cluster-directory\"].path)'"
            "-e" "numberFile='$(inputs[\"number-file\"].path)'"
-           "-e" "numberOfImages='$(inputs[\"images-number\"])'"
+           "-e" "totalImageNumber='$(inputs[\"total-image-number\"])'"
+           "-e" "imageRange='$(inputs[\"image-range\"])'"
            "-e" "outputDirectory='$(inputs[\"output-directory\"])'"
            "-e" "stdpExecutable='$(inputs[\"stdp-executable\"].path)'"
            gnuplot-script
@@ -283,11 +285,12 @@
            (excitatory-neuron-number #:type int #:default 100)
            (inhibitory-neuron-number #:type int #:default 20)
            (test-stimulation-number #:type int #:default 1000)
+           (image-range #:type int #:default 1000)
            (correlation-threshold-neuron #:type float #:default 0.9)
            (minimum-cluster-size-neuron #:type int #:default 10)
            (correlation-threshold-stimulation #:type float #:default 0.9)
            (minimum-cluster-size-stimulation #:type int #:default 10)
-           (images-number #:type int #:default 109999)
+           (total-image-number #:type int #:default 109999)
            (edge-length #:type int #:default 17)
 
            (output-on-feedforward-weight #:type string #:default "feedforward-weight-on")
@@ -439,5 +442,6 @@
                  #:text-image-directory text-image-directory
                  #:cluster-directory divided-directory-stimulation
                  #:number-file cluster-number-file-stimulation
-                 #:images-number images-number
+                 #:total-image-number total-image-number
+                 #:image-range image-range
                  #:output-directory output-cluster-images-directory))))))))
