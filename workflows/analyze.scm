@@ -122,9 +122,12 @@
            (number-file #:type File
                         #:binding '((glob . "$(inputs[\"output-number-file\"])")))))
 
-(define plot-correlation-neuron
+(define plot-correlation
   (command #:inputs
-           (gnuplot-script #:type File)
+           (gnuplot-script
+            #:type File
+            #:default '((class . "File")
+                        (location . "../script/correlation.gnuplot")))
            (correlation-matrix #:type File)
            (output-name #:type string)
            (title #:type string)
@@ -135,12 +138,15 @@
            "-e" "title='$(inputs.title)'"
            gnuplot-script
            #:outputs
-           (correlation-plot-neuron #:type File
-                                    #:binding '((glob . "$(inputs[\"output-name\"])")))))
+           (correlation-plot #:type File
+                             #:binding '((glob . "$(inputs[\"output-name\"])")))))
 
-(define plot-correlation-stimulation
+(define plot-correlation-without-pixels
   (command #:inputs
-           (gnuplot-script #:type File)
+           (gnuplot-script
+            #:type File
+            #:default '((class . "File")
+                        (location . "../script/correlation-without-pixels.gnuplot")))
            (correlation-matrix #:type File)
            (output-name #:type string)
            (title #:type string)
@@ -151,14 +157,14 @@
            "-e" "title='$(inputs.title)'"
            gnuplot-script
            #:outputs
-           (correlation-plot-plot-correlation-stimulation #:type File
-                                                          #:binding '((glob . "$(inputs[\"output-name\"])")))))
+           (correlation-plot #:type File
+                             #:binding '((glob . "$(inputs[\"output-name\"])")))))
 
 (define plot-matrix
   (command #:inputs
            (gnuplot-script #:type File
                            #:default '((class . "File")
-                                       (location . "../script/correlation.gnuplot")))
+                                       (location . "../script/matrix.gnuplot")))
            (matrix #:type File)
            (output-name #:type string)
            (title #:type string)
@@ -284,22 +290,6 @@
            (images-number #:type int #:default 109999)
            (edge-length #:type int #:default 17)
 
-           (correlation-plot-script
-            #:type File
-            #:default '((class . "File")
-                        (location . "../script/correlation.gnuplot")))
-           (correlation-plot-script-without-pixels
-            #:type File
-            #:default '((class . "File")
-                        (location . "../script/correlation-without-pixels.gnuplot")))
-           (matrix-plot-script
-            #:type File
-            #:default '((class . "File")
-                        (location . "../script/matrix.gnuplot")))
-           (each-cluster-images-script #:type File
-                                       #:default '((class . "File")
-                                                   (location . "../script/each-cluster-images.gnuplot")))
-
            (output-on-feedforward-weight #:type string #:default "feedforward-weight-on")
            (output-off-feedforward-weight #:type string #:default "feedforward-weight-off")
            (output-diff-feedforward-weight #:type string #:default "feedforward-weight-diff")
@@ -379,7 +369,6 @@
             (tee
              (pipe
               (plot-matrix (plot-response)
-                           #:gnuplot-script matrix-plot-script
                            #:matrix response-sorted
                            #:output-name output-response-svg
                            #:title title-response-svg)
@@ -392,7 +381,6 @@
                #:sort-index-neuron-colomn sort-index-neuron
                #:output-name output-weight-sorted-txt)
               (plot-matrix (plot-weight)
-                           #:gnuplot-script matrix-plot-script
                            #:matrix weight-sorted
                            #:output-name output-weight-sorted-svg
                            #:title title-weight-sorted)
@@ -404,16 +392,18 @@
                #:neuron-number excitatory-neuron-number
                #:stimulation-number test-stimulation-number)
               (tee
-               (plot-correlation-neuron
-                #:gnuplot-script correlation-plot-script
-                #:correlation-matrix correlation-matrix-neuron
-                #:output-name output-correlation-matrix-neuron
-                #:title title-correlation-matrix-neuron)
-               (plot-correlation-stimulation
-                #:gnuplot-script correlation-plot-script-without-pixels
-                #:correlation-matrix correlation-matrix-stimulation
-                #:output-name output-correlation-matrix-stimulation
-                #:title title-correlation-matrix-stimulation)
+               (pipe
+                (plot-correlation
+                 #:correlation-matrix correlation-matrix-neuron
+                 #:output-name output-correlation-matrix-neuron
+                 #:title title-correlation-matrix-neuron)
+                (rename #:correlation-plot-neuron correlation-plot))
+               (pipe
+                (plot-correlation-without-pixels
+                 #:correlation-matrix correlation-matrix-stimulation
+                 #:output-name output-correlation-matrix-stimulation
+                 #:title title-correlation-matrix-stimulation)
+                (rename #:correlation-plot-stimulation correlation-plot))
                (pipe
                 (cluster-map (cluster-map-neuron)
                              #:stdp-executable stdp-executable
@@ -445,11 +435,9 @@
                 (rename #:divided-directory-stimulation divided-directory
                         #:cluster-number-file-stimulation number-file)
                 (plot-each-cluster-images
-                 #:gnuplot-script each-cluster-images-script
                  #:stdp-executable stdp-executable
                  #:text-image-directory text-image-directory
                  #:cluster-directory divided-directory-stimulation
                  #:number-file cluster-number-file-stimulation
                  #:images-number images-number
-                 #:output-directory output-cluster-images-directory)
-                )))))))
+                 #:output-directory output-cluster-images-directory))))))))

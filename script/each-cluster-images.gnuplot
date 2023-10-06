@@ -8,8 +8,14 @@
 # clusterZeroPadding: The number of length of zero padding on cluster file
 # textImageZeroPadding: The number of length of zero padding used on file names of text images
 
+system sprintf("%s tool filesystem make-directory %s", stdpExecutable, outputDirectory)
+
 if(!exists("n")) {
     stats numberFile using (n=$1,$0) nooutput
+}
+
+if(n == 0) {
+    exit
 }
 
 if(!exists("clusterZeroPadding")) {
@@ -19,8 +25,6 @@ if(!exists("clusterZeroPadding")) {
 if(!exists("textImageZeroPadding")) {
     textImageZeroPadding=floor(log10(numberOfImages)+1)
 }
-
-system sprintf("%s tool filesystem make-directory %s", stdpExecutable, outputDirectory)
 
 do for [cluster=0:n-1] {
     clusterBaseName = sprintf(sprintf('%%0%dd', clusterZeroPadding), cluster);

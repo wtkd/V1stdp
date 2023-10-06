@@ -68,10 +68,6 @@
            (svg-image-directory-name #:type string
                                      #:default "svgInputImages")
 
-           (generate-svg-images-script #:type File
-                                       #:default '((class . "File")
-                                                   (location . "../script/onOffImages.gnuplot")))
-
            (output-generate-svg-images #:type string
                                        #:default "inputImages"))
           (pipe
@@ -91,5 +87,4 @@
              #:image-number image-number
              #:on-images-text on-images-text-directory
              #:off-images-text off-images-text-directory
-             #:output-directory svg-image-directory-name
-             #:gnuplot-script generate-svg-images-script))))
+             #:output-directory svg-image-directory-name))))

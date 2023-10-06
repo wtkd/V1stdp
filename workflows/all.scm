@@ -25,22 +25,6 @@
            (correlation-threshold-stimulation #:type float #:default 0.9)
            (minimum-cluster-size-stimulation #:type int #:default 10)
 
-           (correlation-plot-script
-            #:type File
-            #:default '((class . "File")
-                        (location . "../script/correlation.gnuplot")))
-           (correlation-plot-script-without-pixels
-            #:type File
-            #:default '((class . "File")
-                        (location . "../script/correlation-without-pixels.gnuplot")))
-           (matrix-plot-script
-            #:type File
-            #:default '((class . "File")
-                        (location . "../script/matrix.gnuplot")))
-           (each-cluster-images-script #:type File
-                                       #:default '((class . "File")
-                                                   (location . "../script/each-cluster-images.gnuplot")))
-
            (output-response-svg #:type string #:default "response-sorted.svg")
            (title-response-svg #:type string #:default "Response of excitatory neurons on each stimulation")
 
@@ -81,10 +65,6 @@
            (svg-image-directory-name #:type string
                                      #:default "svgInputImages")
 
-           (generate-svg-images-script #:type File
-                                       #:default '((class . "File")
-                                                   (location . "../script/onOffImages.gnuplot")))
-
            (output-generate-svg-images #:type string
                                        #:default "inputImages"))
           (pipe (tee
@@ -102,7 +82,6 @@
                   #:off-image-directory-name off-image-directory-name
                   #:text-image-directory-name text-image-directory-name
                   #:svg-image-directory-name svg-image-directory-name
-                  #:generate-svg-images-script generate-svg-images-script
                   #:output-generate-svg-images output-generate-svg-images))
                 (tee
                  (rename #:lateral-weight lateral-weight-txt
@@ -117,6 +96,7 @@
                  #:stdp-executable stdp-executable
                  #:response-test resps-test
                  #:lateral-weight lateral-weight
+                 #:feedforward-weight feedforward-weight
                  #:text-image-directory text-images-directory
                  #:excitatory-neuron-number excitatory-neuron-number
                  #:inhibitory-neuron-number inhibitory-neuron-number
@@ -126,10 +106,6 @@
                  #:correlation-threshold-stimulation correlation-threshold-stimulation
                  #:minimum-cluster-size-stimulation minimum-cluster-size-stimulation
                  #:images-number image-number
-                 #:correlation-plot-script correlation-plot-script
-                 #:correlation-plot-script-without-pixels correlation-plot-script-without-pixels
-                 #:matrix-plot-script matrix-plot-script
-                 #:each-cluster-images-script each-cluster-images-script
                  #:output-response-svg output-response-svg
                  #:title-response-svg title-response-svg
                  #:output-weight-sorted-txt output-weight-sorted-txt
