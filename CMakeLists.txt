@@ -58,7 +58,7 @@ set_tests_properties(
 
 add_test(
   NAME run_learn
-  COMMAND $<TARGET_FILE:stdp> learn --save-directory ./data --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --step-number-learning 1000 --save-log-interval 500
+  COMMAND $<TARGET_FILE:stdp> learn --save-directory ./data --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --step-number-learning 1000 --save-log-interval 500 --image-range -200
 )
 set_tests_properties(
   run_learn PROPERTIES
@@ -241,7 +241,7 @@ set_tests_properties(
 
 add_test(
   NAME run_test
-  COMMAND $<TARGET_FILE:stdp> test --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --step-number-testing 1000
+  COMMAND $<TARGET_FILE:stdp> test --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --step-number-testing 150 --image-range 200
 )
 set_tests_properties(
   run_test PROPERTIES
@@ -284,7 +284,7 @@ set_tests_properties(
 
 add_test(
   NAME run_pulse
-  COMMAND $<TARGET_FILE:stdp> pulse --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 50
+  COMMAND $<TARGET_FILE:stdp> pulse 50 --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0
 )
 set_tests_properties(
   run_pulse PROPERTIES
@@ -340,7 +340,7 @@ set_tests_properties(
 
 add_test(
   NAME run_mix
-  COMMAND $<TARGET_FILE:stdp> mix --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 50 100
+  COMMAND $<TARGET_FILE:stdp> mix 50 100 --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0
 )
 set_tests_properties(
   run_mix PROPERTIES
@@ -381,7 +381,7 @@ set_tests_properties(
 
 add_test(
   NAME run_clustering_all
-  COMMAND $<TARGET_FILE:stdp> tool analyze response clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_all.txt --stimulation ./data/sort_index_stimulation_all.txt --neuron ./data/sort_index_neuron_all.txt --neuron-number 120 --stimulation-number 1000
+  COMMAND $<TARGET_FILE:stdp> tool analyze response clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_all.txt --stimulation ./data/sort_index_stimulation_all.txt --neuron ./data/sort_index_neuron_all.txt --neuron-number 120 --stimulation-number 150
 )
 set_tests_properties(
   run_clustering_all PROPERTIES
@@ -566,7 +566,7 @@ set_tests_properties(
 
 add_test(
   NAME run_response_cut_excitatory
-  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 1000 --excitatory-only-output ./data/response_excitatory.txt
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 150 --excitatory-only-output ./data/response_excitatory.txt
 )
 set_tests_properties(
   run_response_cut_excitatory PROPERTIES
@@ -589,7 +589,7 @@ set_tests_properties(
 
 add_test(
   NAME run_response_cut_inhibitory
-  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 1000 --inhibitory-only-output ./data/response_inhibitory.txt
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 150 --inhibitory-only-output ./data/response_inhibitory.txt
 )
 set_tests_properties(
   run_response_cut_inhibitory PROPERTIES
@@ -612,7 +612,7 @@ set_tests_properties(
 
 add_test(
   NAME run_correlation_matrix
-  COMMAND $<TARGET_FILE:stdp> tool analyze response correlation-matrix ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --neuron-number 120 --stimulation-number 1000 -n ./data/correlationMatrix_neuron.txt -s ./data/correlationMatrix_stimulation.txt
+  COMMAND $<TARGET_FILE:stdp> tool analyze response correlation-matrix ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --neuron-number 120 --stimulation-number 150 -n ./data/correlationMatrix_neuron.txt -s ./data/correlationMatrix_stimulation.txt
 )
 set_tests_properties(
   run_correlation_matrix PROPERTIES
