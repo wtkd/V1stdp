@@ -331,7 +331,6 @@ struct PulseOptions {
   int saveLogInterval = 50'000;
   int stimulationNumber;
   int pulsetime = 100;
-  int imageRange = 0;
 };
 
 void setupPulse(CLI::App &app) {
@@ -357,13 +356,6 @@ void setupPulse(CLI::App &app) {
       opt->pulsetime,
       "This is the time during which stimulus is active during PULSE trials "
       "(different from PRESTIMEPULSE which is total trial time)"
-  );
-  sub->add_option(
-      "-R,--image-range",
-      opt->imageRange,
-      ("Image range to use. 0 means using all.\n"
-       "The positive value N means using top N of image.\n"
-       "The negative value -N means using all except bottom N of image.")
   );
 
   sub->callback([opt]() {
@@ -401,10 +393,6 @@ void setupPulse(CLI::App &app) {
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
     auto const imageVector = readImages(inputFile, PATCHSIZE);
-    decltype(imageVector) narrowedImageVector = opt->imageRange == 0 ? imageVector
-                                                : opt->imageRange > 0
-                                                    ? imageVector.rightCols(opt->imageRange)
-                                                    : imageVector.leftCols(imageVector.cols() + opt->imageRange);
 
     run(model,
         PRESTIME,
@@ -417,7 +405,7 @@ void setupPulse(CLI::App &app) {
         PULSETIME,
         wff,
         w,
-        narrowedImageVector,
+        imageVector,
         saveDirectory,
         saveLogInterval);
   });
