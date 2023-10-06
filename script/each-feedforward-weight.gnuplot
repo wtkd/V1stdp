@@ -31,6 +31,7 @@ do for [i=0:n-1] {
     set autoscale yfixmax
     set autoscale xfixmax
     plot onInputFile matrix with image pixels notitle
+    reset
 
     set title sprintf("Feedforward weights for off-center of neuron %s", baseName)
     set cbrange [0:1]
@@ -40,6 +41,7 @@ do for [i=0:n-1] {
     set autoscale yfixmax
     set autoscale xfixmax
     plot offInputFile matrix with image pixels notitle
+    reset
 
     set title sprintf("Difference of feedforward weights for on-center and off-center of neuron %s", baseName)
     set cbrange [-1:1]
@@ -48,7 +50,9 @@ do for [i=0:n-1] {
     set autoscale xfixmin
     set autoscale yfixmax
     set autoscale xfixmax
+    set palette defined (0 "#00ff00", 1 "#000000", 2 "#ff00ff")
     plot diffInputFile matrix with image pixels notitle
+    reset
 
     unset multiplot
 }

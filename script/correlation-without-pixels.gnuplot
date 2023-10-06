@@ -7,7 +7,7 @@ if (!exists("title")) title=""
 set term svg
 set output outputFile
 set title title
-set cbrange [-1:+1]
+set cbrange [0:1]
 set autoscale yfixmin
 set autoscale xfixmin
 set autoscale yfixmax
