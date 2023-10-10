@@ -14,6 +14,13 @@ if (NOT GNUPLOT_EXECUTABLE)
   )
 endif()
 
+find_program(RSVG_CONVERT_EXECUTABLE NAMES "rsvg-convert")
+if (NOT RSVG_CONVERT_EXECUTABLE)
+  message(WARNING
+    "If you would like to run workflows, \"rsvg-convert\" is needed. See https://wiki.gnome.org/Projects/LibRsvg."
+  )
+endif()
+
 # TODO: DEPENDS does not works well, because OUTPUT file is expected to be in binary dir, but it is in source directory
 
 add_custom_command(
