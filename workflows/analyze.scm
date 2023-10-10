@@ -228,8 +228,9 @@
            "-e" "stdpExecutable='$(inputs[\"stdp-executable\"].path)'"
            gnuplot-script
            #:outputs
-           (feedforward-plot #:type Directory
-                             #:binding '((glob . "$(inputs[\"output-directory\"])")))))
+           (feedforward-weight-plots-directory
+            #:type Directory
+            #:binding '((glob . "$(inputs[\"output-directory\"])")))))
 
 (define plot-all-feedforward-weight
   (command #:inputs
@@ -247,8 +248,8 @@
            "-e" "outputFile='$(inputs[\"output-file\"])'"
            gnuplot-script
            #:outputs
-           (feedforward-plots #:type File
-                              #:binding '((glob . "$(inputs[\"output-file\"])")))))
+           (feedforward-weight-plot #:type File
+                                    #:binding '((glob . "$(inputs[\"output-file\"])")))))
 
 (define plot-each-cluster-images
   (command #:inputs
@@ -276,6 +277,28 @@
            (image-directory #:type Directory
                             #:binding '((glob . "$(inputs[\"output-directory\"])")))))
 
+(define convert-svg-to-png
+  (command #:inputs
+           (input-svg #:type File)
+           (output-png-name #:type string)
+           #:run
+           "rsvg-convert" input-svg "-o" output-png-name "-b" "white"
+           #:outputs
+           (output-png #:type File
+                       #:binding '((glob . "$(inputs[\"output-png-name\"])")))))
+
+(define convert-svg-to-png-directory
+  (command #:inputs
+           (stdp-executable #:type File)
+           (input-directory #:type Directory)
+           (output-directory-name #:type string)
+           #:run
+           stdp-executable "tool" "runner" "rsvg-convert"
+           input-directory output-directory-name
+           #:outputs
+           (output-directory #:type Directory
+                             #:binding '((glob . "$(inputs[\"output-directory-name\"])")))))
+
 (workflow ((stdp-executable #:type File)
            (response-test #:type File)
            (lateral-weight #:type File)
@@ -298,7 +321,8 @@
            (output-diff-feedforward-weight #:type string #:default "feedforward-weight-diff")
 
            (output-feedforward-weight-images #:type string #:default "feedforward-weight-images")
-           (output-feedforward-weight-image #:type string #:default "feedforward-weight-image.svg")
+           (output-feedforward-weight-image-svg #:type string #:default "feedforward-weight-image.svg")
+           (output-feedforward-weight-image-png #:type string #:default "feedforward-weight-image.png")
 
            (output-response-svg #:type string #:default "response-sorted.svg")
            (title-response-svg #:type string #:default "Response of excitatory neurons on each stimulation")
@@ -322,7 +346,8 @@
            (output-directory-cluster-map-stimulation #:type string #:default "cluster-map-stimulation")
            (output-number-cluster-map-stimulation #:type string #:default "cluster-map-stimulation-number.txt")
 
-           (output-cluster-images-directory #:type string #:default "clusterImages"))
+           (output-cluster-images-directory #:type string #:default "clusterImages")
+           (output-cluster-images-directory-png #:type string #:default "clusterImagesPng"))
           (tee
            (pipe
             (export-feedforward-weight
@@ -346,11 +371,19 @@
               #:off-feedforward-text off-feedforward-weight
               #:diff-feedforward-text diff-feedforward-weight
               #:output-directory output-feedforward-weight-images)
-             (plot-all-feedforward-weight
-              #:stdp-executable stdp-executable
-              #:neuron-number excitatory-neuron-number
-              #:diff-feedforward-text diff-feedforward-weight
-              #:output-file output-feedforward-weight-image)))
+             (pipe
+              (plot-all-feedforward-weight
+               #:stdp-executable stdp-executable
+               #:neuron-number excitatory-neuron-number
+               #:diff-feedforward-text diff-feedforward-weight
+               #:output-file output-feedforward-weight-image-svg)
+              (tee
+               (rename #:feedforward-weight-plot-svg feedforward-weight-plot)
+               (pipe
+                (convert-svg-to-png
+                 #:input-svg feedforward-weight-plot
+                 #:output-png-name output-feedforward-weight-image-png)
+                (rename #:feedforward-weight-plot-png output-png))))))
            (pipe
             (tee
              (lateral-weight-cut-out-excitatory
@@ -444,4 +477,10 @@
                  #:number-file cluster-number-file-stimulation
                  #:total-image-number total-image-number
                  #:image-range image-range
-                 #:output-directory output-cluster-images-directory))))))))
+                 #:output-directory output-cluster-images-directory)
+                (tee
+                 (rename #:each-cluster-images image-directory)
+                 (convert-svg-to-png-directory
+                  #:stdp-executable stdp-executable
+                  #:input-directory image-directory
+                  #:output-directory-name output-cluster-images-directory-png)))))))))
