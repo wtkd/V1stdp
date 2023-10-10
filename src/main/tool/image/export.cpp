@@ -9,6 +9,8 @@
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
 
+#include "io.hpp"
+
 #include "exporter.hpp"
 
 #include "export.hpp"
@@ -85,15 +87,6 @@ void setupImageExport(CLI::App &app) {
     Eigen::Map<Eigen::ArrayXX<int8_t> const> const imageVector(
         imageData.data(), (edgeLength * edgeLength), totalImageNumber
     );
-
-    auto const createDirectory = [](std::filesystem::path const &p) {
-      bool const success = std::filesystem::create_directories(p);
-      if (not success) {
-        throw std::filesystem::filesystem_error(
-            "Cannot create directory", p, std::make_error_code(std::errc::file_exists)
-        );
-      }
-    };
 
     if (opt->allEachDirectory.has_value()) {
       createDirectory(opt->allEachDirectory.value());

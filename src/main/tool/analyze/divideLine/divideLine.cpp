@@ -40,15 +40,6 @@ void setupDivideLine(CLI::App &app) {
       writeVector(opt->numberFile.value(), std::vector{data.size()});
     }
 
-    auto const createDirectory = [](std::filesystem::path const &p) {
-      bool const success = std::filesystem::create_directories(p);
-      if (not success) {
-        throw std::filesystem::filesystem_error(
-            "Cannot create directory", p, std::make_error_code(std::errc::file_exists)
-        );
-      }
-    };
-
     createDirectory(opt->outputDirectory);
 
     auto const zeroPadding = opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(data.size()) + 1;

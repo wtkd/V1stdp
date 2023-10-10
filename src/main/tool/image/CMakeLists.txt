@@ -17,6 +17,8 @@ add_library(Image STATIC
   export.cpp
   exporter.cpp)
 
+target_link_libraries(Image IO)
+
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Boost CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)

@@ -16,6 +16,8 @@ add_library(Filesystem STATIC
   filesystem.cpp
 )
 
+target_link_libraries(Filesystem IO)
+
 find_package(CLI11 CONFIG REQUIRED)
 
 target_link_libraries(Filesystem CLI11::CLI11)

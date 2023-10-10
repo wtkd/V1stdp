@@ -1,7 +1,8 @@
 #include <filesystem>
 
 #include <CLI/CLI.hpp>
-#include <xmmintrin.h>
+
+#include "io.hpp"
 
 #include "filesystem.hpp"
 
@@ -15,7 +16,7 @@ void setupMakeDirectory(CLI::App &app) {
 
   sub->add_option("directory", opt->directory, "Directory to make.")->required()->check(CLI::NonexistentPath);
 
-  sub->callback([opt]() { std::filesystem::create_directories(opt->directory); });
+  sub->callback([opt]() { createDirectory(opt->directory); });
 }
 
 void setupFilesystem(CLI::App &app) {
