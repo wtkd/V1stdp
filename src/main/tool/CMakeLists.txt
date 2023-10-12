@@ -18,10 +18,13 @@ add_library(Tool STATIC
 add_subdirectory(image)
 add_subdirectory(analyze)
 add_subdirectory(filesystem)
+add_subdirectory(runner)
+
 
 target_link_libraries(Tool PUBLIC Image)
 target_link_libraries(Tool PUBLIC Analyze)
 target_link_libraries(Tool PUBLIC Filesystem)
+target_link_libraries(Tool PUBLIC Runner)
 
 find_package(CLI11 CONFIG REQUIRED)
 
