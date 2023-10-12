@@ -106,6 +106,38 @@
            (cluster-map #:type File
                         #:binding '((glob . "$(inputs[\"output-name\"])")))))
 
+(define delay-cut-out-excitatory
+  (command #:inputs
+           (stdp-executable #:type File)
+           (delays #:type File)
+           (excitatory-neuron-number #:type int)
+           (inhibitory-neuron-number #:type int)
+           #:run
+           stdp-executable "tool" "analyze" "delay" "cut"
+           delays
+           "--excitatory-neuron-number" excitatory-neuron-number
+           "--inhibitory-neuron-number" inhibitory-neuron-number
+           "--excitatory-only-output" "delays-excitatory.txt"
+           #:outputs
+           (delays-excitatory #:type File
+                              #:binding '((glob . "delays-excitatory.txt")))))
+
+(define sort-delay
+  (command #:inputs
+           (stdp-executable #:type File)
+           (delays-excitatory #:type File)
+           (sort-index-neuron-row #:type File)
+           (sort-index-neuron-colomn #:type File)
+           (output-name #:type string)
+           #:run
+           stdp-executable "tool" "analyze" "apply-permutation"
+           delays-excitatory output-name
+           "--colomn" sort-index-neuron-row
+           "--row" sort-index-neuron-colomn
+           #:outputs
+           (delays-sorted #:type File
+                          #:binding '((glob . "$(inputs[\"output-name\"])")))))
+
 (define divide-line
   (command #:inputs
            (stdp-executable #:type File)
@@ -303,6 +335,7 @@
            (response-test #:type File)
            (lateral-weight #:type File)
            (feedforward-weight #:type File)
+           (delays #:type File)
            (text-image-directory #:type Directory)
 
            (excitatory-neuron-number #:type int #:default 100)
@@ -358,6 +391,11 @@
               #:lateral-weight lateral-weight
               #:excitatory-neuron-number excitatory-neuron-number
               #:inhibitory-neuron-number inhibitory-neuron-number)
+             (delay-cut-out-excitatory
+              #:stdp-executable stdp-executable
+              #:delays delays
+              #:excitatory-neuron-number excitatory-neuron-number
+              #:inhibitory-neuron-number inhibitory-neuron-number)
              (pipe (response-cut-out-excitatory
                     #:stdp-executable stdp-executable
                     #:response response-test
@@ -388,6 +426,18 @@
                            #:output-name "weight-sorted.svg"
                            #:title "Weight between each neuron")
               (rename #:plot-weight-matrix matrix-plot))
+             (pipe
+              (sort-delay
+               #:stdp-executable stdp-executable
+               #:delays-excitatory delays-excitatory
+               #:sort-index-neuron-row sort-index-neuron
+               #:sort-index-neuron-colomn sort-index-neuron
+               #:output-name "delays-sorted.txt")
+              (plot-matrix (plot-delay)
+                           #:matrix delays-sorted
+                           #:output-name "delays-sorted.svg"
+                           #:title "Delay between each neuron")
+              (rename #:plot-delay-matrix matrix-plot))
              (pipe
               (response-correlation-matrix
                #:stdp-executable stdp-executable

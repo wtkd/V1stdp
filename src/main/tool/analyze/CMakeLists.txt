@@ -13,6 +13,7 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
 endif()
 
 add_subdirectory(applyPermutation)
+add_subdirectory(delay)
 add_subdirectory(divideLine)
 add_subdirectory(response)
 add_subdirectory(weight)
@@ -22,6 +23,7 @@ add_library(Analyze STATIC
 )
 
 target_link_libraries(Analyze PUBLIC ApplyPermutation)
+target_link_libraries(Analyze PUBLIC Delay)
 target_link_libraries(Analyze PUBLIC DivideLine)
 target_link_libraries(Analyze PUBLIC Response)
 target_link_libraries(Analyze PUBLIC Weight)
