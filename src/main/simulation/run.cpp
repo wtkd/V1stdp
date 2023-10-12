@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <fstream>
+#include <optional>
 
 #include <Eigen/Dense>
 #include <boost/range/counting_range.hpp>
@@ -27,6 +28,7 @@ int run(
     int const PULSETIME,
     MatrixXd const &initwff,
     MatrixXd const &initw,
+    std::optional<Eigen::ArrayXXi> const &inputDelays,
     Eigen::ArrayXX<int8_t> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval
@@ -143,7 +145,9 @@ int run(
         delays(nj, ni) = mydelay;
       }
     }
-    return delays;
+
+    // NOTE: Do not use "delays" when "inputDelays" is passed, but always generate "delays" for reproductivity
+    return inputDelays.value_or(delays);
   }();
 
   saveMatrix<int>(saveDirectory / "delays.txt", delays.matrix());
