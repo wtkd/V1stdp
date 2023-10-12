@@ -146,6 +146,8 @@ int run(
     return delays;
   }();
 
+  saveMatrix<int>(saveDirectory / "delays.txt", delays.matrix());
+
   // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
   // myfile.open("delays.txt", ios::trunc | ios::out);
   auto const delaysFF = [&]() {
