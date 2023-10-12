@@ -113,7 +113,7 @@ int run(
   // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
   // target neuron and j is the source synapse)
   auto const delays = [&]() {
-    std::vector<std::vector<int>> delays(NBNEUR, std::vector<int>(NBNEUR));
+    Eigen::ArrayXXi delays(NBNEUR, NBNEUR);
 
     // We generate the delays:
 
@@ -140,7 +140,7 @@ int run(
 
         if (mydelay > MAXDELAYDT)
           mydelay = 1;
-        delays[nj][ni] = mydelay;
+        delays(nj, ni) = mydelay;
       }
     }
     return delays;
@@ -201,7 +201,7 @@ int run(
     );
     for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
       for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
-        initialIncomingspikes[ni][nj] = boost::circular_buffer<int>(delays[nj][ni], 0);
+        initialIncomingspikes[ni][nj] = boost::circular_buffer<int>(delays(nj, ni), 0);
       }
     }
     return initialIncomingspikes;
