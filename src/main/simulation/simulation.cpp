@@ -218,7 +218,7 @@ void setupTest(CLI::App &app) {
     decltype(imageVector) narrowedImageVector = opt->imageRange == 0 ? imageVector
                                                 : opt->imageRange > 0
                                                     ? imageVector.rightCols(opt->imageRange)
-                                                    : imageVector.leftCols(imageVector.cols() + opt->imageRange);
+                                                    : imageVector.rightCols(imageVector.cols() + opt->imageRange);
 
     run(model,
         PRESTIME,
