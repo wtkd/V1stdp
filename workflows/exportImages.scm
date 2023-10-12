@@ -58,26 +58,15 @@
                                    #:default '((class . "File")
                                                (location . "../patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat")))
            (total-image-number #:type int #:default 109999)
-           (edge-length #:type int #:default 17)
-           (on-image-directory-name #:type string
-                                    #:default "onImagesText")
-           (off-image-directory-name #:type string
-                                     #:default "offImagesText")
-           (text-image-directory-name #:type string
-                                     #:default "imagesText")
-           (svg-image-directory-name #:type string
-                                     #:default "svgInputImages")
-
-           (output-generate-svg-images #:type string
-                                       #:default "inputImages"))
+           (edge-length #:type int #:default 17))
           (pipe
            (genarate-text-images
             #:stdp-executable stdp-executable
             #:transformed-image-data transformed-image-data
             #:edge-length edge-length
-            #:on-image-directory-name on-image-directory-name
-            #:off-image-directory-name off-image-directory-name
-            #:text-image-directory-name text-image-directory-name)
+            #:on-image-directory-name "onImagesText"
+            #:off-image-directory-name "offImagesText"
+            #:text-image-directory-name "imagesText")
            (tee
             (rename #:text-images-directory text-image-directory
                     #:on-images-directory on-image-directory
@@ -87,4 +76,4 @@
              #:total-image-number total-image-number
              #:on-images-text on-images-text-directory
              #:off-images-text off-images-text-directory
-             #:output-directory svg-image-directory-name))))
+             #:output-directory "svgInputImages"))))

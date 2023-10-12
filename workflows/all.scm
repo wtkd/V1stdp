@@ -25,65 +25,23 @@
            (correlation-threshold-stimulation #:type float #:default 0.9)
            (minimum-cluster-size-stimulation #:type int #:default 10)
 
-           (output-response-svg #:type string #:default "response-sorted.svg")
-           (title-response-svg #:type string #:default "Response of excitatory neurons on each stimulation")
-
-           (output-weight-sorted-txt #:type string #:default "weight-sorted.txt")
-
-           (output-weight-sorted-svg #:type string #:default "weight-sorted.svg")
-           (title-weight-sorted #:type string #:default "Weight between each neuron")
-
-           (output-correlation-matrix-neuron #:type string #:default "correlation-matrix-neuron.svg")
-           (title-correlation-matrix-neuron #:type string #:default "Correlation matrix of response of each neuron")
-
-           (output-correlation-matrix-stimulation #:type string #:default "correlation-matrix-stimulation.svg")
-           (title-correlation-matrix-stimulation #:type string #:default "Correlation matrix of response of each stimulation")
-
-           (output-cluster-map-neuron #:type string #:default "cluster-map-neuron.txt")
-           (output-directory-cluster-map-neuron #:type string #:default "cluster-map-neuron")
-           (output-number-cluster-map-neuron #:type string #:default "cluster-map-neuron-number.txt")
-
-           (output-cluster-map-stimulation #:type string #:default "cluster-map-stimulation.txt")
-           (output-directory-cluster-map-stimulation #:type string #:default "cluster-map-stimulation")
-           (output-number-cluster-map-stimulation #:type string #:default "cluster-map-stimulation-number.txt")
-
-           (output-cluster-images-directory #:type string #:default "clusterImages")
-
            ;; For export-images
            (transformed-image-data #:type File
                                    #:default '((class . "File")
                                                (location . "../patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat")))
            (total-image-number #:type int #:default 109999)
-           (edge-length #:type int #:default 17)
-
-           (on-image-directory-name #:type string
-                                    #:default "onImagesText")
-           (off-image-directory-name #:type string
-                                     #:default "offImagesText")
-           (text-image-directory-name #:type string
-                                      #:default "imagesText")
-           (svg-image-directory-name #:type string
-                                     #:default "svgInputImages")
-
-           (output-generate-svg-images #:type string
-                                       #:default "inputImages"))
+           (edge-length #:type int #:default 17))
           (pipe (tee
                  (learn #:stdp-executable stdp-executable
-                       #:transformed-image-data transformed-image-data
-                       #:step step-learn
-                       #:seed seed
-                       #:step-test step-test)
+                        #:transformed-image-data transformed-image-data
+                        #:step step-learn
+                        #:seed seed
+                        #:step-test step-test)
                  (export-images
                   #:stdp-executable stdp-executable
                   #:transformed-image-data transformed-image-data
                   #:total-image-number total-image-number
-                  #:edge-length edge-length
-
-                  #:on-image-directory-name on-image-directory-name
-                  #:off-image-directory-name off-image-directory-name
-                  #:text-image-directory-name text-image-directory-name
-                  #:svg-image-directory-name svg-image-directory-name
-                  #:output-generate-svg-images output-generate-svg-images))
+                  #:edge-length edge-length))
                 (tee
                  (rename #:lateral-weight lateral-weight-txt
                          #:feedforward-weight feedforward-weight-txt)
@@ -106,20 +64,4 @@
                  #:minimum-cluster-size-neuron minimum-cluster-size-neuron
                  #:correlation-threshold-stimulation correlation-threshold-stimulation
                  #:minimum-cluster-size-stimulation minimum-cluster-size-stimulation
-                 #:total-image-number total-image-number
-                 #:output-response-svg output-response-svg
-                 #:title-response-svg title-response-svg
-                 #:output-weight-sorted-txt output-weight-sorted-txt
-                 #:output-weight-sorted-svg output-weight-sorted-svg
-                 #:title-weight-sorted title-weight-sorted
-                 #:output-correlation-matrix-neuron output-correlation-matrix-neuron
-                 #:title-correlation-matrix-neuron title-correlation-matrix-neuron
-                 #:output-correlation-matrix-stimulation output-correlation-matrix-stimulation
-                 #:title-correlation-matrix-stimulation title-correlation-matrix-stimulation
-                 #:output-cluster-map-neuron output-cluster-map-neuron
-                 #:output-directory-cluster-map-neuron output-directory-cluster-map-neuron
-                 #:output-number-cluster-map-neuron output-number-cluster-map-neuron
-                 #:output-cluster-map-stimulation output-cluster-map-stimulation
-                 #:output-directory-cluster-map-stimulation output-directory-cluster-map-stimulation
-                 #:output-number-cluster-map-stimulation output-number-cluster-map-stimulation
-                 #:output-cluster-images-directory output-cluster-images-directory)))
+                 #:total-image-number total-image-number)))
