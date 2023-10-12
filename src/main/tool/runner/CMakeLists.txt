@@ -18,7 +18,7 @@ add_library(Runner STATIC
 )
 
 find_package(CLI11 CONFIG REQUIRED)
-find_package(Boost CONFIG REQUIRED COMPONENTS filesystem)
+find_package(Boost 1.80.0 CONFIG REQUIRED COMPONENTS filesystem)
 
 target_link_libraries(Runner CLI11::CLI11)
 target_link_libraries(Runner Boost::boost Boost::filesystem)

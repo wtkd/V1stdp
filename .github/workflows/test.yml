@@ -11,12 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: lukka/get-cmake@latest
-      - run: sudo apt-get install libcli11-dev libeigen3-dev libboost-all-dev
+      - run: sudo apt-get install libcli11-dev libeigen3-dev
+      - uses: MarkusJx/install-boost@v2.4.4
+        id: install-boost
+        with:
+          boost_version: 1.80.0
       - uses: lukka/run-cmake@v10
         with:
           configurePreset: 'default'
           buildPreset: 'default'
           testPreset: 'default'
+        env:
+          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
       - uses: mikepenz/action-junit-report@v3
         if: success() || failure() # always run even if the previous step fails
         with:
@@ -37,8 +43,14 @@ jobs:
         with:
           clang-format-version: '15'
       - uses: lukka/get-cmake@latest
-      - run: sudo apt-get install libcli11-dev libeigen3-dev libboost-all-dev
+      - run: sudo apt-get install libcli11-dev libeigen3-dev
+      - uses: MarkusJx/install-boost@v2.4.4
+        id: install-boost
+        with:
+          boost_version: 1.80.0
       - uses: lukka/run-cmake@v10
         with:
           configurePreset: 'default-with-lint'
           buildPreset: 'default-with-lint'
+        env:
+          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
