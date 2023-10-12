@@ -73,3 +73,10 @@ Eigen::ArrayXX<int8_t> readImages(std::filesystem::path const &inputFile, std::u
       v.data(), edgeLength * edgeLength, v.size() / (edgeLength * edgeLength)
   );
 }
+
+void createDirectory(std::filesystem::path const &p) {
+  bool const success = std::filesystem::create_directories(p);
+  if (not success) {
+    throw std::filesystem::filesystem_error("Cannot create directory", p, std::make_error_code(std::errc::file_exists));
+  }
+};

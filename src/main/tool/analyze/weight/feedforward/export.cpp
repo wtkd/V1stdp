@@ -79,15 +79,6 @@ void setupWeightFeedforwardExport(CLI::App &app) {
       return std::pair{std::move(onWeights), std::move(offWeights)};
     }();
 
-    auto const createDirectory = [](std::filesystem::path const &p) {
-      bool const success = std::filesystem::create_directories(p);
-      if (not success) {
-        throw std::filesystem::filesystem_error(
-            "Cannot create directory", p, std::make_error_code(std::errc::file_exists)
-        );
-      }
-    };
-
     auto const exportMatrices = [](std::vector<Eigen::MatrixXd> const &matrixVector,
                                    std::filesystem::path const &dir,
                                    std::uint64_t const zeroPadding) {
