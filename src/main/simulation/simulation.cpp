@@ -74,6 +74,11 @@ void setupLearn(CLI::App &app) {
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
 
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
+
     auto const &saveLogInterval = opt->saveLogInterval;
 
     auto const &timepres = opt->timepres; // ms
@@ -205,6 +210,11 @@ void setupTest(CLI::App &app) {
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
 
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
+
     auto const &saveLogInterval = opt->saveLogInterval;
 
     auto const &PRESTIME = opt->timepres;
@@ -300,6 +310,11 @@ void setupMix(CLI::App &app) {
     auto const &dataDirectory = opt->dataDirectory;
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -405,6 +420,11 @@ void setupPulse(CLI::App &app) {
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
 
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
+
     auto const &saveLogInterval = opt->saveLogInterval;
 
     // -1 because of c++ zero-counting (the nth pattern has location n-1 in the array)
@@ -498,6 +518,11 @@ void setupSpontaneous(CLI::App &app) {
     auto const &dataDirectory = opt->dataDirectory;
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
