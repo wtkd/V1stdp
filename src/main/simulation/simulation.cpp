@@ -1,12 +1,14 @@
 #include <filesystem>
 #include <memory>
+#include <optional>
 
 #include "constant.hpp"
 #include "io.hpp"
 #include "phase.hpp"
 #include "run.hpp"
-#include "simulation.hpp"
 #include "utils.hpp"
+
+#include "simulation.hpp"
 
 void setupModel(CLI::App &app, Model &model) {
   app.add_option("--nonoise", model.nonoise, "No noise");
@@ -72,6 +74,11 @@ void setupLearn(CLI::App &app) {
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
 
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
+
     auto const &saveLogInterval = opt->saveLogInterval;
 
     auto const &timepres = opt->timepres; // ms
@@ -135,6 +142,7 @@ void setupLearn(CLI::App &app) {
         -1, // PULSETIME is not used
         wff,
         w,
+        std::nullopt,
         narrowedImageVector,
         saveDirectory,
         saveLogInterval);
@@ -150,6 +158,8 @@ struct TestOptions {
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
+  std::optional<std::filesystem::path> delaysFile;
+  bool randomDelay = false;
   int saveLogInterval = 50'000;
   int timepres = 350;
   int imageRange = 0;
@@ -172,6 +182,12 @@ void setupTest(CLI::App &app) {
          "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
   )
       ->required();
+
+  auto delayPolicy = sub->add_option_group("delay-policy");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays");
+  delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
+  delayPolicy->require_option(1);
+
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--timepres", opt->timepres, "Presentation time");
   sub->add_option(
@@ -194,6 +210,11 @@ void setupTest(CLI::App &app) {
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
 
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
+
     auto const &saveLogInterval = opt->saveLogInterval;
 
     auto const &PRESTIME = opt->timepres;
@@ -207,6 +228,9 @@ void setupTest(CLI::App &app) {
 
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
+
+    auto const delays =
+        opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
 
     std::cout << "First row of w (lateral weights): " << w.row(0) << std::endl;
     std::cout << "w(1,2) and w(2,1): " << w(1, 2) << " " << w(2, 1) << std::endl;
@@ -231,6 +255,7 @@ void setupTest(CLI::App &app) {
         -1, // PULSETIME is not used
         wff,
         w,
+        delays,
         narrowedImageVector,
         saveDirectory,
         saveLogInterval);
@@ -245,6 +270,8 @@ struct MixOptions {
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
+  std::optional<std::filesystem::path> delaysFile;
+  bool randomDelay = false;
   int saveLogInterval = 50'000;
   std::pair<int, int> stimulationNumbers;
 };
@@ -265,6 +292,12 @@ void setupMix(CLI::App &app) {
          "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
   )
       ->required();
+
+  auto delayPolicy = sub->add_option_group("delay-policy");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays");
+  delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
+  delayPolicy->require_option(1);
+
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("stimulation-number", opt->stimulationNumbers, "Two numbers of stimulation to mix")->required();
 
@@ -277,6 +310,11 @@ void setupMix(CLI::App &app) {
     auto const &dataDirectory = opt->dataDirectory;
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -298,6 +336,9 @@ void setupMix(CLI::App &app) {
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
+    auto const delays =
+        opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
+
     std::cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << std::endl;
 
     auto const imageVector = readImages(inputFile, PATCHSIZE);
@@ -313,6 +354,7 @@ void setupMix(CLI::App &app) {
         -1, // PULSETIME is not used
         wff,
         w,
+        delays,
         imageVector,
         saveDirectory,
         saveLogInterval);
@@ -328,6 +370,8 @@ struct PulseOptions {
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
+  std::optional<std::filesystem::path> delaysFile;
+  bool randomDelay = false;
   int saveLogInterval = 50'000;
   int stimulationNumber;
   int pulsetime = 100;
@@ -349,6 +393,12 @@ void setupPulse(CLI::App &app) {
          "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
   )
       ->required();
+
+  auto delayPolicy = sub->add_option_group("delay-policy");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays");
+  delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
+  delayPolicy->require_option(1);
+
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("stimulation-number", opt->stimulationNumber, "Numbers of stimulation")->required();
   sub->add_option(
@@ -369,6 +419,11 @@ void setupPulse(CLI::App &app) {
     auto const &dataDirectory = opt->dataDirectory;
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -392,6 +447,9 @@ void setupPulse(CLI::App &app) {
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
+    auto const delays =
+        opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
+
     auto const imageVector = readImages(inputFile, PATCHSIZE);
 
     run(model,
@@ -405,6 +463,7 @@ void setupPulse(CLI::App &app) {
         PULSETIME,
         wff,
         w,
+        delays,
         imageVector,
         saveDirectory,
         saveLogInterval);
@@ -419,6 +478,9 @@ struct SpontaneousOptions {
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
+  std::optional<std::filesystem::path> delaysFile;
+  bool randomDelay = false;
+
   int saveLogInterval = 50'000;
   int imageRange = 0;
 };
@@ -439,6 +501,12 @@ void setupSpontaneous(CLI::App &app) {
          "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
   )
       ->required();
+
+  auto delayPolicy = sub->add_option_group("delay-policy");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays");
+  delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
+  delayPolicy->require_option(1);
+
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
 
   sub->callback([opt]() {
@@ -450,6 +518,11 @@ void setupSpontaneous(CLI::App &app) {
     auto const &dataDirectory = opt->dataDirectory;
     auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
     auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+
+    // TODO: 存在しないパスにしか作れないようにするのが最も安全
+    if (not std::filesystem::exists(saveDirectory)) {
+      createDirectory(saveDirectory);
+    }
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -465,6 +538,9 @@ void setupSpontaneous(CLI::App &app) {
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
+    auto const delays =
+        opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
+
     auto const imageVector = readImages(inputFile, PATCHSIZE);
 
     run(model,
@@ -478,6 +554,7 @@ void setupSpontaneous(CLI::App &app) {
         -1, // PULSE is not used
         wff,
         w,
+        delays,
         imageVector,
         saveDirectory,
         saveLogInterval);

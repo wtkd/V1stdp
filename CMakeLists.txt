@@ -240,133 +240,273 @@ set_tests_properties(
 
 # Test
 
+## Without saved delays
+
 add_test(
-  NAME run_test
-  COMMAND $<TARGET_FILE:stdp> test --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --step-number-testing 150 --image-range 200
+  NAME run_test_without_saved_delays
+  COMMAND $<TARGET_FILE:stdp> test --save-directory ./data/without-saved-delays --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --step-number-testing 150 --image-range 200 --random-delay
 )
 set_tests_properties(
-  run_test PROPERTIES
-  FIXTURES_SETUP run_test
+  run_test_without_saved_delays PROPERTIES
+  FIXTURES_SETUP run_test_without_saved_delays
   FIXTURES_REQUIRED data_directory
   LABELS test
 )
 
 add_test(
-  NAME compare_lastnspikes_test
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnspikes_test.txt ./data/lastnspikes_test.txt
+  NAME compare_lastnspikes_test_without_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/lastnspikes_test.txt ./data/without-saved-delays/lastnspikes_test.txt
 )
 set_tests_properties(
-  compare_lastnspikes_test PROPERTIES
-  FIXTURES_REQUIRED run_test
+  compare_lastnspikes_test_without_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_test_without_saved_delays
   LABELS test
 )
 
 add_test(
-  NAME compare_response_test
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt ./data/resps_test.txt
+  NAME compare_response_test_without_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/resps_test.txt ./data/without-saved-delays/resps_test.txt
 )
 set_tests_properties(
-  compare_response_test PROPERTIES
-  FIXTURES_REQUIRED run_test
+  compare_response_test_without_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_test_without_saved_delays
   LABELS test
 )
 
 add_test(
-  NAME compare_lastnv_test
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnv_test.txt ./data/lastnv_test.txt
+  NAME compare_lastnv_test_without_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/lastnv_test.txt ./data/without-saved-delays/lastnv_test.txt
 )
 set_tests_properties(
-  compare_lastnv_test PROPERTIES
-  FIXTURES_REQUIRED run_test
+  compare_lastnv_test_without_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_test_without_saved_delays
+  LABELS test
+)
+
+## With saved delays
+
+add_test(
+  NAME run_test_with_saved_delays
+  COMMAND $<TARGET_FILE:stdp> test --save-directory ./data/with-saved-delays --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --step-number-testing 150 --image-range 200 --delays-file ${CMAKE_SOURCE_DIR}/test/data/delays.txt
+)
+set_tests_properties(
+  run_test_with_saved_delays PROPERTIES
+  FIXTURES_SETUP run_test_with_saved_delays
+  FIXTURES_REQUIRED data_directory
+  LABELS test
+)
+
+add_test(
+  NAME compare_lastnspikes_test_with_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/lastnspikes_test.txt ./data/with-saved-delays/lastnspikes_test.txt
+)
+set_tests_properties(
+  compare_lastnspikes_test_with_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_test_with_saved_delays
+  LABELS test
+)
+
+add_test(
+  NAME compare_response_test_with_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/resps_test.txt ./data/with-saved-delays/resps_test.txt
+)
+set_tests_properties(
+  compare_response_test_with_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_test_with_saved_delays
+  LABELS test
+)
+
+add_test(
+  NAME compare_lastnv_test_with_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/lastnv_test.txt ./data/with-saved-delays/lastnv_test.txt
+)
+set_tests_properties(
+  compare_lastnv_test_with_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_test_with_saved_delays
   LABELS test
 )
 
 # Pulse
 
+## Without saved delays
+
 add_test(
-  NAME run_pulse
-  COMMAND $<TARGET_FILE:stdp> pulse 50 --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0
+  NAME run_pulse_without_saved_delays
+  COMMAND $<TARGET_FILE:stdp> pulse 50 --save-directory ./data/without-saved-delays --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --random-delay
 )
 set_tests_properties(
-  run_pulse PROPERTIES
-  FIXTURES_SETUP run_pulse
+  run_pulse_without_saved_delays PROPERTIES
+  FIXTURES_SETUP run_pulse_without_saved_delays
   FIXTURES_REQUIRED data_directory
   LABELS pulse
 )
 
 add_test(
-  NAME compare_lastnspikes_pulse
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnspikes_pulse.txt ./data/lastnspikes_pulse.txt
+  NAME compare_lastnspikes_pulse_without_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/lastnspikes_pulse.txt ./data/without-saved-delays/lastnspikes_pulse.txt
 )
 set_tests_properties(
-  compare_lastnspikes_pulse PROPERTIES
-  FIXTURES_REQUIRED run_pulse
+  compare_lastnspikes_pulse_without_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_pulse_without_saved_delays
   LABELS pulse
 )
 
 add_test(
-  NAME compare_response_pulse
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/resps_pulse.txt ./data/resps_pulse.txt
+  NAME compare_response_pulse_without_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/resps_pulse.txt ./data/without-saved-delays/resps_pulse.txt
 )
 set_tests_properties(
-  compare_response_pulse PROPERTIES
-  FIXTURES_REQUIRED run_pulse
+  compare_response_pulse_without_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_pulse_without_saved_delays
+  LABELS pulse
+)
+
+## With saved delays
+
+add_test(
+  NAME run_pulse_with_saved_delays
+  COMMAND $<TARGET_FILE:stdp> pulse 50 --save-directory ./data/with-saved-delays --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --delays-file ${CMAKE_SOURCE_DIR}/test/data/delays.txt
+)
+set_tests_properties(
+  run_pulse_with_saved_delays PROPERTIES
+  FIXTURES_SETUP run_pulse_with_saved_delays
+  FIXTURES_REQUIRED data_directory
+  LABELS pulse
+)
+
+add_test(
+  NAME compare_lastnspikes_pulse_with_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/lastnspikes_pulse.txt ./data/with-saved-delays/lastnspikes_pulse.txt
+)
+set_tests_properties(
+  compare_lastnspikes_pulse_with_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_pulse_with_saved_delays
+  LABELS pulse
+)
+
+add_test(
+  NAME compare_response_pulse_with_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/resps_pulse.txt ./data/with-saved-delays/resps_pulse.txt
+)
+set_tests_properties(
+  compare_response_pulse_with_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_pulse_with_saved_delays
   LABELS pulse
 )
 
 # Spontaneous
 
+## Without saved delays
+
 add_test(
-  NAME run_spontaneous
-  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0
+  NAME run_spontaneous_without_saved_delays
+  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data/without-saved-delays --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --random-delay
 )
 set_tests_properties(
-  run_spontaneous PROPERTIES
-  FIXTURES_SETUP run_spontaneous
+  run_spontaneous_without_saved_delays PROPERTIES
+  FIXTURES_SETUP run_spontaneous_without_saved_delays
   FIXTURES_REQUIRED data_directory
   LABELS spontaneous
 )
 
 add_test(
-  NAME compare_lastnspikes_spont
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/lastnspikes_spont.txt ./data/lastnspikes_spont.txt
+  NAME compare_lastnspikes_spont_without_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/lastnspikes_spont.txt ./data/without-saved-delays/lastnspikes_spont.txt
 )
 set_tests_properties(
-  compare_lastnspikes_spont PROPERTIES
-  FIXTURES_REQUIRED run_spontaneous
+  compare_lastnspikes_spont_without_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_spontaneous_without_saved_delays
+  LABELS spontaneous
+)
+
+## With saved delays
+
+add_test(
+  NAME run_spontaneous_with_saved_delays
+  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data/with-saved-delays --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --delays-file ${CMAKE_SOURCE_DIR}/test/data/delays.txt
+)
+set_tests_properties(
+  run_spontaneous_with_saved_delays PROPERTIES
+  FIXTURES_SETUP run_spontaneous_with_saved_delays
+  FIXTURES_REQUIRED data_directory
+  LABELS spontaneous
+)
+
+add_test(
+  NAME compare_lastnspikes_spont_with_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/lastnspikes_spont.txt ./data/with-saved-delays/lastnspikes_spont.txt
+)
+set_tests_properties(
+  compare_lastnspikes_spont_with_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_spontaneous_with_saved_delays
   LABELS spontaneous
 )
 
 # Mix
 
+## Without saved delays
+
 add_test(
-  NAME run_mix
-  COMMAND $<TARGET_FILE:stdp> mix 50 100 --save-directory ./data --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0
+  NAME run_mix_without_saved_delays
+  COMMAND $<TARGET_FILE:stdp> mix 50 100 --save-directory ./data/without-saved-delays --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --random-delay
 )
 set_tests_properties(
-  run_mix PROPERTIES
-  FIXTURES_SETUP run_mix
+  run_mix_without_saved_delays PROPERTIES
+  FIXTURES_SETUP run_mix_without_saved_delays
   FIXTURES_REQUIRED data_directory
   LABELS mix
 )
 
 add_test(
-  NAME compare_response_mix
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/resps_mix.txt ./data/resps_mix.txt
+  NAME compare_response_mix_without_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/resps_mix.txt ./data/without-saved-delays/resps_mix.txt
 )
 set_tests_properties(
-  compare_response_mix PROPERTIES
-  FIXTURES_REQUIRED run_mix
+  compare_response_mix_without_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_mix_without_saved_delays
   LABELS mix
 )
 
 add_test(
-  NAME compare_respssumv_mix
-  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/respssumv_mix.txt ./data/respssumv_mix.txt
+  NAME compare_respssumv_mix_without_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/respssumv_mix.txt ./data/without-saved-delays/respssumv_mix.txt
 )
 set_tests_properties(
-  compare_respssumv_mix PROPERTIES
-  FIXTURES_REQUIRED run_mix
+  compare_respssumv_mix_without_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_mix_without_saved_delays
+  LABELS mix
+)
+
+## With saved delays
+
+add_test(
+  NAME run_mix_with_saved_delays
+  COMMAND $<TARGET_FILE:stdp> mix 50 100 --save-directory ./data/with-saved-delays --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --delays-file ${CMAKE_SOURCE_DIR}/test/data/delays.txt
+)
+set_tests_properties(
+  run_mix_with_saved_delays PROPERTIES
+  FIXTURES_SETUP run_mix_with_saved_delays
+  FIXTURES_REQUIRED data_directory
+  LABELS mix
+)
+
+add_test(
+  NAME compare_response_mix_with_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/resps_mix.txt ./data/with-saved-delays/resps_mix.txt
+)
+set_tests_properties(
+  compare_response_mix_with_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_mix_with_saved_delays
+  LABELS mix
+)
+
+add_test(
+  NAME compare_respssumv_mix_with_saved_delays
+  COMMAND cmp ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/respssumv_mix.txt ./data/with-saved-delays/respssumv_mix.txt
+)
+set_tests_properties(
+  compare_respssumv_mix_with_saved_delays PROPERTIES
+  FIXTURES_REQUIRED run_mix_with_saved_delays
   LABELS mix
 )
 
@@ -382,7 +522,7 @@ set_tests_properties(
 
 add_test(
   NAME run_clustering_all
-  COMMAND $<TARGET_FILE:stdp> tool analyze response clustering ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt -o ./data/sorted_response_all.txt --stimulation ./data/sort_index_stimulation_all.txt --neuron ./data/sort_index_neuron_all.txt --neuron-number 120 --stimulation-number 150
+  COMMAND $<TARGET_FILE:stdp> tool analyze response clustering ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/resps_test.txt -o ./data/sorted_response_all.txt --stimulation ./data/sort_index_stimulation_all.txt --neuron ./data/sort_index_neuron_all.txt --neuron-number 120 --stimulation-number 150
 )
 set_tests_properties(
   run_clustering_all PROPERTIES
@@ -567,7 +707,7 @@ set_tests_properties(
 
 add_test(
   NAME run_response_cut_excitatory
-  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 150 --excitatory-only-output ./data/response_excitatory.txt
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 150 --excitatory-only-output ./data/response_excitatory.txt
 )
 set_tests_properties(
   run_response_cut_excitatory PROPERTIES
@@ -590,7 +730,7 @@ set_tests_properties(
 
 add_test(
   NAME run_response_cut_inhibitory
-  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 150 --inhibitory-only-output ./data/response_inhibitory.txt
+  COMMAND $<TARGET_FILE:stdp> tool analyze response cut ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/resps_test.txt --excitatory-neuron-number 100 --inhibitory-neuron-number 20 --stimulation-number 150 --inhibitory-only-output ./data/response_inhibitory.txt
 )
 set_tests_properties(
   run_response_cut_inhibitory PROPERTIES
@@ -613,7 +753,7 @@ set_tests_properties(
 
 add_test(
   NAME run_correlation_matrix
-  COMMAND $<TARGET_FILE:stdp> tool analyze response correlation-matrix ${CMAKE_SOURCE_DIR}/test/data/resps_test.txt --neuron-number 120 --stimulation-number 150 -n ./data/correlationMatrix_neuron.txt -s ./data/correlationMatrix_stimulation.txt
+  COMMAND $<TARGET_FILE:stdp> tool analyze response correlation-matrix ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/resps_test.txt --neuron-number 120 --stimulation-number 150 -n ./data/correlationMatrix_neuron.txt -s ./data/correlationMatrix_stimulation.txt
 )
 set_tests_properties(
   run_correlation_matrix PROPERTIES

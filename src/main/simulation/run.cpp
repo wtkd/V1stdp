@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <fstream>
+#include <optional>
 
 #include <Eigen/Dense>
 #include <boost/range/counting_range.hpp>
@@ -27,6 +28,7 @@ int run(
     int const PULSETIME,
     MatrixXd const &initwff,
     MatrixXd const &initw,
+    std::optional<Eigen::ArrayXXi> const &inputDelays,
     Eigen::ArrayXX<int8_t> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval
@@ -113,7 +115,7 @@ int run(
   // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
   // target neuron and j is the source synapse)
   auto const delays = [&]() {
-    std::vector<std::vector<int>> delays(NBNEUR, std::vector<int>(NBNEUR));
+    Eigen::ArrayXXi delays(NBNEUR, NBNEUR);
 
     // We generate the delays:
 
@@ -140,11 +142,15 @@ int run(
 
         if (mydelay > MAXDELAYDT)
           mydelay = 1;
-        delays[nj][ni] = mydelay;
+        delays(nj, ni) = mydelay;
       }
     }
-    return delays;
+
+    // NOTE: Do not use "delays" when "inputDelays" is passed, but always generate "delays" for reproductivity
+    return inputDelays.value_or(delays);
   }();
+
+  saveMatrix<int>(saveDirectory / "delays.txt", delays.matrix());
 
   // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
   // myfile.open("delays.txt", ios::trunc | ios::out);
@@ -201,7 +207,7 @@ int run(
     );
     for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
       for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
-        initialIncomingspikes[ni][nj] = boost::circular_buffer<int>(delays[nj][ni], 0);
+        initialIncomingspikes[ni][nj] = boost::circular_buffer<int>(delays(nj, ni), 0);
       }
     }
     return initialIncomingspikes;

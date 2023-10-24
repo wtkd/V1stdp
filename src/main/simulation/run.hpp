@@ -1,7 +1,9 @@
 #pragma once
 
-#include <Eigen/Dense>
 #include <filesystem>
+#include <optional>
+
+#include <Eigen/Dense>
 
 #include "model.hpp"
 #include "phase.hpp"
@@ -18,6 +20,7 @@ int run(
     int const PULSETIME,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
+    std::optional<Eigen::ArrayXXi> const &inputDelays,
     Eigen::ArrayXX<int8_t> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval
