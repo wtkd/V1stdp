@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <optional>
 
@@ -23,5 +24,6 @@ int run(
     std::optional<Eigen::ArrayXXi> const &inputDelays,
     Eigen::ArrayXX<int8_t> const &imageVector,
     std::filesystem::path const saveDirectory,
-    int const saveLogInterval
+    int const saveLogInterval,
+    std::uint16_t const startLearningStimulationNumber = 0
 );

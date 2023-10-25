@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -38,6 +39,7 @@ struct LearnOptions {
   std::filesystem::path saveDirectory;
   int saveLogInterval = 50'000;
   int presentationTime = 350;
+  int startLearningNumber = 401;
   int imageRange = 0;
 };
 
@@ -54,6 +56,8 @@ void setupLearn(CLI::App &app) {
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
+  sub->add_option("--start-learning-number", opt->startLearningNumber, "Start learning after this number ostimulation");
+
   sub->add_option(
       "-R,--image-range",
       opt->imageRange,
@@ -145,7 +149,8 @@ void setupLearn(CLI::App &app) {
         std::nullopt,
         narrowedImageVector,
         saveDirectory,
-        saveLogInterval);
+        saveLogInterval,
+        opt->startLearningNumber);
   });
 }
 
