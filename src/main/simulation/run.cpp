@@ -732,8 +732,8 @@ int run(
         {
           std::ofstream myfile(
               saveDirectory /
-                  ("respssumv_mix" + std::to_string((long long int)STIM1) + "_" + std::to_string((long long int)STIM2) +
-                   nolatindicator + noinhindicator + nospikeindicator + ".txt"),
+                  ("respssumv_mix_" + std::to_string((long long int)STIM1) + "_" +
+                   std::to_string((long long int)STIM2) + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
               std::ios::trunc | std::ios::out
           );
           myfile << std::endl << respssumv << std::endl;
