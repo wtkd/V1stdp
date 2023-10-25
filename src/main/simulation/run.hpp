@@ -10,7 +10,7 @@
 
 int run(
     Model const &model,
-    int const PRESTIME,
+    int const presentationTime,
     int const NBLASTSPIKESPRES,
     unsigned const NBPRES,
     int const NBRESPS,

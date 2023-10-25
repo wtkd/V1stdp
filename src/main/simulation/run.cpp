@@ -18,7 +18,7 @@ using namespace Eigen;
 
 int run(
     Model const &model,
-    int const PRESTIME,
+    int const presentationTime,
     int const NBLASTSPIKESPRES,
     unsigned const NBPRES,
     int const NBRESPS,
@@ -52,7 +52,7 @@ int run(
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
   // number. IF using 'mix', you must specify two stimulus numbers.
 
-  int const NBSTEPSPERPRES = (int)(PRESTIME / dt);
+  int const NBSTEPSPERPRES = (int)(presentationTime / dt);
   int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
   // totaldatasize = fsize / sizeof(double); // To change depending on whether
   // the data is float/single (4) or double (8)

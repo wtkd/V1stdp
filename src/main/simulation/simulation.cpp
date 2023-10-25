@@ -37,7 +37,7 @@ struct LearnOptions {
   std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
   std::filesystem::path saveDirectory;
   int saveLogInterval = 50'000;
-  int timepres = 350;
+  int presentationTime = 350;
   int imageRange = 0;
 };
 
@@ -53,7 +53,7 @@ void setupLearn(CLI::App &app) {
   sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
-  sub->add_option("--timepres", opt->timepres, "Presentation time");
+  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
   sub->add_option(
       "-R,--image-range",
       opt->imageRange,
@@ -81,7 +81,7 @@ void setupLearn(CLI::App &app) {
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
-    auto const &timepres = opt->timepres; // ms
+    auto const &presentationTime = opt->presentationTime; // ms
 
     // NOTE: At first, it was initialized 50 but became 30 soon, so I squashed it.
     int const NBLASTSPIKESPRES = 30;
@@ -132,7 +132,7 @@ void setupLearn(CLI::App &app) {
                                                     : imageVector.leftCols(imageVector.cols() + opt->imageRange);
 
     run(model,
-        timepres,
+        presentationTime,
         NBLASTSPIKESPRES,
         step,
         NBRESPS,
@@ -161,7 +161,7 @@ struct TestOptions {
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
   int saveLogInterval = 50'000;
-  int timepres = 350;
+  int presentationTime = 350;
   int imageRange = 0;
 };
 
@@ -189,7 +189,7 @@ void setupTest(CLI::App &app) {
   delayPolicy->require_option(1);
 
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
-  sub->add_option("--timepres", opt->timepres, "Presentation time");
+  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
   sub->add_option(
       "-R,--image-range",
       opt->imageRange,
@@ -217,7 +217,7 @@ void setupTest(CLI::App &app) {
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
-    auto const &PRESTIME = opt->timepres;
+    auto const &presentationTime = opt->presentationTime;
     int const NBLASTSPIKESPRES = 30;
 
     int const NBPRES = step; //* NBPRESPERPATTERNTESTING;
@@ -245,7 +245,7 @@ void setupTest(CLI::App &app) {
                                                     : imageVector.rightCols(imageVector.cols() + opt->imageRange);
 
     run(model,
-        PRESTIME,
+        presentationTime,
         NBLASTSPIKESPRES,
         step,
         NBRESPS,
@@ -273,6 +273,7 @@ struct MixOptions {
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
   int saveLogInterval = 50'000;
+  int presentationTime = PRESTIMEMIXING;
   std::pair<int, int> stimulationNumbers;
 };
 
@@ -299,6 +300,7 @@ void setupMix(CLI::App &app) {
   delayPolicy->require_option(1);
 
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
   sub->add_option("stimulation-number", opt->stimulationNumbers, "Two numbers of stimulation to mix")->required();
 
   sub->callback([opt]() {
@@ -332,7 +334,8 @@ void setupMix(CLI::App &app) {
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = NBPRES;
 
-    int const PRESTIME = PRESTIMEMIXING;
+    int const presentationTime = opt->presentationTime;
+
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
@@ -344,7 +347,7 @@ void setupMix(CLI::App &app) {
     auto const imageVector = readImages(inputFile, PATCHSIZE);
 
     run(model,
-        PRESTIME,
+        presentationTime,
         NBLASTSPIKESPRES,
         NBPRES,
         NBRESPS,
@@ -373,6 +376,7 @@ struct PulseOptions {
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
   int saveLogInterval = 50'000;
+  int presentationTime = PRESTIMEPULSE;
   int stimulationNumber;
   int pulsetime = 100;
 };
@@ -400,6 +404,7 @@ void setupPulse(CLI::App &app) {
   delayPolicy->require_option(1);
 
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
   sub->add_option("stimulation-number", opt->stimulationNumber, "Numbers of stimulation")->required();
   sub->add_option(
       "pulsetime",
@@ -433,7 +438,7 @@ void setupPulse(CLI::App &app) {
     int const &PULSETIME = opt->pulsetime;
 
     int const NBPATTERNS = NBPATTERNSPULSE;
-    int const PRESTIME = PRESTIMEPULSE;
+    int const presentationTime = opt->presentationTime;
     int const NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
 
     int const NBLASTSPIKESPRES = NBPATTERNS;
@@ -453,7 +458,7 @@ void setupPulse(CLI::App &app) {
     auto const imageVector = readImages(inputFile, PATCHSIZE);
 
     run(model,
-        PRESTIME,
+        presentationTime,
         NBLASTSPIKESPRES,
         NBPRES,
         NBRESPS,
@@ -482,6 +487,7 @@ struct SpontaneousOptions {
   bool randomDelay = false;
 
   int saveLogInterval = 50'000;
+  int presentationTime = PRESTIMESPONT;
   int imageRange = 0;
 };
 
@@ -508,6 +514,7 @@ void setupSpontaneous(CLI::App &app) {
   delayPolicy->require_option(1);
 
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
 
   sub->callback([opt]() {
     Model const &model = opt->model;
@@ -527,7 +534,7 @@ void setupSpontaneous(CLI::App &app) {
     auto const &saveLogInterval = opt->saveLogInterval;
 
     int const NBPATTERNS = NBPATTERNSSPONT;
-    int const PRESTIME = PRESTIMESPONT;
+    int const presentationTime = opt->presentationTime;
     int const NBPRES = NBPATTERNS;
     int const NBLASTSPIKESPRES = NBPATTERNS;
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
@@ -544,7 +551,7 @@ void setupSpontaneous(CLI::App &app) {
     auto const imageVector = readImages(inputFile, PATCHSIZE);
 
     run(model,
-        PRESTIME,
+        presentationTime,
         NBLASTSPIKESPRES,
         NBPRES,
         NBRESPS,
