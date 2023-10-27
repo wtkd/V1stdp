@@ -1,5 +1,3 @@
-
-
 #include <CLI/CLI.hpp>
 
 #include "rsvg-convert.hpp"
