@@ -45,7 +45,7 @@ void setupCorrelationMatrix(CLI::App &app) {
 
   sub->callback([opt]() {
     // Row: Neuron, Colomn: Stimulation
-    auto const responseMatrix = readMatrix<double>(opt->inputFile, opt->neuronNumber, opt->stimulationNumber);
+    auto const responseMatrix = readMatrix<std::uint64_t>(opt->inputFile, opt->neuronNumber, opt->stimulationNumber);
 
     if (opt->eachNeuronOutputFile.has_value()) {
       auto const matrix = calculateCorrelationMatrix<ColomnOrRow::Row>(responseMatrix, correlation<double>);
