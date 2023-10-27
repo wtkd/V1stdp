@@ -48,12 +48,14 @@ void setupCorrelationMatrix(CLI::App &app) {
     auto const responseMatrix = readMatrix<std::uint64_t>(opt->inputFile, opt->neuronNumber, opt->stimulationNumber);
 
     if (opt->eachNeuronOutputFile.has_value()) {
-      auto const matrix = calculateCorrelationMatrix<ColomnOrRow::Row>(responseMatrix, correlation<double>);
+      auto const matrix =
+          calculateCorrelationMatrix<ColomnOrRow::Row, double>(responseMatrix.cast<double>(), correlation<double>);
       saveMatrix(opt->eachNeuronOutputFile.value(), matrix);
     }
 
     if (opt->eachStimulationOutputFile.has_value()) {
-      auto const matrix = calculateCorrelationMatrix<ColomnOrRow::Col>(responseMatrix, correlation<double>);
+      auto const matrix =
+          calculateCorrelationMatrix<ColomnOrRow::Col, double>(responseMatrix.cast<double>(), correlation<double>);
       saveMatrix(opt->eachStimulationOutputFile.value(), matrix);
     }
   });

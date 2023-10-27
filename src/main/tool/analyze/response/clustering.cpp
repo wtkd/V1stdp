@@ -50,7 +50,7 @@ void setupClustering(CLI::App &app) {
 
   sub->callback([opt]() {
     // Row: Neuron, Colomn: Stimulation
-    auto const responseMatrix = readMatrix<std::uint64_t>(opt->inputFile, opt->neuronNumber, opt->stimulationNumber);
+    auto const responseMatrix = readMatrix<int>(opt->inputFile, opt->neuronNumber, opt->stimulationNumber);
 
     Eigen::MatrixXi const targetMatrix = responseMatrix;
 

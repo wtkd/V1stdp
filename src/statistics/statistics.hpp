@@ -134,7 +134,7 @@ Eigen::MatrixX<T> applyPermutationRow(Eigen::MatrixX<T> const &matrix, std::rang
   return sortedMatrix;
 }
 
-template <ColomnOrRow ApplyToEach, typename F, typename T>
+template <ColomnOrRow ApplyToEach, typename T, typename F>
   requires std::regular_invocable<F, Eigen::VectorX<T>, Eigen::VectorX<T>> &&
            (std::integral<T> || std::floating_point<T>)
 Eigen::MatrixX<T> calculateCorrelationMatrix(Eigen::MatrixX<T> const &responseMatrix, F const &correlation) {
