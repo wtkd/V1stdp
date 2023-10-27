@@ -22,7 +22,7 @@ void setupDivideLine(CLI::App &app) {
       ->required()
       ->check(CLI::ExistingFile);
 
-  sub->add_option("output-file", opt->outputDirectory, "Name of output directory.")
+  sub->add_option("output-directory", opt->outputDirectory, "Name of output directory.")
       ->required()
       ->check(CLI::NonexistentPath);
 
