@@ -1,4 +1,6 @@
+#include <filesystem>
 #include <ranges>
+#include <system_error>
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
@@ -48,20 +50,7 @@ void setupClustering(CLI::App &app) {
 
   sub->callback([opt]() {
     // Row: Neuron, Colomn: Stimulation
-    Eigen::MatrixXi const responseMatrix = [&] {
-      Eigen::MatrixXi responseMatrix(opt->neuronNumber, opt->stimulationNumber);
-
-      std::ifstream ifs(opt->inputFile);
-
-      for (auto const i : boost::counting_range<std::size_t>(0, opt->neuronNumber))
-        for (auto const j : boost::counting_range<std::size_t>(0, opt->stimulationNumber)) {
-          ifs >> responseMatrix(i, j);
-        }
-
-      std::ranges::for_each(responseMatrix.reshaped(), [&](auto &&i) { ifs >> i; });
-
-      return responseMatrix;
-    }();
+    auto const responseMatrix = readMatrix<std::uint64_t>(opt->inputFile, opt->neuronNumber, opt->stimulationNumber);
 
     Eigen::MatrixXi const targetMatrix = responseMatrix;
 
