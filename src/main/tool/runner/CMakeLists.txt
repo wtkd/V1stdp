@@ -17,6 +17,8 @@ add_library(Runner STATIC
   rsvg-convert.cpp
 )
 
+target_link_libraries(Runner IO)
+
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Boost 1.80.0 CONFIG REQUIRED COMPONENTS filesystem)
 

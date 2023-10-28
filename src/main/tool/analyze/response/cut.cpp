@@ -1,3 +1,6 @@
+#include <filesystem>
+#include <optional>
+
 #include <CLI/CLI.hpp>
 
 #include "io.hpp"
@@ -9,8 +12,8 @@ struct CutOptions {
   std::uint64_t excitatoryNeuronNumber;
   std::uint64_t inhibitoryNeuronNumber;
   std::uint64_t stimulationNumber;
-  std::filesystem::path excitatoryOnlyOutputFile;
-  std::filesystem::path inhibitoryOnlyOutputFile;
+  std::optional<std::filesystem::path> excitatoryOnlyOutputFile;
+  std::optional<std::filesystem::path> inhibitoryOnlyOutputFile;
 };
 
 void setupCut(CLI::App &app) {
@@ -48,12 +51,20 @@ void setupCut(CLI::App &app) {
     // Row: Neuron, Colomn: Stimulation
     auto const responseMatrix = readMatrix<std::uint64_t>(opt->inputFile, neuronNumber, opt->stimulationNumber);
 
-    if (not opt->excitatoryOnlyOutputFile.empty()) {
-      saveMatrix<std::uint64_t>(opt->excitatoryOnlyOutputFile, responseMatrix.topRows(opt->excitatoryNeuronNumber));
+    if (opt->excitatoryOnlyOutputFile.has_value()) {
+      std::filesystem::create_directories(opt->excitatoryOnlyOutputFile.value().parent_path());
+
+      saveMatrix<std::uint64_t>(
+          opt->excitatoryOnlyOutputFile.value(), responseMatrix.topRows(opt->excitatoryNeuronNumber)
+      );
     }
 
-    if (not opt->inhibitoryOnlyOutputFile.empty()) {
-      saveMatrix<std::uint64_t>(opt->inhibitoryOnlyOutputFile, responseMatrix.bottomRows(opt->inhibitoryNeuronNumber));
+    if (opt->inhibitoryOnlyOutputFile.has_value()) {
+      std::filesystem::create_directories(opt->inhibitoryOnlyOutputFile.value().parent_path());
+
+      saveMatrix<std::uint64_t>(
+          opt->inhibitoryOnlyOutputFile.value(), responseMatrix.bottomRows(opt->inhibitoryNeuronNumber)
+      );
     }
   });
 }

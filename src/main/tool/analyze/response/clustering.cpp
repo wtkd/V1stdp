@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <optional>
 #include <ranges>
 #include <system_error>
 
@@ -13,9 +14,9 @@
 
 struct AnalyzeClusteringOptions {
   std::filesystem::path inputFile;
-  std::filesystem::path sortedResponseOutputFile;
-  std::filesystem::path neuronSortedIndexOutputFile;
-  std::filesystem::path stimulationSortedIndexOutputFile;
+  std::optional<std::filesystem::path> sortedResponseOutputFile;
+  std::optional<std::filesystem::path> neuronSortedIndexOutputFile;
+  std::optional<std::filesystem::path> stimulationSortedIndexOutputFile;
   std::uint64_t neuronNumber;
   std::uint64_t stimulationNumber;
 };
@@ -56,24 +57,32 @@ void setupClustering(CLI::App &app) {
 
     Eigen::MatrixXi resultMatrix = targetMatrix;
 
-    if (not opt->stimulationSortedIndexOutputFile.empty()) {
+    if (opt->stimulationSortedIndexOutputFile.has_value()) {
+      std::filesystem::create_directories(opt->stimulationSortedIndexOutputFile.value().parent_path());
+
       auto const permutaion = singleClusteringSortPermutation(resultMatrix, correlationDistanceSquare<int>);
 
-      writeVector(opt->stimulationSortedIndexOutputFile, permutaion);
+      writeVector(opt->stimulationSortedIndexOutputFile.value(), permutaion);
 
       resultMatrix = applyPermutationCol(resultMatrix, permutaion);
     }
 
-    if (not opt->neuronSortedIndexOutputFile.empty()) {
+    if (opt->neuronSortedIndexOutputFile.has_value()) {
+      std::filesystem::create_directories(opt->neuronSortedIndexOutputFile.value().parent_path());
+
       auto const permutaion =
           singleClusteringSortPermutation(Eigen::MatrixXi(resultMatrix.transpose()), correlationDistanceSquare<int>);
 
-      writeVector(opt->neuronSortedIndexOutputFile, permutaion);
+      writeVector(opt->neuronSortedIndexOutputFile.value(), permutaion);
 
       resultMatrix = applyPermutationRow(resultMatrix, permutaion);
     }
 
-    std::ofstream ofs(opt->sortedResponseOutputFile);
-    ofs << resultMatrix;
+    if (opt->sortedResponseOutputFile.has_value()) {
+      std::filesystem::create_directories(opt->sortedResponseOutputFile.value().parent_path());
+
+      std::ofstream ofs(opt->sortedResponseOutputFile.value());
+      ofs << resultMatrix;
+    }
   });
 }

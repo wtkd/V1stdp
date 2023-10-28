@@ -1,4 +1,6 @@
 #include <concepts>
+#include <filesystem>
+#include <optional>
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
@@ -50,12 +52,16 @@ void setupCorrelationMatrix(CLI::App &app) {
     if (opt->eachNeuronOutputFile.has_value()) {
       auto const matrix =
           calculateCorrelationMatrix<ColomnOrRow::Row, double>(responseMatrix.cast<double>(), correlation<double>);
+
+      std::filesystem::create_directories(opt->eachNeuronOutputFile.value().parent_path());
       saveMatrix(opt->eachNeuronOutputFile.value(), matrix);
     }
 
     if (opt->eachStimulationOutputFile.has_value()) {
       auto const matrix =
           calculateCorrelationMatrix<ColomnOrRow::Col, double>(responseMatrix.cast<double>(), correlation<double>);
+
+      std::filesystem::create_directories(opt->eachStimulationOutputFile.value().parent_path());
       saveMatrix(opt->eachStimulationOutputFile.value(), matrix);
     }
   });

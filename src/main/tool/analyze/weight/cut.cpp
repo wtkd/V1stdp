@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <optional>
 
 #include <CLI/CLI.hpp>
 
@@ -8,8 +9,8 @@ struct WeightCutOptions {
   std::filesystem::path inputFile;
   std::uint64_t excitatoryNeuronNumber;
   std::uint64_t inhibitoryNeuronNumber;
-  std::filesystem::path excitatoryOnlyOutputFile;
-  std::filesystem::path inhibitoryOnlyOutputFile;
+  std::optional<std::filesystem::path> excitatoryOnlyOutputFile;
+  std::optional<std::filesystem::path> inhibitoryOnlyOutputFile;
 };
 
 void setupWeightCut(CLI::App &app) {
@@ -46,16 +47,20 @@ void setupWeightCut(CLI::App &app) {
 
     auto const lateralWeightMatrix = readMatrix<double>(opt->inputFile, neuronNumber, neuronNumber);
 
-    if (not opt->excitatoryOnlyOutputFile.empty()) {
+    if (opt->excitatoryOnlyOutputFile.has_value()) {
+      std::filesystem::create_directories(opt->excitatoryOnlyOutputFile.value().parent_path());
+
       saveMatrix<double>(
-          opt->excitatoryOnlyOutputFile,
+          opt->excitatoryOnlyOutputFile.value(),
           lateralWeightMatrix.topLeftCorner(opt->excitatoryNeuronNumber, opt->excitatoryNeuronNumber)
       );
     }
 
-    if (not opt->inhibitoryOnlyOutputFile.empty()) {
+    if (opt->inhibitoryOnlyOutputFile.has_value()) {
+      std::filesystem::create_directories(opt->inhibitoryOnlyOutputFile.value().parent_path());
+
       saveMatrix<double>(
-          opt->inhibitoryOnlyOutputFile,
+          opt->inhibitoryOnlyOutputFile.value(),
           lateralWeightMatrix.bottomRightCorner(opt->inhibitoryNeuronNumber, opt->inhibitoryNeuronNumber)
       );
     }

@@ -1,3 +1,6 @@
+#include <filesystem>
+#include <optional>
+
 #include <CLI/CLI.hpp>
 
 #include "io.hpp"
@@ -8,8 +11,8 @@ struct DelayCutOptions {
   std::filesystem::path inputFile;
   std::uint64_t excitatoryNeuronNumber;
   std::uint64_t inhibitoryNeuronNumber;
-  std::filesystem::path excitatoryOnlyOutputFile;
-  std::filesystem::path inhibitoryOnlyOutputFile;
+  std::optional<std::filesystem::path> excitatoryOnlyOutputFile;
+  std::optional<std::filesystem::path> inhibitoryOnlyOutputFile;
 };
 
 void setupDelayCut(CLI::App &app) {
@@ -45,16 +48,20 @@ void setupDelayCut(CLI::App &app) {
 
     auto const delays = readMatrix<int>(opt->inputFile, neuronNumber, neuronNumber);
 
-    if (not opt->excitatoryOnlyOutputFile.empty()) {
+    if (opt->excitatoryOnlyOutputFile.has_value()) {
+      std::filesystem::create_directories(opt->excitatoryOnlyOutputFile.value().parent_path());
+
       saveMatrix<int>(
-          opt->excitatoryOnlyOutputFile,
+          opt->excitatoryOnlyOutputFile.value(),
           delays.topRows(opt->excitatoryNeuronNumber).leftCols(opt->excitatoryNeuronNumber)
       );
     }
 
-    if (not opt->inhibitoryOnlyOutputFile.empty()) {
+    if (opt->inhibitoryOnlyOutputFile.has_value()) {
+      std::filesystem::create_directories(opt->inhibitoryOnlyOutputFile.value().parent_path());
+
       saveMatrix<int>(
-          opt->inhibitoryOnlyOutputFile,
+          opt->inhibitoryOnlyOutputFile.value(),
           delays.bottomRows(opt->inhibitoryNeuronNumber).rightCols(opt->inhibitoryNeuronNumber)
       );
     }

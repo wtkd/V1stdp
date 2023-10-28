@@ -138,6 +138,7 @@ void setupClusterMap(CLI::App &app) {
 
     auto const clusterMap = calculateClusterMap(correlationMatrix, opt->correlationThreshold, indexMap);
 
+    std::filesystem::create_directories(opt->outputFile.parent_path());
     std::ofstream ofs(opt->outputFile);
 
     for (auto const &v : clusterMap) {

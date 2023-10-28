@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <fstream>
+#include <optional>
 
 #include <CLI/CLI.hpp>
 #include <boost/range/counting_range.hpp>
@@ -41,17 +42,19 @@ void setupApplyPermutation(CLI::App &app) {
 
     Eigen::MatrixXd resultMatrix = responseMatrix;
 
-    if (not opt->colomnFile.empty()) {
-      std::vector<double> const permutaion = readVector<double>(opt->colomnFile);
+    if (opt->colomnFile.has_value()) {
+      std::vector<double> const permutaion = readVector<double>(opt->colomnFile.value());
 
       resultMatrix = applyPermutationCol(resultMatrix, permutaion);
     }
 
-    if (not opt->rowFile.empty()) {
-      std::vector<double> const permutaion = readVector<double>(opt->rowFile);
+    if (opt->rowFile.has_value()) {
+      std::vector<double> const permutaion = readVector<double>(opt->rowFile.value());
 
       resultMatrix = applyPermutationRow(resultMatrix, permutaion);
     }
+
+    std::filesystem::create_directories(opt->outputFile.parent_path());
 
     std::ofstream(opt->outputFile) << resultMatrix;
   });

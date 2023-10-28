@@ -7,6 +7,8 @@
 #include <boost/process/v2/execute.hpp>
 #include <boost/process/v2/process.hpp>
 
+#include "io.hpp"
+
 #include "rsvg-convert.hpp"
 
 struct RsvgConvertOptions {
@@ -26,15 +28,6 @@ void setupRsvgConvert(CLI::App &app) {
       ->check(CLI::NonexistentPath);
 
   sub->callback([opt]() {
-    auto const createDirectory = [](std::filesystem::path const &p) {
-      bool const success = std::filesystem::create_directories(p);
-      if (not success) {
-        throw std::filesystem::filesystem_error(
-            "Cannot create directory", p, std::make_error_code(std::errc::file_exists)
-        );
-      }
-    };
-
     auto const &rsvgConvertExecutable = boost::process::v2::environment::find_executable("rsvg-convert");
 
     if (rsvgConvertExecutable.empty()) {
@@ -44,6 +37,7 @@ void setupRsvgConvert(CLI::App &app) {
     }
 
     createDirectory(opt->outputDirectory);
+
     for (const std::filesystem::directory_entry &it : std::filesystem::directory_iterator(opt->inputDirectory)) {
       if (it.path().extension() != ".svg")
         continue;
