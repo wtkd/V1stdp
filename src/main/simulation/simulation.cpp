@@ -483,6 +483,7 @@ void setupPulse(CLI::App &app) {
 struct SpontaneousOptions {
   Model model;
   int randomSeed = 0;
+  int step = 300;
   std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
@@ -503,6 +504,7 @@ void setupSpontaneous(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
+  sub->add_option("-N,--step", opt->step, "Step number to observe");
   sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
   sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
@@ -538,7 +540,7 @@ void setupSpontaneous(CLI::App &app) {
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
-    int const NBPATTERNS = NBPATTERNSSPONT;
+    int const NBPATTERNS = opt->step;
     int const presentationTime = opt->presentationTime;
     int const NBPRES = NBPATTERNS;
     int const NBLASTSPIKESPRES = NBPATTERNS;
