@@ -16,11 +16,6 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-if (ENABLE_LINT)
-  find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
-  set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
-endif()
-
 if (MSVC)
     # warning level 4
     add_compile_options(/W4)

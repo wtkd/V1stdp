@@ -1,1 +1,2 @@
 WarningsAsErrors: '*'
+HeaderFilterRegex: src/
