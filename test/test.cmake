@@ -602,7 +602,7 @@ set_tests_properties(
 add_test(
   NAME run_apply_permutation_both
   COMMAND $<TARGET_FILE:stdp> tool analyze apply-permutation
-  ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt ./data/correlationMatrix_neuron_permutated_both.txt
+  ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron.txt ./data/analyze/correlationMatrix_neuron_permutated_both.txt
   --colomn ${CMAKE_SOURCE_DIR}/test/data/analyze/sort_index_neuron_excitatory.txt
   --row ${CMAKE_SOURCE_DIR}/test/data/analyze/sort_index_neuron_excitatory.txt
 
@@ -616,7 +616,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_apply_permutation_both
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt ./data/correlationMatrix_neuron_permutated_both.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron_permutated_both.txt ./data/analyze/correlationMatrix_neuron_permutated_both.txt
 )
 set_tests_properties(
   compare_apply_permutation_both PROPERTIES
@@ -629,7 +629,7 @@ set_tests_properties(
 add_test(
   NAME run_apply_permutation_row
   COMMAND $<TARGET_FILE:stdp> tool analyze apply-permutation
-  ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt ./data/correlationMatrix_neuron_permutated_row.txt
+  ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron.txt ./data/analyze/correlationMatrix_neuron_permutated_row.txt
   --row ${CMAKE_SOURCE_DIR}/test/data/analyze/sort_index_neuron_excitatory.txt
 )
 set_tests_properties(
@@ -641,7 +641,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_apply_permutation_row
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_row.txt ./data/correlationMatrix_neuron_permutated_row.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron_permutated_row.txt ./data/analyze/correlationMatrix_neuron_permutated_row.txt
 )
 set_tests_properties(
   compare_apply_permutation_row PROPERTIES
@@ -654,7 +654,7 @@ set_tests_properties(
 add_test(
   NAME run_apply_permutation_colomn
   COMMAND $<TARGET_FILE:stdp> tool analyze apply-permutation
-  ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt ./data/correlationMatrix_neuron_permutated_colomn.txt
+  ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron.txt ./data/analyze/correlationMatrix_neuron_permutated_colomn.txt
   --colomn ${CMAKE_SOURCE_DIR}/test/data/analyze/sort_index_neuron_excitatory.txt
 )
 set_tests_properties(
@@ -666,7 +666,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_apply_permutation_colomn
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_colomn.txt ./data/correlationMatrix_neuron_permutated_colomn.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron_permutated_colomn.txt ./data/analyze/correlationMatrix_neuron_permutated_colomn.txt
 )
 set_tests_properties(
   compare_apply_permutation_colomn PROPERTIES
@@ -681,7 +681,7 @@ set_tests_properties(
 add_test(
   NAME run_cluster_map
   COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map
-  ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt ./data/cluster_map.txt
+  ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron_permutated_both.txt ./data/analyze/cluster_map.txt
   --input-size 100
   --correlation-threshold 0.9
 )
@@ -694,7 +694,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_cluster_map
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/cluster_map.txt ./data/cluster_map.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/cluster_map.txt ./data/analyze/cluster_map.txt
 )
 set_tests_properties(
   compare_cluster_map PROPERTIES
@@ -707,7 +707,7 @@ set_tests_properties(
 add_test(
   NAME run_cluster_map_with_index_map
   COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map
-  ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt ./data/cluster_map_with_index_map.txt
+  ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron_permutated_both.txt ./data/analyze/cluster_map_with_index_map.txt
   --index-file ${CMAKE_SOURCE_DIR}/test/data/analyze/sort_index_neuron_excitatory.txt
   --input-size 100
   --correlation-threshold 0.9
@@ -721,7 +721,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_cluster_map_with_index_map
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/cluster_map_with_index_map.txt ./data/cluster_map_with_index_map.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/cluster_map_with_index_map.txt ./data/analyze/cluster_map_with_index_map.txt
 )
 set_tests_properties(
   compare_cluster_map_with_index_map PROPERTIES
@@ -734,7 +734,7 @@ set_tests_properties(
 add_test(
   NAME run_cluster_map_with_minimum_size
   COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map
-  ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron_permutated_both.txt ./data/cluster_map_with_minimum_size.txt
+  ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron_permutated_both.txt ./data/analyze/cluster_map_with_minimum_size.txt
   --input-size 100
   --correlation-threshold 0.9
   --minimum-cluster-size 5
@@ -748,7 +748,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_cluster_map_with_minimum_size
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/cluster_map_with_minimum_size.txt ./data/cluster_map_with_minimum_size.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/cluster_map_with_minimum_size.txt ./data/analyze/cluster_map_with_minimum_size.txt
 )
 set_tests_properties(
   compare_cluster_map_with_minimum_size PROPERTIES
@@ -820,8 +820,8 @@ add_test(
   NAME run_correlation_matrix
   COMMAND $<TARGET_FILE:stdp> tool analyze response correlation-matrix
   ${CMAKE_SOURCE_DIR}/test/data/analyze/response_excitatory.txt
-  --neuron ./data/correlationMatrix_neuron.txt
-  --stimulation ./data/correlationMatrix_stimulation.txt
+  --neuron ./data/analyze/correlationMatrix_neuron.txt
+  --stimulation ./data/analyze/correlationMatrix_stimulation.txt
   --neuron-number 100
   --stimulation-number 1000
 )
@@ -834,7 +834,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_correlation_matrix_neuron
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_neuron.txt ./data/correlationMatrix_neuron.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron.txt ./data/analyze/correlationMatrix_neuron.txt
 )
 set_tests_properties(
   compare_correlation_matrix_neuron PROPERTIES
@@ -844,7 +844,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_correlation_matrix_stimulation
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/correlationMatrix_stimulation.txt ./data/correlationMatrix_stimulation.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_stimulation.txt ./data/analyze/correlationMatrix_stimulation.txt
 )
 set_tests_properties(
   compare_correlation_matrix_stimulation PROPERTIES
@@ -859,8 +859,8 @@ set_tests_properties(
 add_test(
   NAME run_divide_line
   COMMAND $<TARGET_FILE:stdp> tool analyze divide-line
-  ${CMAKE_SOURCE_DIR}/test/data/cluster_map_with_index_map.txt ./data/divide-line
-  --number-output ./data/divide-line-number.txt
+  ${CMAKE_SOURCE_DIR}/test/data/analyze/cluster_map_with_index_map.txt ./data/analyze/divide-line
+  --number-output ./data/analyze/divide-line-number.txt
   --zero-padding 0
 )
 set_tests_properties(
@@ -872,7 +872,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_divide_line_number
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/divide-line-number.txt ./data/divide-line-number.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/divide-line-number.txt ./data/analyze/divide-line-number.txt
 )
 set_tests_properties(
   compare_divide_line_number PROPERTIES
@@ -882,7 +882,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_divide_line
-  COMMAND diff -r ${CMAKE_SOURCE_DIR}/test/data/divide-line ./data/divide-line
+  COMMAND diff -r ${CMAKE_SOURCE_DIR}/test/data/analyze/divide-line ./data/analyze/divide-line
 )
 set_tests_properties(
   compare_divide_line PROPERTIES
