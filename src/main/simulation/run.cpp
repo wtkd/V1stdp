@@ -276,7 +276,7 @@ int run(
 
   auto &v = modelState.v;
 
-  boost::timer::progress_display showProgress(NBPRES);
+  boost::timer::progress_display showProgress(NBPRES, std::cerr);
 
   // For each stimulus presentation...
   for (auto const numpres : boost::counting_range<unsigned>(0, NBPRES)) {
