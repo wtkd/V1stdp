@@ -34,8 +34,7 @@ struct LearnOptions {
   Model model;
   int randomSeed = 0;
   int step = 500'000;
-  std::filesystem::path dataDirectory = ".";
-  std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
+  std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   int saveLogInterval = 50'000;
   int presentationTime = 350;
@@ -51,9 +50,10 @@ void setupLearn(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-N,--step,--step-number-learning", opt->step, "Step number of times on learning");
-  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
-  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
+      ->required()
+      ->check(CLI::NonexistentPath);
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
   sub->add_option("--start-learning-number", opt->startLearningNumber, "Start learning after this number ostimulation");
@@ -74,14 +74,10 @@ void setupLearn(CLI::App &app) {
 
     auto const &step = opt->step;
 
-    auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
-    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+    auto const &inputFile = opt->inputFile;
+    auto const &saveDirectory = opt->saveDirectory;
 
-    // TODO: 存在しないパスにしか作れないようにするのが最も安全
-    if (not std::filesystem::exists(saveDirectory)) {
-      createDirectory(saveDirectory);
-    }
+    createDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -92,7 +88,7 @@ void setupLearn(CLI::App &app) {
 
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
-    int const &NBRESPS = 2000;
+    int const NBRESPS = 2000;
 
     double const WEI_MAX = model.WEI_MAX();
     double const WIE_MAX = model.WIE_MAX();
@@ -158,8 +154,7 @@ struct TestOptions {
   Model model;
   int randomSeed = 0;
   int step = 1'000;
-  std::filesystem::path dataDirectory = ".";
-  std::filesystem::path inputFile = "patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat";
+  std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
@@ -178,18 +173,22 @@ void setupTest(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-N,--step,--step-number-testing", opt->step, "Step number of times on testing");
-  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
-  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")->required();
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
+      ->required()
+      ->check(CLI::NonexistentPath);
   sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
-      ->required();
+      ->required()
+      ->check(CLI::ExistingFile);
   sub->add_option(
          "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
   )
-      ->required();
+      ->required()
+      ->check(CLI::ExistingFile);
 
   auto delayPolicy = sub->add_option_group("delay-policy");
-  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays")
+      ->check(CLI::ExistingFile);
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
@@ -211,14 +210,10 @@ void setupTest(CLI::App &app) {
 
     auto const &step = opt->step;
 
-    auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
-    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+    auto const &inputFile = opt->inputFile;
+    auto const &saveDirectory = opt->saveDirectory;
 
-    // TODO: 存在しないパスにしか作れないようにするのが最も安全
-    if (not std::filesystem::exists(saveDirectory)) {
-      createDirectory(saveDirectory);
-    }
+    createDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -270,7 +265,6 @@ void setupTest(CLI::App &app) {
 struct MixOptions {
   Model model;
   int randomSeed = 0;
-  std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
@@ -289,18 +283,22 @@ void setupMix(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
-  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
-  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
+      ->required()
+      ->check(CLI::NonexistentPath);
   sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
-      ->required();
+      ->required()
+      ->check(CLI::ExistingFile);
   sub->add_option(
          "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
   )
-      ->required();
+      ->required()
+      ->check(CLI::ExistingFile);
 
   auto delayPolicy = sub->add_option_group("delay-policy");
-  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays")
+      ->check(CLI::ExistingFile);
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
@@ -314,14 +312,10 @@ void setupMix(CLI::App &app) {
     auto const &randomSeed = opt->randomSeed;
     setAndPrintRandomSeed(randomSeed);
 
-    auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
-    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+    auto const &inputFile = opt->inputFile;
+    auto const &saveDirectory = opt->saveDirectory;
 
-    // TODO: 存在しないパスにしか作れないようにするのが最も安全
-    if (not std::filesystem::exists(saveDirectory)) {
-      createDirectory(saveDirectory);
-    }
+    createDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -373,7 +367,6 @@ struct PulseOptions {
   Model model;
   int randomSeed = 0;
   int step = 50;
-  std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
@@ -393,18 +386,23 @@ void setupPulse(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
-  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
-  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
+
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
+      ->required()
+      ->check(CLI::NonexistentPath);
   sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
-      ->required();
+      ->required()
+      ->check(CLI::ExistingFile);
   sub->add_option(
          "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
   )
-      ->required();
+      ->required()
+      ->check(CLI::ExistingFile);
 
   auto delayPolicy = sub->add_option_group("delay-policy");
-  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays")
+      ->check(CLI::ExistingFile);
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
@@ -426,14 +424,10 @@ void setupPulse(CLI::App &app) {
 
     int const &NBPATTERNSPULSE = opt->step;
 
-    auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
-    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+    auto const &inputFile = opt->inputFile;
+    auto const &saveDirectory = opt->saveDirectory;
 
-    // TODO: 存在しないパスにしか作れないようにするのが最も安全
-    if (not std::filesystem::exists(saveDirectory)) {
-      createDirectory(saveDirectory);
-    }
+    createDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -484,7 +478,6 @@ struct SpontaneousOptions {
   Model model;
   int randomSeed = 0;
   int step = 300;
-  std::filesystem::path dataDirectory = ".";
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
@@ -505,18 +498,22 @@ void setupSpontaneous(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-N,--step", opt->step, "Step number to observe");
-  sub->add_option("-d,--data-directory", opt->dataDirectory, "Directory to load and save data");
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data");
-  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data");
+  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
+      ->required()
+      ->check(CLI::NonexistentPath);
   sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
-      ->required();
+      ->required()
+      ->check(CLI::ExistingFile);
   sub->add_option(
          "-F,--feedforward-weight", opt->feedforwardWeight, "File which contains feedforward weight binary data"
   )
-      ->required();
+      ->required()
+      ->check(CLI::ExistingFile);
 
   auto delayPolicy = sub->add_option_group("delay-policy");
-  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays")
+      ->check(CLI::ExistingFile);
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
@@ -529,14 +526,10 @@ void setupSpontaneous(CLI::App &app) {
     auto const &randomSeed = opt->randomSeed;
     setAndPrintRandomSeed(randomSeed);
 
-    auto const &dataDirectory = opt->dataDirectory;
-    auto const &inputFile = std::filesystem::relative(opt->inputFile, dataDirectory);
-    auto const &saveDirectory = opt->saveDirectory.empty() ? dataDirectory : opt->saveDirectory;
+    auto const &inputFile = opt->inputFile;
+    auto const &saveDirectory = opt->saveDirectory;
 
-    // TODO: 存在しないパスにしか作れないようにするのが最も安全
-    if (not std::filesystem::exists(saveDirectory)) {
-      createDirectory(saveDirectory);
-    }
+    createDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
