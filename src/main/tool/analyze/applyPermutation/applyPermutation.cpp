@@ -10,15 +10,15 @@
 
 #include "applyPermutation.hpp"
 
-struct AnalyzeClusteringOptions {
+struct AnalyzeApplyPermutationOptions {
   std::filesystem::path inputFile;
   std::filesystem::path outputFile;
-  std::filesystem::path colomnFile;
-  std::filesystem::path rowFile;
+  std::optional<std::filesystem::path> colomnFile;
+  std::optional<std::filesystem::path> rowFile;
 };
 
 void setupApplyPermutation(CLI::App &app) {
-  auto opt = std::make_shared<AnalyzeClusteringOptions>();
+  auto opt = std::make_shared<AnalyzeApplyPermutationOptions>();
   auto sub = app.add_subcommand("apply-permutation", "Apply permutation to matrix");
 
   sub->add_option("input-file", opt->inputFile, "Name of input text file which contains matrix.")
