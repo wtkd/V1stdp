@@ -366,7 +366,7 @@ set_tests_properties(
 
 add_test(
   NAME run_spontaneous_without_saved_delays
-  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data/without-saved-delays/spontaneous --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --random-delay --presentation-time 100
+  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data/without-saved-delays/spontaneous --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --random-delay --presentation-time 100 --step 100
 )
 set_tests_properties(
   run_spontaneous_without_saved_delays PROPERTIES
@@ -389,7 +389,7 @@ set_tests_properties(
 
 add_test(
   NAME run_spontaneous_with_saved_delays
-  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data/with-saved-delays/spontaneous --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt --presentation-time 100
+  COMMAND $<TARGET_FILE:stdp> spontaneous --save-directory ./data/with-saved-delays/spontaneous --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat --seed 0 --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt --presentation-time 100 --step 100
 )
 set_tests_properties(
   run_spontaneous_with_saved_delays PROPERTIES
