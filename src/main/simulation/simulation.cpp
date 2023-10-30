@@ -12,11 +12,11 @@
 #include "simulation.hpp"
 
 void setupModel(CLI::App &app, Model &model) {
-  app.add_option("--nonoise", model.nonoise, "No noise");
-  app.add_option("--nospike", model.nospike, "No spike");
-  app.add_option("--noinh", model.noinh, "No inhibitary connection");
-  app.add_option("--nolat", model.nolat, "No latetal connection");
-  app.add_option("--noelat", model.noelat, "No excitatory lateral connection");
+  app.add_flag("--nonoise", model.nonoise, "No noise");
+  app.add_flag("--nospike", model.nospike, "No spike");
+  app.add_flag("--noinh", model.noinh, "No inhibitary connection");
+  app.add_flag("--nolat", model.nolat, "No latetal connection");
+  app.add_flag("--noelat", model.noelat, "No excitatory lateral connection");
   app.add_option("--delayparam", model.delayparam, "Delay parameter");
   app.add_option("--latconnmult", model.latconnmult, "Lateral connection multiplication");
   app.add_option("--wpenscale", model.wpenscale, "Wpenscale");
