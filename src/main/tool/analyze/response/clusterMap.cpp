@@ -116,6 +116,7 @@ void setupClusterMap(CLI::App &app) {
           "Each line corresponds to each row/colomn in correlation matrix, and the value means actual index of image.")
 
   )
+      ->required()
       ->check(CLI::ExistingFile);
 
   sub->callback([opt]() {

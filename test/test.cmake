@@ -677,33 +677,7 @@ set_tests_properties(
 
 #### Cluster map
 
-##### Normal
-
-add_test(
-  NAME run_cluster_map
-  COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map
-  ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron_permutated_both.txt ./data/analyze/cluster_map.txt
-  --input-size 100
-  --correlation-threshold 0.9
-)
-set_tests_properties(
-  run_cluster_map PROPERTIES
-  FIXTURES_SETUP run_cluster_map
-  FIXTURES_REQUIRED data_directory
-  LABELS cluster_map
-)
-
-add_test(
-  NAME compare_cluster_map
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/cluster_map.txt ./data/analyze/cluster_map.txt
-)
-set_tests_properties(
-  compare_cluster_map PROPERTIES
-  FIXTURES_REQUIRED run_cluster_map
-  LABELS cluster_map
-)
-
-##### With index map
+##### Without minimum size
 
 add_test(
   NAME run_cluster_map_with_index_map
@@ -736,6 +710,7 @@ add_test(
   NAME run_cluster_map_with_minimum_size
   COMMAND $<TARGET_FILE:stdp> tool analyze response cluster-map
   ${CMAKE_SOURCE_DIR}/test/data/analyze/correlationMatrix_neuron_permutated_both.txt ./data/analyze/cluster_map_with_minimum_size.txt
+  --index-file ${CMAKE_SOURCE_DIR}/test/data/analyze/sort_index_neuron_excitatory.txt
   --input-size 100
   --correlation-threshold 0.9
   --minimum-cluster-size 5
