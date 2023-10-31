@@ -137,17 +137,22 @@ Eigen::MatrixX<T> applyPermutationRow(Eigen::MatrixX<T> const &matrix, std::rang
 template <ColomnOrRow ApplyToEach, typename T, typename F>
   requires std::regular_invocable<F, Eigen::VectorX<T>, Eigen::VectorX<T>> &&
            (std::integral<T> || std::floating_point<T>)
-Eigen::MatrixX<T> calculateCorrelationMatrix(Eigen::MatrixX<T> const &responseMatrix, F const &correlation) {
-  auto const targetNumber = ApplyToEach == ColomnOrRow::Col ? responseMatrix.cols() : responseMatrix.rows();
+Eigen::MatrixX<T> calculateCorrelationMatrix(
+    Eigen::MatrixX<T> const &responseMatrix1, Eigen::MatrixX<T> const &responseMatrix2, F const &correlation
+) {
+  assert(responseMatrix1.cols() == responseMatrix2.cols);
+  assert(responseMatrix1.rows() == responseMatrix2.rows);
+
+  auto const targetNumber = ApplyToEach == ColomnOrRow::Col ? responseMatrix1.cols() : responseMatrix2.rows();
 
   Eigen::MatrixXd correlationMatrix(targetNumber, targetNumber);
 
   for (auto &&x : boost::counting_range<std::size_t>(0, targetNumber)) {
     for (auto &&y : boost::counting_range<std::size_t>(0, targetNumber)) {
       if constexpr (ApplyToEach == ColomnOrRow::Col) {
-        correlationMatrix(x, y) = correlation(responseMatrix.col(x), responseMatrix.col(y));
+        correlationMatrix(x, y) = correlation(responseMatrix1.col(x), responseMatrix2.col(y));
       } else if constexpr (ApplyToEach == ColomnOrRow::Row) {
-        correlationMatrix(x, y) = correlation(responseMatrix.row(x).transpose(), responseMatrix.row(y).transpose());
+        correlationMatrix(x, y) = correlation(responseMatrix1.row(x).transpose(), responseMatrix2.row(y).transpose());
       } else {
         assert(false);
       }

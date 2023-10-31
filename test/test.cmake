@@ -796,6 +796,7 @@ add_test(
   NAME run_correlation_matrix
   COMMAND $<TARGET_FILE:stdp> tool analyze response correlation-matrix
   ${CMAKE_SOURCE_DIR}/test/data/analyze/response_excitatory.txt
+  ${CMAKE_SOURCE_DIR}/test/data/analyze/response_excitatory.txt
   --neuron ./data/analyze/correlationMatrix_neuron.txt
   --stimulation ./data/analyze/correlationMatrix_stimulation.txt
   --neuron-number 100
