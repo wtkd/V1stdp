@@ -53,7 +53,7 @@ void setupCorrelationMatrix(CLI::App &app) {
       auto const matrix =
           calculateCorrelationMatrix<ColomnOrRow::Row, double>(responseMatrix.cast<double>(), correlation<double>);
 
-      std::filesystem::create_directories(opt->eachNeuronOutputFile.value().parent_path());
+      ensureParentDirectory(opt->eachNeuronOutputFile.value());
       saveMatrix(opt->eachNeuronOutputFile.value(), matrix);
     }
 
@@ -61,7 +61,7 @@ void setupCorrelationMatrix(CLI::App &app) {
       auto const matrix =
           calculateCorrelationMatrix<ColomnOrRow::Col, double>(responseMatrix.cast<double>(), correlation<double>);
 
-      std::filesystem::create_directories(opt->eachStimulationOutputFile.value().parent_path());
+      ensureParentDirectory(opt->eachStimulationOutputFile.value());
       saveMatrix(opt->eachStimulationOutputFile.value(), matrix);
     }
   });

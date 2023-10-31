@@ -58,7 +58,7 @@ void setupClustering(CLI::App &app) {
     Eigen::MatrixXi resultMatrix = targetMatrix;
 
     if (opt->stimulationSortedIndexOutputFile.has_value()) {
-      std::filesystem::create_directories(opt->stimulationSortedIndexOutputFile.value().parent_path());
+      ensureParentDirectory(opt->stimulationSortedIndexOutputFile.value());
 
       auto const permutaion = singleClusteringSortPermutation(resultMatrix, correlationDistanceSquare<int>);
 
@@ -68,7 +68,7 @@ void setupClustering(CLI::App &app) {
     }
 
     if (opt->neuronSortedIndexOutputFile.has_value()) {
-      std::filesystem::create_directories(opt->neuronSortedIndexOutputFile.value().parent_path());
+      ensureParentDirectory(opt->neuronSortedIndexOutputFile.value());
 
       auto const permutaion =
           singleClusteringSortPermutation(Eigen::MatrixXi(resultMatrix.transpose()), correlationDistanceSquare<int>);
@@ -79,7 +79,7 @@ void setupClustering(CLI::App &app) {
     }
 
     if (opt->sortedResponseOutputFile.has_value()) {
-      std::filesystem::create_directories(opt->sortedResponseOutputFile.value().parent_path());
+      ensureParentDirectory(opt->sortedResponseOutputFile.value());
 
       std::ofstream ofs(opt->sortedResponseOutputFile.value());
       ofs << resultMatrix;

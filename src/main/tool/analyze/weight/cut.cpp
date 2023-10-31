@@ -48,7 +48,7 @@ void setupWeightCut(CLI::App &app) {
     auto const lateralWeightMatrix = readMatrix<double>(opt->inputFile, neuronNumber, neuronNumber);
 
     if (opt->excitatoryOnlyOutputFile.has_value()) {
-      std::filesystem::create_directories(opt->excitatoryOnlyOutputFile.value().parent_path());
+      ensureParentDirectory(opt->excitatoryOnlyOutputFile.value());
 
       saveMatrix<double>(
           opt->excitatoryOnlyOutputFile.value(),
@@ -57,7 +57,7 @@ void setupWeightCut(CLI::App &app) {
     }
 
     if (opt->inhibitoryOnlyOutputFile.has_value()) {
-      std::filesystem::create_directories(opt->inhibitoryOnlyOutputFile.value().parent_path());
+      ensureParentDirectory(opt->inhibitoryOnlyOutputFile.value());
 
       saveMatrix<double>(
           opt->inhibitoryOnlyOutputFile.value(),

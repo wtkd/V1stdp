@@ -92,4 +92,11 @@ void createEmptyDirectory(std::filesystem::path const &p) {
   if (not success) {
     throw std::filesystem::filesystem_error("Cannot create directory", p, std::make_error_code(std::errc::file_exists));
   }
-};
+}
+
+void ensureParentDirectory(std::filesystem::path const &p) {
+  auto const parent = p.parent_path();
+  if (not parent.empty()) {
+    std::filesystem::create_directories(parent);
+  }
+}

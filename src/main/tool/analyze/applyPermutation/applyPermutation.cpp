@@ -54,7 +54,7 @@ void setupApplyPermutation(CLI::App &app) {
       resultMatrix = applyPermutationRow(resultMatrix, permutaion);
     }
 
-    std::filesystem::create_directories(opt->outputFile.parent_path());
+    ensureParentDirectory(opt->outputFile);
 
     std::ofstream(opt->outputFile) << resultMatrix;
   });

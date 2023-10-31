@@ -96,7 +96,7 @@ void setupImageExport(CLI::App &app) {
     }
 
     if (opt->allInOneFileName.has_value()) {
-      std::filesystem::create_directories(opt->allInOneFileName.value().parent_path());
+      ensureParentDirectory(opt->allInOneFileName.value());
       exporterAllInOne(imageVector, opt->allInOneFileName.value());
     }
   });

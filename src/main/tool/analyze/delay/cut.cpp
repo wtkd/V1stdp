@@ -49,7 +49,7 @@ void setupDelayCut(CLI::App &app) {
     auto const delays = readMatrix<int>(opt->inputFile, neuronNumber, neuronNumber);
 
     if (opt->excitatoryOnlyOutputFile.has_value()) {
-      std::filesystem::create_directories(opt->excitatoryOnlyOutputFile.value().parent_path());
+      ensureParentDirectory(opt->excitatoryOnlyOutputFile.value());
 
       saveMatrix<int>(
           opt->excitatoryOnlyOutputFile.value(),
@@ -58,7 +58,7 @@ void setupDelayCut(CLI::App &app) {
     }
 
     if (opt->inhibitoryOnlyOutputFile.has_value()) {
-      std::filesystem::create_directories(opt->inhibitoryOnlyOutputFile.value().parent_path());
+      ensureParentDirectory(opt->inhibitoryOnlyOutputFile.value());
 
       saveMatrix<int>(
           opt->inhibitoryOnlyOutputFile.value(),

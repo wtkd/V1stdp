@@ -19,6 +19,7 @@ std::vector<std::vector<std::string>> readVectorVector(std::filesystem::path con
 std::vector<Eigen::ArrayXX<std::int8_t>>
 readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLength);
 void createEmptyDirectory(std::filesystem::path const &p);
+void ensureParentDirectory(std::filesystem::path const &p);
 
 template <typename T> std::vector<T> readVector(std::filesystem::path const &file) {
   std::vector<T> v;
