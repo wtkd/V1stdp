@@ -18,7 +18,7 @@ std::size_t countWord(std::filesystem::path const &file);
 std::vector<std::vector<std::string>> readVectorVector(std::filesystem::path const &file);
 std::vector<Eigen::ArrayXX<std::int8_t>>
 readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLength);
-void createDirectory(std::filesystem::path const &p);
+void createEmptyDirectory(std::filesystem::path const &p);
 
 template <typename T> std::vector<T> readVector(std::filesystem::path const &file) {
   std::vector<T> v;

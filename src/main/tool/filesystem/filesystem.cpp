@@ -16,7 +16,7 @@ void setupMakeDirectory(CLI::App &app) {
 
   sub->add_option("directory", opt->directory, "Directory to make.")->required()->check(CLI::NonexistentPath);
 
-  sub->callback([opt]() { createDirectory(opt->directory); });
+  sub->callback([opt]() { createEmptyDirectory(opt->directory); });
 }
 
 void setupFilesystem(CLI::App &app) {

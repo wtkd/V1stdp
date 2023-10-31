@@ -40,7 +40,7 @@ void setupDivideLine(CLI::App &app) {
       writeVector(opt->numberFile.value(), std::vector{data.size()});
     }
 
-    createDirectory(opt->outputDirectory);
+    createEmptyDirectory(opt->outputDirectory);
 
     auto const zeroPadding = opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(data.size()) + 1;
 

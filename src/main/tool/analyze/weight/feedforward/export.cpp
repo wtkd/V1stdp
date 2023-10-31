@@ -99,7 +99,7 @@ void setupWeightFeedforwardExport(CLI::App &app) {
       auto const zeroPadding =
           opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(onWeights.size()) + 1;
 
-      createDirectory(opt->onDirectory.value());
+      createEmptyDirectory(opt->onDirectory.value());
       exportMatrices(onWeights, opt->onDirectory.value(), zeroPadding);
     }
 
@@ -107,7 +107,7 @@ void setupWeightFeedforwardExport(CLI::App &app) {
       auto const zeroPadding =
           opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(offWeights.size()) + 1;
 
-      createDirectory(opt->offDirectory.value());
+      createEmptyDirectory(opt->offDirectory.value());
       exportMatrices(offWeights, opt->offDirectory.value(), zeroPadding);
     }
 
@@ -115,7 +115,7 @@ void setupWeightFeedforwardExport(CLI::App &app) {
       auto const zeroPadding =
           opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(onWeights.size()) + 1;
 
-      createDirectory(opt->diffDirectory.value());
+      createEmptyDirectory(opt->diffDirectory.value());
 
       std::vector<Eigen::MatrixXd> differences;
       std::ranges::transform(onWeights, offWeights, std::back_inserter(differences), std::minus<Eigen::MatrixXd>());

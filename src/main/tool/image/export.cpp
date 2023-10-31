@@ -65,12 +65,12 @@ void setupImageExport(CLI::App &app) {
     auto const imageVector = readImages(opt->inputFile, opt->edgeLength);
 
     if (opt->allEachDirectory.has_value()) {
-      createDirectory(opt->allEachDirectory.value());
+      createEmptyDirectory(opt->allEachDirectory.value());
       exporterAllEach(imageVector, opt->allEachDirectory.value());
     }
 
     if (opt->onImageDirectory.has_value()) {
-      createDirectory(opt->onImageDirectory.value());
+      createEmptyDirectory(opt->onImageDirectory.value());
 
       std::vector<Eigen::ArrayXX<std::int8_t>> onCenterImageVector;
       std::ranges::transform(
@@ -83,7 +83,7 @@ void setupImageExport(CLI::App &app) {
     }
 
     if (opt->offImageDirectory.has_value()) {
-      createDirectory(opt->offImageDirectory.value());
+      createEmptyDirectory(opt->offImageDirectory.value());
 
       std::vector<Eigen::ArrayXX<std::int8_t>> offCenterImageVector;
       std::ranges::transform(

@@ -52,7 +52,10 @@ void setupCut(CLI::App &app) {
     auto const responseMatrix = readMatrix<std::uint64_t>(opt->inputFile, neuronNumber, opt->stimulationNumber);
 
     if (opt->excitatoryOnlyOutputFile.has_value()) {
-      std::filesystem::create_directories(opt->excitatoryOnlyOutputFile.value().parent_path());
+      auto const parent = opt->excitatoryOnlyOutputFile.value().parent_path();
+      if (not parent.empty()) {
+        std::filesystem::create_directories(parent);
+      }
 
       saveMatrix<std::uint64_t>(
           opt->excitatoryOnlyOutputFile.value(), responseMatrix.topRows(opt->excitatoryNeuronNumber)
@@ -60,7 +63,11 @@ void setupCut(CLI::App &app) {
     }
 
     if (opt->inhibitoryOnlyOutputFile.has_value()) {
-      std::filesystem::create_directories(opt->inhibitoryOnlyOutputFile.value().parent_path());
+      auto const parent = opt->inhibitoryOnlyOutputFile.value().parent_path();
+
+      if (not parent.empty()) {
+        std::filesystem::create_directories(parent);
+      }
 
       saveMatrix<std::uint64_t>(
           opt->inhibitoryOnlyOutputFile.value(), responseMatrix.bottomRows(opt->inhibitoryNeuronNumber)

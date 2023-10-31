@@ -36,7 +36,7 @@ void setupRsvgConvert(CLI::App &app) {
       );
     }
 
-    createDirectory(opt->outputDirectory);
+    createEmptyDirectory(opt->outputDirectory);
 
     for (const std::filesystem::directory_entry &it : std::filesystem::directory_iterator(opt->inputDirectory)) {
       if (it.path().extension() != ".svg")

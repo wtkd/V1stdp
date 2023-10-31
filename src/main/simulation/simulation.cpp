@@ -79,7 +79,7 @@ void setupLearn(CLI::App &app) {
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
-    createDirectory(saveDirectory);
+    createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -220,7 +220,7 @@ void setupTest(CLI::App &app) {
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
-    createDirectory(saveDirectory);
+    createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -333,7 +333,7 @@ void setupMix(CLI::App &app) {
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
-    createDirectory(saveDirectory);
+    createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -445,7 +445,7 @@ void setupPulse(CLI::App &app) {
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
-    createDirectory(saveDirectory);
+    createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -547,7 +547,7 @@ void setupSpontaneous(CLI::App &app) {
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
-    createDirectory(saveDirectory);
+    createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
