@@ -92,13 +92,15 @@
   (command #:inputs
            (stdp-executable #:type File)
            (correlation-matrix #:type File)
+           (index-file #:type File)
            (input-size #:type int)
            (correlation-threshold #:type float)
            (minimum-cluster-size #:type int)
            (output-name #:type string)
            #:run
            stdp-executable "tool" "analyze" "response" "cluster-map"
-           response correlation-matrix output-name
+           correlation-matrix output-name
+           "--index-file" index-file
            "--input-size" input-size
            "--correlation-threshold" correlation-threshold
            "--minimum-cluster-size" minimum-cluster-size
@@ -408,6 +410,9 @@
                     #:neuron-number excitatory-neuron-number
                     #:stimulation-number test-stimulation-number)))
             (tee
+             (rename #:sort-index-neuron sort-index-neuron
+                     #:sort-index-stimulation sort-index-stimulation
+                     #:response-sorted response-sorted)
              (pipe
               (plot-matrix (plot-response)
                            #:matrix response-sorted
@@ -439,11 +444,15 @@
                            #:title "Delay between each neuron")
               (rename #:plot-delay-matrix matrix-plot))
              (pipe
-              (response-correlation-matrix
-               #:stdp-executable stdp-executable
-               #:response response-sorted
-               #:neuron-number excitatory-neuron-number
-               #:stimulation-number test-stimulation-number)
+              (tee
+               (rename #:sort-index-neuron sort-index-neuron
+                       #:sort-index-stimulation sort-index-stimulation
+                       #:response-sorted response-sorted)
+               (response-correlation-matrix
+                #:stdp-executable stdp-executable
+                #:response response-sorted
+                #:neuron-number excitatory-neuron-number
+                #:stimulation-number test-stimulation-number))
               (tee
                (pipe
                 (plot-correlation
@@ -461,6 +470,7 @@
                 (cluster-map (cluster-map-neuron)
                              #:stdp-executable stdp-executable
                              #:correlation-matrix correlation-matrix-neuron
+                             #:index-file sort-index-neuron
                              #:input-size excitatory-neuron-number
                              #:correlation-threshold correlation-threshold-neuron
                              #:minimum-cluster-size minimum-cluster-size-neuron
@@ -476,6 +486,7 @@
                 (cluster-map (cluster-map-stimulation)
                              #:stdp-executable stdp-executable
                              #:correlation-matrix correlation-matrix-stimulation
+                             #:index-file sort-index-stimulation
                              #:input-size test-stimulation-number
                              #:correlation-threshold correlation-threshold-stimulation
                              #:minimum-cluster-size minimum-cluster-size-stimulation
