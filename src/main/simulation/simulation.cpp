@@ -1,7 +1,9 @@
 #include <cstdint>
 #include <filesystem>
+#include <iterator>
 #include <memory>
 #include <optional>
+#include <ranges>
 
 #include "constant.hpp"
 #include "io.hpp"
@@ -163,6 +165,8 @@ struct TestOptions {
   int saveLogInterval = 50'000;
   int presentationTime = 350;
   int imageRange = 0;
+  bool reverseColomn = false;
+  bool reverseRow = false;
 };
 
 void setupTest(CLI::App &app) {
@@ -201,6 +205,9 @@ void setupTest(CLI::App &app) {
        "The positive value N means using bottom N of image.\n"
        "The negative value -N means using all except top N of image.")
   );
+
+  sub->add_flag("--reverse-colomn", opt->reverseColomn, "Reverse each colomn of input.");
+  sub->add_flag("--reverse-row", opt->reverseRow, "Reverse each row of input.");
 
   sub->callback([opt]() {
     Model const &model = opt->model;
@@ -244,6 +251,17 @@ void setupTest(CLI::App &app) {
         imageVector.end()
     );
 
+    std::vector<Eigen::ArrayXX<std::int8_t>> reversedImageVector;
+    std::ranges::transform(
+        narrowedImageVector,
+        std::back_inserter(reversedImageVector),
+        [&](Eigen::ArrayXX<std::int8_t> const &x) -> Eigen::ArrayXX<std::int8_t> {
+          auto const colReversed = opt->reverseColomn ? x.colwise().reverse() : x;
+          auto const rowColReversed = opt->reverseRow ? colReversed.rowwise().reverse() : colReversed;
+          return rowColReversed;
+        }
+    );
+
     run(model,
         presentationTime,
         NBLASTSPIKESPRES,
@@ -256,7 +274,7 @@ void setupTest(CLI::App &app) {
         wff,
         w,
         delays,
-        narrowedImageVector,
+        reversedImageVector,
         saveDirectory,
         saveLogInterval);
   });
