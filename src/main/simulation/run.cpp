@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -29,7 +30,7 @@ int run(
     MatrixXd const &initwff,
     MatrixXd const &initw,
     std::optional<Eigen::ArrayXXi> const &inputDelays,
-    Eigen::ArrayXX<int8_t> const &imageVector,
+    std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
     std::uint16_t const startLearningStimulationNumber
@@ -60,7 +61,7 @@ int run(
 
   // XXX: This should use type of the vector imagedata.
   // To change depending on whether the data is float/single (4) or double (8)
-  int const nbpatchesinfile = imageVector.cols() - 1; // The -1 is just there to ignore the last patch (I think)
+  int const nbpatchesinfile = imageVector.size() - 1; // The -1 is just there to ignore the last patch (I think)
   std::cout << "Number of patches in file: " << nbpatchesinfile << std::endl;
 
   // The noise excitatory input is a Poisson process (separate for each cell) with a constant rate (in KHz / per ms)
@@ -301,8 +302,8 @@ int run(
 
     auto const createRatioLgnrates = [&](int const dataNumber, double const mod) -> ArrayXd {
       ArrayXd result(FFRFSIZE);
-      result << log(1.0 + (mod * (imageVector.col(dataNumber)).cast<double>()).max(0)),
-          log(1.0 - (mod * (imageVector.col(dataNumber)).cast<double>()).min(0));
+      result << (1.0 + (mod * imageVector.at(dataNumber).reshaped().cast<double>()).max(0)).log(),
+          (1.0 - (mod * imageVector.at(dataNumber).reshaped().cast<double>()).min(0)).log();
       return result / result.maxCoeff();
     };
 

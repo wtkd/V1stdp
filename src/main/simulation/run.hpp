@@ -22,7 +22,7 @@ int run(
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
     std::optional<Eigen::ArrayXXi> const &inputDelays,
-    Eigen::ArrayXX<int8_t> const &imageVector,
+    std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
     std::uint16_t const startLearningStimulationNumber = 0

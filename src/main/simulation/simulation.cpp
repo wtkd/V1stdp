@@ -126,10 +126,10 @@ void setupLearn(CLI::App &app) {
 
     auto const imageVector = readImages(inputFile, PATCHSIZE);
 
-    decltype(imageVector) narrowedImageVector = opt->imageRange == 0 ? imageVector
-                                                : opt->imageRange > 0
-                                                    ? imageVector.leftCols(opt->imageRange)
-                                                    : imageVector.leftCols(imageVector.cols() + opt->imageRange);
+    decltype(imageVector) const narrowedImageVector(
+        imageVector.begin(),
+        imageVector.begin() + (opt->imageRange > 0 ? opt->imageRange : imageVector.size() + opt->imageRange)
+    );
 
     run(model,
         presentationTime,
@@ -239,10 +239,10 @@ void setupTest(CLI::App &app) {
     // w.rightCols(NBI).fill(-1.0); // Everybody receives fixed, negative inhibition (including inhibitory neurons)
 
     auto const imageVector = readImages(inputFile, PATCHSIZE);
-    decltype(imageVector) narrowedImageVector = opt->imageRange == 0 ? imageVector
-                                                : opt->imageRange > 0
-                                                    ? imageVector.rightCols(opt->imageRange)
-                                                    : imageVector.rightCols(imageVector.cols() + opt->imageRange);
+    decltype(imageVector) const narrowedImageVector(
+        imageVector.end() - (opt->imageRange > 0 ? opt->imageRange : imageVector.size() + opt->imageRange),
+        imageVector.end()
+    );
 
     run(model,
         presentationTime,

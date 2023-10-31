@@ -53,7 +53,8 @@ std::vector<std::vector<std::string>> readVectorVector(std::filesystem::path con
   return result;
 }
 
-Eigen::ArrayXX<int8_t> readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLength) {
+std::vector<Eigen::ArrayXX<std::int8_t>>
+readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLength) {
   // The stimulus patches are 17x17x2 in length, arranged linearly. See below
   // for the setting of feedforward firing rates based on patch data. See also
   // makepatchesImageNetInt8.m
@@ -65,13 +66,25 @@ Eigen::ArrayXX<int8_t> readImages(std::filesystem::path const &inputFile, std::u
     throw std::ios_base::failure("Failed to open the binary data file!");
     exit(1);
   }
-  std::vector<std::int8_t> const v((std::istreambuf_iterator<char>(DataFile)), std::istreambuf_iterator<char>());
+  std::vector<std::int8_t> const rawVector(
+      (std::istreambuf_iterator<char>(DataFile)), std::istreambuf_iterator<char>()
+  );
   DataFile.close();
   std::cout << "Data read!" << std::endl;
 
-  return Eigen::Map<Eigen::ArrayXX<int8_t> const>(
-      v.data(), edgeLength * edgeLength, v.size() / (edgeLength * edgeLength)
+  Eigen::Map<Eigen::ArrayXX<std::int8_t> const> const vectorImages(
+      rawVector.data(), edgeLength * edgeLength, rawVector.size() / (edgeLength * edgeLength)
   );
+
+  std::vector<Eigen::ArrayXX<std::int8_t>> matrixImages;
+  std::ranges::transform(
+      vectorImages.colwise(),
+      std::back_inserter(matrixImages),
+      [&](Eigen::ArrayX<std::int8_t> const &x) -> Eigen::ArrayXX<std::int8_t> {
+        return x.reshaped(edgeLength, edgeLength);
+      }
+  );
+  return matrixImages;
 }
 
 void createDirectory(std::filesystem::path const &p) {
