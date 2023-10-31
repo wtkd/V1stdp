@@ -10,50 +10,46 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/timer/progress_display.hpp>
 
-void exporterOne(
-    Eigen::ArrayX<int8_t> const &image,
-    std::filesystem::path const &outputFile,
-    std::uint64_t const &edgeRow,
-    std::uint64_t const &edgeColomn
+void exporterOne(Eigen::ArrayXX<std::int8_t> const &image, std::filesystem::path const &outputFile) {
+  std::ofstream outputFileStream(outputFile);
+  if (!outputFileStream.is_open()) {
+    throw std::ios_base::failure("Failed to open the output file " + outputFile.string() + ".");
+  }
+
+  outputFileStream << image << std::endl;
+}
+
+void exporterAllInOne(
+    std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector, std::filesystem::path const &outputFile
 ) {
   std::ofstream outputFileStream(outputFile);
   if (!outputFileStream.is_open()) {
     throw std::ios_base::failure("Failed to open the output file " + outputFile.string() + ".");
   }
 
-  outputFileStream << image.reshaped(edgeRow, edgeColomn) << std::endl;
-}
-
-void exporterAllInOne(Eigen::ArrayXX<int8_t> const &imageVector, std::filesystem::path const &outputFile) {
-  std::ofstream outputFileStream(outputFile);
-  if (!outputFileStream.is_open()) {
-    throw std::ios_base::failure("Failed to open the output file " + outputFile.string() + ".");
+  for (auto const &i : imageVector) {
+    outputFileStream << i.reshaped().transpose() << std::endl;
   }
-
-  outputFileStream << imageVector << std::endl;
 }
 
 void exporterAllEach(
-    Eigen::ArrayXX<int8_t> const &imageVector,
-    std::filesystem::path const &outputDirectory,
-    std::uint64_t const &edgeRow,
-    std::uint64_t const &edgeColomn
+    std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector, std::filesystem::path const &outputDirectory
 ) {
 
   if (not std::filesystem::exists(outputDirectory)) {
     throw std::ios_base::failure("Failed to open the output directory " + outputDirectory.string() + ".");
   }
 
-  std::cout << "Total image number: " << imageVector.cols() << std::endl;
+  std::cout << "Total image number: " << imageVector.size() << std::endl;
 
-  boost::timer::progress_display showProgress(imageVector.cols());
-  for (auto const &&image : imageVector.colwise() | boost::adaptors::indexed()) {
+  boost::timer::progress_display showProgress(imageVector.size());
+  for (auto const &&[i, image] : imageVector | boost::adaptors::indexed()) {
     std::ostringstream baseFileNameStream;
-    baseFileNameStream << std::setfill('0') << std::setw(std::log10(imageVector.cols()) + 1) << image.index() << ".txt";
+    baseFileNameStream << std::setfill('0') << std::setw(std::log10(imageVector.size()) + 1) << i << ".txt";
     std::string const baseFileName = baseFileNameStream.str();
 
     auto const outputFile = outputDirectory / baseFileName;
-    exporterOne(image.value(), outputFile, edgeRow, edgeColomn);
+    exporterOne(image, outputFile);
 
     ++showProgress;
   }

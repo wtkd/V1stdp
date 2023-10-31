@@ -1,8 +1,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <iterator>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <system_error>
 #include <vector>
 
@@ -60,47 +62,37 @@ void setupImageExport(CLI::App &app) {
       ->required();
 
   sub->callback([opt]() {
-    auto const &inputFile = opt->inputFile;
-
-    auto const imageData = [&]() {
-      // The stimulus patches are 17x17x2 in length, arranged linearly. See below
-      // for the setting of feedforward firing rates based on patch data. See also
-      // makepatchesImageNetInt8.m
-      std::ifstream DataFile(inputFile, std::ios::binary);
-      if (!DataFile.is_open()) {
-        throw std::ios_base::failure("Failed to open the binary data file!");
-      }
-
-      std::vector<int8_t> const v((std::istreambuf_iterator<char>(DataFile)), std::istreambuf_iterator<char>());
-      DataFile.close();
-
-      return v;
-    }();
-
-    auto const fileSize = imageData.size();
-    auto const dataSize = fileSize / sizeof(int8_t);
-
-    auto const &edgeLength = opt->edgeLength;
-
-    auto const totalImageNumber = dataSize / (edgeLength * edgeLength) - 1;
-
-    Eigen::Map<Eigen::ArrayXX<int8_t> const> const imageVector(
-        imageData.data(), (edgeLength * edgeLength), totalImageNumber
-    );
+    auto const imageVector = readImages(opt->inputFile, opt->edgeLength);
 
     if (opt->allEachDirectory.has_value()) {
       createDirectory(opt->allEachDirectory.value());
-      exporterAllEach(imageVector, opt->allEachDirectory.value(), edgeLength, edgeLength);
+      exporterAllEach(imageVector, opt->allEachDirectory.value());
     }
 
     if (opt->onImageDirectory.has_value()) {
       createDirectory(opt->onImageDirectory.value());
-      exporterAllEach(imageVector.cwiseMax(0), opt->onImageDirectory.value(), edgeLength, edgeLength);
+
+      std::vector<Eigen::ArrayXX<std::int8_t>> onCenterImageVector;
+      std::ranges::transform(
+          imageVector,
+          std::back_inserter(onCenterImageVector),
+          [](Eigen::ArrayXX<std::int8_t> const &x) -> Eigen::ArrayXX<std::int8_t> { return x.cwiseMax(0); }
+      );
+
+      exporterAllEach(onCenterImageVector, opt->onImageDirectory.value());
     }
 
     if (opt->offImageDirectory.has_value()) {
       createDirectory(opt->offImageDirectory.value());
-      exporterAllEach(-imageVector.cwiseMin(0), opt->offImageDirectory.value(), edgeLength, edgeLength);
+
+      std::vector<Eigen::ArrayXX<std::int8_t>> offCenterImageVector;
+      std::ranges::transform(
+          imageVector,
+          std::back_inserter(offCenterImageVector),
+          [](Eigen::ArrayXX<std::int8_t> const &x) -> Eigen::ArrayXX<std::int8_t> { return -x.cwiseMin(0); }
+      );
+
+      exporterAllEach(offCenterImageVector, opt->offImageDirectory.value());
     }
 
     if (opt->allInOneFileName.has_value()) {
