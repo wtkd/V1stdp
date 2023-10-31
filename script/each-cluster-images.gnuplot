@@ -41,17 +41,21 @@ do for [cluster=0:n-1] {
     stats clusterFile nooutput
     size=STATS_records
 
+    # TODO: 名前がclustersなのは実態に即していない。imagesやimageNumbersが妥当
     array clusters[size]
     stats clusterFile using (clusters[$0+1]=$1,$0):1 nooutput
 
-    set term svg size 500*(size/5+1),400*5 dynamic
+    set term svg size 500*10,400*(size/10+1) dynamic
     set output outputFile
-    set multiplot title sprintf("Cluster %d", cluster) layout 5,(size/5+1)
+    set multiplot title sprintf("Cluster %d", cluster) layout (size/10+1),10
     set size ratio 1
 
     do for [i=1:size] {
         imageNumberFromTop=clusters[i]
-        baseName = sprintf(sprintf('%%0%dd', textImageZeroPadding), imageNumberFromTop + imageTop);
+        # FIXME: ワークアラウンドでこう書いているが、実際はこちらではなくプログラム本体を直すべきである
+        # imageNumberFromTop + imageTop
+
+        baseName = sprintf(sprintf('%%0%dd', textImageZeroPadding), (ceil(imageNumberFromTop) % imageRange) + (imageTop + 1));
         inputFile = sprintf("%s/%s.txt", textImageDirectory, baseName);
 
         set title sprintf("Input image %s", baseName)
