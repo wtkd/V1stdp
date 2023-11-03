@@ -88,6 +88,8 @@ void setupLearn(CLI::App &app) {
     // NOTE: At first, it was initialized 50 but became 30 soon, so I squashed it.
     int const NBLASTSPIKESPRES = 30;
 
+    int const NBSTEPSPERPRES = (int)(presentationTime / dt);
+
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = 2000;
@@ -144,7 +146,8 @@ void setupLearn(CLI::App &app) {
         Phase::learning,
         -1, // STIM1 is not used
         -1, // STIM2 is not used
-        -1, // PULSETIME is not used
+        // Inputs only fire until the 'relaxation' period at the end of each presentation
+        {0, NBSTEPSPERPRES - double(TIMEZEROINPUT) / dt},
         wff,
         w,
         std::nullopt,
@@ -236,6 +239,8 @@ void setupTest(CLI::App &app) {
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = NBPRES;
 
+    int const NBSTEPSPERPRES = (int)(presentationTime / dt);
+
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
@@ -275,7 +280,8 @@ void setupTest(CLI::App &app) {
         Phase::testing,
         -1, // STIM1 is not used
         -1, // STIM2 is not used
-        -1, // PULSETIME is not used
+        // Inputs only fire until the 'relaxation' period at the end of each presentation
+        {0, NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)},
         wff,
         w,
         delays,
@@ -358,6 +364,8 @@ void setupMix(CLI::App &app) {
 
     int const presentationTime = opt->presentationTime;
 
+    int const NBSTEPSPERPRES = (int)(presentationTime / dt);
+
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
     MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
@@ -376,7 +384,8 @@ void setupMix(CLI::App &app) {
         Phase::mixing,
         STIM1,
         STIM2,
-        -1, // PULSETIME is not used
+        // Inputs only fire until the 'relaxation' period at the end of each presentation
+        {0, NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)},
         wff,
         w,
         delays,
@@ -478,6 +487,7 @@ void setupPulse(CLI::App &app) {
         opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
 
     auto const imageVector = readImages(inputFile, PATCHSIZE);
+    decltype(imageVector) const narrowedImageVector = {imageVector.at(STIM1)};
 
     run(model,
         presentationTime,
@@ -487,11 +497,12 @@ void setupPulse(CLI::App &app) {
         Phase::pulse,
         STIM1,
         -1, // STIM2 is not used
-        PULSETIME,
+        // In the PULSE case, inputs only fire for a short period of time
+        {PULSESTART, double(PULSETIME) / dt},
         wff,
         w,
         delays,
-        imageVector,
+        narrowedImageVector,
         saveDirectory,
         saveLogInterval);
   });
@@ -563,6 +574,9 @@ void setupSpontaneous(CLI::App &app) {
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = NBPRES;
+
+    int const NBSTEPSPERPRES = (int)(presentationTime / dt);
+
     std::cout << "Spontaneous activity - no stimulus !" << std::endl;
 
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
@@ -581,7 +595,8 @@ void setupSpontaneous(CLI::App &app) {
         Phase::spontaneous,
         -1, // STIM1 is not used
         -1, // STIM2 is not used
-        -1, // PULSE is not used
+        // Inputs only fire until the 'relaxation' period at the end of each presentation
+        {0, NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)},
         wff,
         w,
         delays,

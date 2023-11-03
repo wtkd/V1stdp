@@ -18,7 +18,7 @@ int run(
     Phase const phase,
     int const STIM1,
     int const STIM2,
-    int const PULSETIME,
+    std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
     std::optional<Eigen::ArrayXXi> const &inputDelays,

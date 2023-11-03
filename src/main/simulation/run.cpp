@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <utility>
 
 #include <Eigen/Dense>
 #include <boost/range/adaptors.hpp>
@@ -27,7 +28,7 @@ int run(
     Phase const phase,
     int const STIM1,
     int const STIM2,
-    int const PULSETIME,
+    std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     MatrixXd const &initwff,
     MatrixXd const &initw,
     std::optional<Eigen::ArrayXXi> const &inputDelays,
@@ -288,7 +289,7 @@ int run(
     }
 
     // Where are we in the data file?
-    int const currentDataNumber = (phase == Phase::pulse ? STIM1 : numpres % nbpatchesinfile);
+    int const currentDataNumber = numpres % nbpatchesinfile;
     if (nbpatchesinfile <= currentDataNumber) {
       std::cerr << "Error: tried to read beyond data end.\n";
       return -1;
@@ -357,15 +358,7 @@ int run(
           return ArrayXd::Zero(FFRFSIZE);
         }
 
-        double const presentationStart = phase == Phase::pulse ? PULSESTART : 0;
-        double const presentationEnd =
-            phase == Phase::pulse
-                ?
-                // In the PULSE case, inputs only fire for a short period of time
-                double(PULSETIME) / dt
-                :
-                // Otherwise, inputs only fire until the 'relaxation' period at the end of each presentation
-                NBSTEPSPERPRES - double(TIMEZEROINPUT) / dt;
+        auto const [presentationStart, presentationEnd] = presentationTimeRange;
 
         if (presentationStart <= numstepthispres && (numstepthispres < presentationEnd)) {
           ArrayXd r(FFRFSIZE);
