@@ -356,12 +356,17 @@ int run(
           return ArrayXd::Zero(FFRFSIZE);
         }
 
-        if (
-          // In the PULSE case, inputs only fire for a short period of time
-          ((phase == Phase::pulse) && (numstepthispres >= (double)(PULSESTART) / dt) &&
-           (numstepthispres < (double)(PULSESTART + PULSETIME) / dt)) ||
-          // Otherwise, inputs only fire until the 'relaxation' period at the end of each presentation
-          ((phase != Phase::pulse) && (numstepthispres < NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)))){
+        double const presentationStart = phase == Phase::pulse ? PULSESTART : 0;
+        double const presentationEnd =
+            phase == Phase::pulse
+                ?
+                // In the PULSE case, inputs only fire for a short period of time
+                double(PULSETIME) / dt
+                :
+                // Otherwise, inputs only fire until the 'relaxation' period at the end of each presentation
+                NBSTEPSPERPRES - double(TIMEZEROINPUT) / dt;
+
+        if (presentationStart <= numstepthispres && (numstepthispres < presentationEnd)) {
           ArrayXd r(FFRFSIZE);
           for (auto &&it = r.begin(); it != r.end(); ++it) {
             // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
