@@ -4,6 +4,7 @@
 #include <optional>
 
 #include <Eigen/Dense>
+#include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
 #include <boost/timer/progress_display.hpp>
 
@@ -368,9 +369,9 @@ int run(
 
         if (presentationStart <= numstepthispres && (numstepthispres < presentationEnd)) {
           ArrayXd r(FFRFSIZE);
-          for (auto &&it = r.begin(); it != r.end(); ++it) {
+          for (auto &&i : r | boost::adaptors::indexed()) {
             // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
-            *it = (rand() / (double)RAND_MAX < std::abs(lgnrates(std::distance(r.begin(), it))) ? 1.0 : 0.0);
+            i.value() = (rand() / (double)RAND_MAX < std::abs(lgnrates(i.index())) ? 1.0 : 0.0);
           }
           return r;
         }
