@@ -62,7 +62,7 @@ int run(
 
   // XXX: This should use type of the vector imagedata.
   // To change depending on whether the data is float/single (4) or double (8)
-  int const nbpatchesinfile = imageVector.size() - 1; // The -1 is just there to ignore the last patch (I think)
+  int const nbpatchesinfile = imageVector.size();
   std::cout << "Number of patches in file: " << nbpatchesinfile << std::endl;
 
   // The noise excitatory input is a Poisson process (separate for each cell) with a constant rate (in KHz / per ms)

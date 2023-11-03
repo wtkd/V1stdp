@@ -130,7 +130,10 @@ void setupLearn(CLI::App &app) {
 
     decltype(imageVector) const narrowedImageVector(
         imageVector.begin(),
-        imageVector.begin() + (opt->imageRange > 0 ? opt->imageRange : imageVector.size() + opt->imageRange)
+        imageVector.begin() +
+            (opt->imageRange > 0 ? opt->imageRange : imageVector.size() + opt->imageRange)
+            // The -1 is just there to ignore the last patch (I think)
+            - 1
     );
 
     run(model,
@@ -249,6 +252,8 @@ void setupTest(CLI::App &app) {
     decltype(imageVector) const narrowedImageVector(
         imageVector.end() - (opt->imageRange > 0 ? opt->imageRange : imageVector.size() + opt->imageRange),
         imageVector.end()
+            // The -1 is just there to ignore the last patch (I think)
+            - 1
     );
 
     std::vector<Eigen::ArrayXX<std::int8_t>> reversedImageVector;
