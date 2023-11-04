@@ -5,6 +5,8 @@
 #include <optional>
 #include <ranges>
 
+#include <CLI/App.hpp>
+
 #include "constant.hpp"
 #include "io.hpp"
 #include "phase.hpp"
@@ -368,6 +370,29 @@ void setupMix(CLI::App &app) {
 
     auto const imageVector = readImages(inputFile, PATCHSIZE);
 
+    auto const getRatioLgnRates = [&](std::uint32_t const i) -> Eigen::ArrayXd {
+      Eigen::ArrayXd result(FFRFSIZE);
+      result << (1.0 + (imageVector.at(i).reshaped().cast<double>()).max(0)).log(),
+          (1.0 - (imageVector.at(i).reshaped().cast<double>()).min(0)).log();
+      return result / result.maxCoeff();
+    };
+    std::vector<double> const mixvals = [&]() {
+      std::vector<double> mixvals(NBMIXES);
+      for (auto const nn : boost::counting_range<unsigned>(0, NBMIXES))
+        // NBMIXES values equally spaced from 0 to 1 inclusive.
+        mixvals[nn] = (double)nn / (double)(NBMIXES - 1);
+      return mixvals;
+    }();
+
+    auto const getRatioLgnRatesMixed = [&](std::uint32_t const i) -> ArrayXd {
+      ArrayXd const lgnratesS1 = getRatioLgnRates(STIM1);
+      ArrayXd const lgnratesS2 = getRatioLgnRates(STIM2);
+      double const mixval1 = (i / NBMIXES == 2 ? 0 : mixvals[i % NBMIXES]);
+      double const mixval2 = (i / NBMIXES == 1 ? 0 : 1.0 - mixvals[i % NBMIXES]);
+
+      return mixval1 * lgnratesS1 + mixval2 * lgnratesS2;
+    };
+
     run(model,
         presentationTime,
         NBLASTSPIKESPRES,
@@ -380,7 +405,8 @@ void setupMix(CLI::App &app) {
         wff,
         w,
         delays,
-        imageVector,
+        getRatioLgnRatesMixed,
+        imageVector.size(),
         saveDirectory,
         saveLogInterval);
   });
