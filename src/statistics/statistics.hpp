@@ -140,15 +140,15 @@ template <ColomnOrRow ApplyToEach, typename T, typename F>
 Eigen::MatrixX<T> calculateCorrelationMatrix(
     Eigen::MatrixX<T> const &responseMatrix1, Eigen::MatrixX<T> const &responseMatrix2, F const &correlation
 ) {
-  assert(responseMatrix1.cols() == responseMatrix2.cols);
-  assert(responseMatrix1.rows() == responseMatrix2.rows);
+  assert(responseMatrix1.cols() == responseMatrix2.cols());
+  assert(responseMatrix1.rows() == responseMatrix2.rows());
 
   auto const targetNumber = ApplyToEach == ColomnOrRow::Col ? responseMatrix1.cols() : responseMatrix2.rows();
 
   Eigen::MatrixXd correlationMatrix(targetNumber, targetNumber);
 
-  for (auto &&x : boost::counting_range<std::size_t>(0, targetNumber)) {
-    for (auto &&y : boost::counting_range<std::size_t>(0, targetNumber)) {
+  for (auto const &x : boost::counting_range<std::size_t>(0, targetNumber)) {
+    for (auto const &y : boost::counting_range<std::size_t>(0, targetNumber)) {
       if constexpr (ApplyToEach == ColomnOrRow::Col) {
         correlationMatrix(x, y) = correlation(responseMatrix1.col(x), responseMatrix2.col(y));
       } else if constexpr (ApplyToEach == ColomnOrRow::Row) {
