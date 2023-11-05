@@ -285,6 +285,31 @@
            (feedforward-weight-plot #:type File
                                     #:binding '((glob . "$(inputs[\"output-file\"])")))))
 
+(define plot-each-cluster-neurons
+  (command #:inputs
+           (stdp-executable #:type File)
+           (gnuplot-script #:type File
+                           #:default '((class . "File")
+                                       (location . "../script/each-cluster-neurons.gnuplot")))
+           (diff-input-directory #:type Directory)
+           (cluster-directory #:type Directory)
+           (number-file #:type File)
+           (total-neuron-number #:type int)
+           (output-directory #:type string)
+           #:run
+           "gnuplot"
+           "-e" "textImageZeroPadding=0"
+           "-e" "diffInputDirectory='$(inputs[\"diff-input-directory\"].path)'"
+           "-e" "clusterDirectory='$(inputs[\"cluster-directory\"].path)'"
+           "-e" "numberFile='$(inputs[\"number-file\"].path)'"
+           "-e" "totalNeuronNumber='$(inputs[\"total-neuron-number\"])'"
+           "-e" "outputDirectory='$(inputs[\"output-directory\"])'"
+           "-e" "stdpExecutable='$(inputs[\"stdp-executable\"].path)'"
+           gnuplot-script
+           #:outputs
+           (image-directory #:type Directory
+                            #:binding '((glob . "$(inputs[\"output-directory\"])")))))
+
 (define plot-each-cluster-images
   (command #:inputs
            (stdp-executable #:type File)
@@ -345,14 +370,13 @@
            (test-stimulation-number #:type int #:default 1000)
            (image-range #:type int #:default 1000)
            (correlation-threshold-neuron #:type float #:default 0.9)
-           (minimum-cluster-size-neuron #:type int #:default 10)
+           (minimum-cluster-size-neuron #:type int #:default 2)
            (correlation-threshold-stimulation #:type float #:default 0.9)
            (minimum-cluster-size-stimulation #:type int #:default 10)
            (total-image-number #:type int #:default 109999)
            (edge-length #:type int #:default 17))
-          (tee
-           (pipe
-            (export-feedforward-weight
+          (pipe
+           (export-feedforward-weight
              #:stdp-executable stdp-executable
              #:feedforward-weight feedforward-weight
              #:on-directory-name "feedforward-weight-on"
@@ -361,11 +385,8 @@
              #:excitatory-neuron-number excitatory-neuron-number
              #:inhibitory-neuron-number inhibitory-neuron-number
              #:edge-length edge-length)
+           (tee
             (tee
-             (rename
-              #:on-feedforward-weight on-feedforward-weight
-              #:off-feedforward-weight off-feedforward-weight
-              #:diff-feedforward-weight diff-feedforward-weight)
              (plot-each-feedforward-weight
               #:stdp-executable stdp-executable
               #:neuron-number excitatory-neuron-number
@@ -385,130 +406,154 @@
                 (convert-svg-to-png
                  #:input-svg feedforward-weight-plot
                  #:output-png-name "feedforward-weight-image.png")
-                (rename #:feedforward-weight-plot-png output-png))))))
-           (pipe
-            (tee
-             (lateral-weight-cut-out-excitatory
-              #:stdp-executable stdp-executable
-              #:lateral-weight lateral-weight
-              #:excitatory-neuron-number excitatory-neuron-number
-              #:inhibitory-neuron-number inhibitory-neuron-number)
-             (delay-cut-out-excitatory
-              #:stdp-executable stdp-executable
-              #:delays delays
-              #:excitatory-neuron-number excitatory-neuron-number
-              #:inhibitory-neuron-number inhibitory-neuron-number)
-             (pipe (response-cut-out-excitatory
-                    #:stdp-executable stdp-executable
-                    #:response response-test
-                    #:excitatory-neuron-number excitatory-neuron-number
-                    #:inhibitory-neuron-number inhibitory-neuron-number
-                    #:stimulation-number test-stimulation-number)
-                   (response-clustering
-                    #:stdp-executable stdp-executable
-                    #:response response-excitatory
-                    #:neuron-number excitatory-neuron-number
-                    #:stimulation-number test-stimulation-number)))
-            (tee
-             (rename #:sort-index-neuron sort-index-neuron
-                     #:sort-index-stimulation sort-index-stimulation
-                     #:response-sorted response-sorted)
-             (pipe
-              (plot-matrix (plot-response)
-                           #:matrix response-sorted
-                           #:output-name "response-sorted.svg"
-                           #:title "Response of excitatory neurons on each stimulation")
-              (rename #:plot-response-matrix matrix-plot))
-             (pipe
-              (sort-lateral-weight
+                (rename #:feedforward-weight-plot-png output-png)))))
+            (pipe
+             (tee
+              (rename #:diff-feedforward-weight diff-feedforward-weight)
+              (lateral-weight-cut-out-excitatory
                #:stdp-executable stdp-executable
-               #:weight-excitatory weight-excitatory
-               #:sort-index-neuron-row sort-index-neuron
-               #:sort-index-neuron-colomn sort-index-neuron
-               #:output-name "weight-sorted.txt")
-              (plot-matrix (plot-weight)
-                           #:matrix weight-sorted
-                           #:output-name "weight-sorted.svg"
-                           #:title "Weight between each neuron")
-              (rename #:plot-weight-matrix matrix-plot))
-             (pipe
-              (sort-delay
+               #:lateral-weight lateral-weight
+               #:excitatory-neuron-number excitatory-neuron-number
+               #:inhibitory-neuron-number inhibitory-neuron-number)
+              (delay-cut-out-excitatory
                #:stdp-executable stdp-executable
-               #:delays-excitatory delays-excitatory
-               #:sort-index-neuron-row sort-index-neuron
-               #:sort-index-neuron-colomn sort-index-neuron
-               #:output-name "delays-sorted.txt")
-              (plot-matrix (plot-delay)
-                           #:matrix delays-sorted
-                           #:output-name "delays-sorted.svg"
-                           #:title "Delay between each neuron")
-              (rename #:plot-delay-matrix matrix-plot))
-             (pipe
-              (tee
-               (rename #:sort-index-neuron sort-index-neuron
-                       #:sort-index-stimulation sort-index-stimulation
-                       #:response-sorted response-sorted)
-               (response-correlation-matrix
+               #:delays delays
+               #:excitatory-neuron-number excitatory-neuron-number
+               #:inhibitory-neuron-number inhibitory-neuron-number)
+              (pipe (response-cut-out-excitatory
+                     #:stdp-executable stdp-executable
+                     #:response response-test
+                     #:excitatory-neuron-number excitatory-neuron-number
+                     #:inhibitory-neuron-number inhibitory-neuron-number
+                     #:stimulation-number test-stimulation-number)
+                    (response-clustering
+                     #:stdp-executable stdp-executable
+                     #:response response-excitatory
+                     #:neuron-number excitatory-neuron-number
+                     #:stimulation-number test-stimulation-number)))
+             (tee
+              (rename #:sort-index-neuron sort-index-neuron
+                      #:sort-index-stimulation sort-index-stimulation
+                      #:response-sorted response-sorted)
+              (pipe
+               (plot-matrix (plot-response)
+                            #:matrix response-sorted
+                            #:output-name "response-sorted.svg"
+                            #:title "Response of excitatory neurons on each stimulation")
+               (rename #:plot-response-matrix matrix-plot))
+              (pipe
+               (sort-lateral-weight
                 #:stdp-executable stdp-executable
-                #:response response-sorted
-                #:neuron-number excitatory-neuron-number
-                #:stimulation-number test-stimulation-number))
-              (tee
-               (pipe
-                (plot-correlation
-                 #:correlation-matrix correlation-matrix-neuron
-                 #:output-name "correlation-matrix-neuron.svg"
-                 #:title "Correlation matrix of response of each neuron")
-                (rename #:correlation-plot-neuron correlation-plot))
-               (pipe
-                (plot-correlation-without-pixels
-                 #:correlation-matrix correlation-matrix-stimulation
-                 #:output-name "correlation-matrix-stimulation.svg"
-                 #:title "Correlation matrix of response of each stimulation")
-                (rename #:correlation-plot-stimulation correlation-plot))
-               (pipe
-                (cluster-map (cluster-map-neuron)
-                             #:stdp-executable stdp-executable
-                             #:correlation-matrix correlation-matrix-neuron
-                             #:index-file sort-index-neuron
-                             #:input-size excitatory-neuron-number
-                             #:correlation-threshold correlation-threshold-neuron
-                             #:minimum-cluster-size minimum-cluster-size-neuron
-                             #:output-name "cluster-map-neuron.txt")
-                (divide-line (divide-line-neuron)
-                             #:stdp-executable stdp-executable
-                             #:cluster-map cluster-map
-                             #:output-directory "cluster-map-neuron"
-                             #:output-number-file "cluster-map-neuron-number.txt")
-                (rename #:divided-directory-neuron divided-directory
-                        #:cluster-number-neuron number-file))
-               (pipe
-                (cluster-map (cluster-map-stimulation)
-                             #:stdp-executable stdp-executable
-                             #:correlation-matrix correlation-matrix-stimulation
-                             #:index-file sort-index-stimulation
-                             #:input-size test-stimulation-number
-                             #:correlation-threshold correlation-threshold-stimulation
-                             #:minimum-cluster-size minimum-cluster-size-stimulation
-                             #:output-name "cluster-map-stimulation.txt")
-                (divide-line (divide-line-stimulation)
-                             #:stdp-executable stdp-executable
-                             #:cluster-map cluster-map
-                             #:output-directory "cluster-map-stimulation"
-                             #:output-number-file "cluster-map-stimulation-number.txt")
-                (rename #:divided-directory-stimulation divided-directory
-                        #:cluster-number-file-stimulation number-file)
-                (plot-each-cluster-images
+                #:weight-excitatory weight-excitatory
+                #:sort-index-neuron-row sort-index-neuron
+                #:sort-index-neuron-colomn sort-index-neuron
+                #:output-name "weight-sorted.txt")
+               (plot-matrix (plot-weight)
+                            #:matrix weight-sorted
+                            #:output-name "weight-sorted.svg"
+                            #:title "Weight between each neuron")
+               (rename #:plot-weight-matrix matrix-plot))
+              (pipe
+               (sort-delay
+                #:stdp-executable stdp-executable
+                #:delays-excitatory delays-excitatory
+                #:sort-index-neuron-row sort-index-neuron
+                #:sort-index-neuron-colomn sort-index-neuron
+                #:output-name "delays-sorted.txt")
+               (plot-matrix (plot-delay)
+                            #:matrix delays-sorted
+                            #:output-name "delays-sorted.svg"
+                            #:title "Delay between each neuron")
+               (rename #:plot-delay-matrix matrix-plot))
+              (pipe
+               (tee
+                (rename #:sort-index-neuron sort-index-neuron
+                        #:sort-index-stimulation sort-index-stimulation
+                        #:response-sorted response-sorted
+                        #:diff-feedforward-weight diff-feedforward-weight)
+                (response-correlation-matrix
                  #:stdp-executable stdp-executable
-                 #:text-image-directory text-image-directory
-                 #:cluster-directory divided-directory-stimulation
-                 #:number-file cluster-number-file-stimulation
-                 #:total-image-number total-image-number
-                 #:image-range image-range
-                 #:output-directory "clusterImages")
-                (tee
-                 (rename #:each-cluster-images image-directory)
-                 (convert-svg-to-png-directory
+                 #:response response-sorted
+                 #:neuron-number excitatory-neuron-number
+                 #:stimulation-number test-stimulation-number))
+               (tee
+                (pipe
+                 (plot-correlation
+                  #:correlation-matrix correlation-matrix-neuron
+                  #:output-name "correlation-matrix-neuron.svg"
+                  #:title "Correlation matrix of response of each neuron")
+                 (rename #:correlation-plot-neuron correlation-plot))
+                (pipe
+                 (plot-correlation-without-pixels
+                  #:correlation-matrix correlation-matrix-stimulation
+                  #:output-name "correlation-matrix-stimulation.svg"
+                  #:title "Correlation matrix of response of each stimulation")
+                 (rename #:correlation-plot-stimulation correlation-plot))
+                (pipe
+                 (tee
+                  (rename #:diff-feedforward-weight diff-feedforward-weight)
+                  (pipe
+                   (cluster-map (cluster-map-neuron)
+                                #:stdp-executable stdp-executable
+                                #:correlation-matrix correlation-matrix-neuron
+                                #:index-file sort-index-neuron
+                                #:input-size excitatory-neuron-number
+                                #:correlation-threshold correlation-threshold-neuron
+                                #:minimum-cluster-size minimum-cluster-size-neuron
+                                #:output-name "cluster-map-neuron.txt")
+                   (divide-line (divide-line-neuron)
+                                #:stdp-executable stdp-executable
+                                #:cluster-map cluster-map
+                                #:output-directory "cluster-map-neuron"
+                                #:output-number-file "cluster-map-neuron-number.txt")
+                   (rename #:divided-directory-neuron divided-directory
+                           #:cluster-number-file-neuron number-file)))
+                 (plot-each-cluster-neurons
                   #:stdp-executable stdp-executable
-                  #:input-directory image-directory
-                  #:output-directory-name "clusterImagesPng")))))))))
+                  #:diff-input-directory diff-feedforward-weight
+                  #:cluster-directory divided-directory-neuron
+                  #:number-file cluster-number-file-neuron
+                  #:total-neuron-number excitatory-neuron-number
+                  #:output-directory "clusterNeurons")
+                 (tee
+                  (rename #:each-cluster-neurons image-directory)
+                  (pipe
+                   (convert-svg-to-png-directory
+                    (convert-neuron-svg-to-png-directory)
+                    #:stdp-executable stdp-executable
+                    #:input-directory image-directory
+                    #:output-directory-name "clusterNeuronsPng")
+                   (rename #:cluster-neurons-png output-directory))))
+                (pipe
+                 (cluster-map (cluster-map-stimulation)
+                              #:stdp-executable stdp-executable
+                              #:correlation-matrix correlation-matrix-stimulation
+                              #:index-file sort-index-stimulation
+                              #:input-size test-stimulation-number
+                              #:correlation-threshold correlation-threshold-stimulation
+                              #:minimum-cluster-size minimum-cluster-size-stimulation
+                              #:output-name "cluster-map-stimulation.txt")
+                 (divide-line (divide-line-stimulation)
+                              #:stdp-executable stdp-executable
+                              #:cluster-map cluster-map
+                              #:output-directory "cluster-map-stimulation"
+                              #:output-number-file "cluster-map-stimulation-number.txt")
+                 (rename #:divided-directory-stimulation divided-directory
+                         #:cluster-number-file-stimulation number-file)
+                 (plot-each-cluster-images
+                  #:stdp-executable stdp-executable
+                  #:text-image-directory text-image-directory
+                  #:cluster-directory divided-directory-stimulation
+                  #:number-file cluster-number-file-stimulation
+                  #:total-image-number total-image-number
+                  #:image-range image-range
+                  #:output-directory "clusterImages")
+                 (tee
+                  (rename #:each-cluster-images image-directory)
+                  (pipe
+                   (convert-svg-to-png-directory
+                    (convert-image-svg-to-png-directory)
+                    #:stdp-executable stdp-executable
+                    #:input-directory image-directory
+                    #:output-directory-name "clusterImagesPng")
+                   (rename #:cluster-images-png output-directory)))))))))))
