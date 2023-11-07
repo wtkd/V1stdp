@@ -405,7 +405,6 @@ add_test(
   --save-directory ./data/without-saved-delays/spontaneous
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --seed 0
   --step 100
   --presentation-time 100
@@ -436,7 +435,6 @@ add_test(
   --save-directory ./data/with-saved-delays/spontaneous
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --seed 0
   --step 100
   --presentation-time 100

@@ -534,7 +534,6 @@ struct SpontaneousOptions {
   Model model;
   int randomSeed = 0;
   int step = 300;
-  std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
@@ -554,7 +553,6 @@ void setupSpontaneous(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-N,--step", opt->step, "Step number to observe");
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
       ->required()
       ->check(CLI::NonexistentPath);
@@ -582,7 +580,6 @@ void setupSpontaneous(CLI::App &app) {
     auto const &randomSeed = opt->randomSeed;
     setAndPrintRandomSeed(randomSeed);
 
-    auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
     createEmptyDirectory(saveDirectory);
@@ -597,8 +594,6 @@ void setupSpontaneous(CLI::App &app) {
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = NBPRES;
 
-    int const NBSTEPSPERPRES = (int)(presentationTime / dt);
-
     std::cout << "Spontaneous activity - no stimulus !" << std::endl;
 
     MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
@@ -607,20 +602,19 @@ void setupSpontaneous(CLI::App &app) {
     auto const delays =
         opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
 
-    auto const imageVector = readImages(inputFile, PATCHSIZE);
-
     run(model,
         presentationTime,
         NBLASTSPIKESPRES,
         NBPRES,
         NBRESPS,
         Phase::spontaneous,
-        // Inputs only fire until the 'relaxation' period at the end of each presentation
-        {0, NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)},
+        // Without presentation
+        {0, 0},
         wff,
         w,
         delays,
-        imageVector,
+        // Dummy input image
+        std::vector<Eigen::ArrayXX<std::int8_t>>{Eigen::ArrayXX<std::int8_t>::Zero(PATCHSIZE, PATCHSIZE)},
         saveDirectory,
         saveLogInterval,
         "_spont");

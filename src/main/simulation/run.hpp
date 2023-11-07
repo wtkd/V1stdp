@@ -323,10 +323,6 @@ int run(
     for (auto const numstepthispres : boost::counting_range<unsigned>(0, NBSTEPSPERPRES)) {
       // We determine FF spikes, based on the specified lgnrates:
       VectorXd const lgnfirings = [&]() -> ArrayXd {
-        if (phase == Phase::spontaneous) {
-          return ArrayXd::Zero(FFRFSIZE);
-        }
-
         auto const [presentationStart, presentationEnd] = presentationTimeRange;
 
         if (presentationStart <= numstepthispres && (numstepthispres < presentationEnd)) {
