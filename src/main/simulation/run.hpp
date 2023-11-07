@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <string>
 
 #include <Eigen/Dense>
 #include <boost/range/adaptors.hpp>
@@ -30,8 +31,6 @@ int run(
     unsigned const NBPRES,
     int const NBRESPS,
     Phase const phase,
-    int const STIM1,
-    int const STIM2,
     std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     MatrixXd const &initwff,
     MatrixXd const &initw,
@@ -40,6 +39,7 @@ int run(
     int const nbpatchesinfile,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
+    std::string const &filenameSuffix,
     std::uint16_t const startLearningStimulationNumber = 0
 ) {
   model.outputLog();
@@ -158,7 +158,7 @@ int run(
     return inputDelays.value_or(delays);
   }();
 
-  saveMatrix<int>(saveDirectory / "delays.txt", delays.matrix());
+  saveMatrix<int>(saveDirectory / ("delays" + filenameSuffix + ".txt"), delays.matrix());
 
   // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
   // myfile.open("delays.txt", ios::trunc | ios::out);
@@ -602,20 +602,21 @@ int run(
         nolatindicator = "_noelat";
       {
         std::ofstream myfile(
-            saveDirectory / ("lastnspikes" + nolatindicator + ".txt"), std::ios::trunc | std::ios::out
+            saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + ".txt"), std::ios::trunc | std::ios::out
         );
         myfile << std::endl << lastnspikes << std::endl;
       }
       if (phase == Phase::testing) {
         {
           std::ofstream myfile(
-              saveDirectory / ("lastnspikes_test" + nolatindicator + ".txt"), std::ios::trunc | std::ios::out
+              saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + ".txt"),
+              std::ios::trunc | std::ios::out
           );
           myfile << std::endl << lastnspikes << std::endl;
         }
 
         {
-          std::ofstream myfile(saveDirectory / "resps_test.txt", std::ios::trunc | std::ios::out);
+          std::ofstream myfile(saveDirectory / ("resps" + filenameSuffix + ".txt"), std::ios::trunc | std::ios::out);
           myfile << std::endl << resps << std::endl;
         }
 
@@ -624,7 +625,7 @@ int run(
 
         {
           std::ofstream myfile(
-              saveDirectory / ("lastnv_test" + nolatindicator + noinhindicator + ".txt"),
+              saveDirectory / ("lastnv" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
               std::ios::trunc | std::ios::out
           );
           myfile << std::endl << lastnv << std::endl;
@@ -637,7 +638,7 @@ int run(
 
       if (phase == Phase::spontaneous) {
         std::ofstream myfile(
-            saveDirectory / ("lastnspikes_spont" + nolatindicator + noinhindicator + ".txt"),
+            saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
             std::ios::trunc | std::ios::out
         );
         myfile << std::endl << lastnspikes << std::endl;
@@ -646,23 +647,20 @@ int run(
       if (phase == Phase::pulse) {
         {
           std::ofstream myfile(
-              saveDirectory / ("resps_pulse" + nolatindicator + noinhindicator + ".txt"),
+              saveDirectory / ("resps" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
               std::ios::trunc | std::ios::out
           );
           myfile << std::endl << resps << std::endl;
         }
 
         {
-          std::ofstream myfile(
-              saveDirectory / ("resps_pulse_" + std::to_string((long long int)STIM1) + ".txt"),
-              std::ios::trunc | std::ios::out
-          );
+          std::ofstream myfile(saveDirectory / ("resps" + filenameSuffix + ".txt"), std::ios::trunc | std::ios::out);
           myfile << std::endl << resps << std::endl;
         }
 
         {
           std::ofstream myfile(
-              saveDirectory / ("lastnspikes_pulse" + nolatindicator + noinhindicator + ".txt"),
+              saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
               std::ios::trunc | std::ios::out
           );
           myfile << std::endl << lastnspikes << std::endl;
@@ -670,8 +668,7 @@ int run(
 
         {
           std::ofstream myfile(
-              saveDirectory / ("lastnspikes_pulse_" + std::to_string((long long int)STIM1) + nolatindicator +
-                               noinhindicator + ".txt"),
+              saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
               std::ios::trunc | std::ios::out
           );
           myfile << std::endl << lastnspikes << std::endl;
@@ -685,7 +682,8 @@ int run(
       if (phase == Phase::mixing) {
         {
           std::ofstream myfile(
-              saveDirectory / ("respssumv_mix" + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
+              saveDirectory /
+                  ("respssumv" + filenameSuffix + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
               std::ios::trunc | std::ios::out
           );
           myfile << std::endl << respssumv << std::endl;
@@ -693,7 +691,7 @@ int run(
 
         {
           std::ofstream myfile(
-              saveDirectory / ("resps_mix" + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
+              saveDirectory / ("resps" + filenameSuffix + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
               std::ios::trunc | std::ios::out
           );
           myfile << std::endl << resps << std::endl;
@@ -701,22 +699,9 @@ int run(
 
         {
           std::ofstream myfile(
-              saveDirectory /
-                  ("respssumv_mix_" + std::to_string((long long int)STIM1) + "_" +
-                   std::to_string((long long int)STIM2) + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
-              std::ios::trunc | std::ios::out
+              saveDirectory / ("respssumv" + filenameSuffix + ".txt"), std::ios::trunc | std::ios::out
           );
           myfile << std::endl << respssumv << std::endl;
-        }
-
-        {
-          std::ofstream myfile(
-              saveDirectory /
-                  ("resps_mix_" + std::to_string((long long int)STIM1) + "_" + std::to_string((long long int)STIM2) +
-                   nolatindicator + noinhindicator + nospikeindicator + ".txt"),
-              std::ios::trunc | std::ios::out
-          );
-          myfile << std::endl << resps << std::endl;
         }
       }
 
@@ -777,8 +762,6 @@ int run(
     unsigned const NBPRES,
     int const NBRESPS,
     Phase const phase,
-    int const STIM1,
-    int const STIM2,
     std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
@@ -786,5 +769,6 @@ int run(
     std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
+    std::string const &filenameSuffix,
     std::uint16_t const startLearningStimulationNumber = 0
 );

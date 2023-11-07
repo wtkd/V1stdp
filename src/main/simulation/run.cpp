@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <string>
 #include <utility>
 
 #include <Eigen/Dense>
@@ -24,8 +25,6 @@ int run(
     unsigned const NBPRES,
     int const NBRESPS,
     Phase const phase,
-    int const STIM1,
-    int const STIM2,
     std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     MatrixXd const &initwff,
     MatrixXd const &initw,
@@ -33,6 +32,7 @@ int run(
     std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
+    std::string const &filenameSuffix,
     std::uint16_t const startLearningStimulationNumber
 ) {
   auto const getRatioLgnRates = [&](std::uint32_t const i) -> Eigen::ArrayXd {
@@ -50,8 +50,6 @@ int run(
       NBPRES,
       NBRESPS,
       phase,
-      STIM1,
-      STIM2,
       presentationTimeRange,
       initwff,
       initw,
@@ -60,6 +58,7 @@ int run(
       imageVector.size(),
       saveDirectory,
       saveLogInterval,
+      filenameSuffix,
       startLearningStimulationNumber
   );
 }

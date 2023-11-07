@@ -338,7 +338,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_lastnspikes_pulse_without_saved_delays
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/pulse/lastnspikes_pulse.txt ./data/without-saved-delays/pulse/lastnspikes_pulse.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/pulse/lastnspikes_pulse_49.txt ./data/without-saved-delays/pulse/lastnspikes_pulse_49.txt
 )
 set_tests_properties(
   compare_lastnspikes_pulse_without_saved_delays PROPERTIES
@@ -348,7 +348,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_response_pulse_without_saved_delays
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/pulse/resps_pulse.txt ./data/without-saved-delays/pulse/resps_pulse.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/pulse/resps_pulse_49.txt ./data/without-saved-delays/pulse/resps_pulse_49.txt
 )
 set_tests_properties(
   compare_response_pulse_without_saved_delays PROPERTIES
@@ -377,7 +377,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_lastnspikes_pulse_with_saved_delays
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/pulse/lastnspikes_pulse.txt ./data/with-saved-delays/pulse/lastnspikes_pulse.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/pulse/lastnspikes_pulse_49.txt ./data/with-saved-delays/pulse/lastnspikes_pulse_49.txt
 )
 set_tests_properties(
   compare_lastnspikes_pulse_with_saved_delays PROPERTIES
@@ -387,7 +387,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_response_pulse_with_saved_delays
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/pulse/resps_pulse.txt ./data/with-saved-delays/pulse/resps_pulse.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/pulse/resps_pulse_49.txt ./data/with-saved-delays/pulse/resps_pulse_49.txt
 )
 set_tests_properties(
   compare_response_pulse_with_saved_delays PROPERTIES
@@ -482,7 +482,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_response_mix_without_saved_delays
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/mix/resps_mix.txt ./data/without-saved-delays/mix/resps_mix.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/mix/resps_mix_49_99.txt ./data/without-saved-delays/mix/resps_mix_49_99.txt
 )
 set_tests_properties(
   compare_response_mix_without_saved_delays PROPERTIES
@@ -492,7 +492,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_respssumv_mix_without_saved_delays
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/mix/respssumv_mix.txt ./data/without-saved-delays/mix/respssumv_mix.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/without-saved-delays/mix/respssumv_mix_49_99.txt ./data/without-saved-delays/mix/respssumv_mix_49_99.txt
 )
 set_tests_properties(
   compare_respssumv_mix_without_saved_delays PROPERTIES
@@ -521,7 +521,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_response_mix_with_saved_delays
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/mix/resps_mix.txt ./data/with-saved-delays/mix/resps_mix.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/mix/resps_mix_49_99.txt ./data/with-saved-delays/mix/resps_mix_49_99.txt
 )
 set_tests_properties(
   compare_response_mix_with_saved_delays PROPERTIES
@@ -531,7 +531,7 @@ set_tests_properties(
 
 add_test(
   NAME compare_respssumv_mix_with_saved_delays
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/mix/respssumv_mix.txt ./data/with-saved-delays/mix/respssumv_mix.txt
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/with-saved-delays/mix/respssumv_mix_49_99.txt ./data/with-saved-delays/mix/respssumv_mix_49_99.txt
 )
 set_tests_properties(
   compare_respssumv_mix_with_saved_delays PROPERTIES

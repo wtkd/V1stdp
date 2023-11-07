@@ -146,8 +146,6 @@ void setupLearn(CLI::App &app) {
         step,
         NBRESPS,
         Phase::learning,
-        -1, // STIM1 is not used
-        -1, // STIM2 is not used
         // Inputs only fire until the 'relaxation' period at the end of each presentation
         {0, NBSTEPSPERPRES - double(TIMEZEROINPUT) / dt},
         wff,
@@ -156,6 +154,7 @@ void setupLearn(CLI::App &app) {
         narrowedImageVector,
         saveDirectory,
         saveLogInterval,
+        "",
         opt->startLearningNumber);
   });
 }
@@ -280,8 +279,6 @@ void setupTest(CLI::App &app) {
         step,
         NBRESPS,
         Phase::testing,
-        -1, // STIM1 is not used
-        -1, // STIM2 is not used
         // Inputs only fire until the 'relaxation' period at the end of each presentation
         {0, NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)},
         wff,
@@ -289,7 +286,8 @@ void setupTest(CLI::App &app) {
         delays,
         reversedImageVector,
         saveDirectory,
-        saveLogInterval);
+        saveLogInterval,
+        "_test");
   });
 }
 
@@ -407,8 +405,6 @@ void setupMix(CLI::App &app) {
         NBPRES,
         NBRESPS,
         Phase::mixing,
-        STIM1,
-        STIM2,
         // Inputs only fire until the 'relaxation' period at the end of each presentation
         {0, NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)},
         wff,
@@ -417,7 +413,8 @@ void setupMix(CLI::App &app) {
         getRatioLgnRatesMixed,
         imageVector.size(),
         saveDirectory,
-        saveLogInterval);
+        saveLogInterval,
+        "_mix_" + std::to_string(STIM1) + "_" + std::to_string(STIM2));
   });
 }
 
@@ -521,8 +518,6 @@ void setupPulse(CLI::App &app) {
         NBPRES,
         NBRESPS,
         Phase::pulse,
-        STIM1,
-        -1, // STIM2 is not used
         // In the PULSE case, inputs only fire for a short period of time
         {PULSESTART, double(PULSETIME) / dt},
         wff,
@@ -530,7 +525,8 @@ void setupPulse(CLI::App &app) {
         delays,
         narrowedImageVector,
         saveDirectory,
-        saveLogInterval);
+        saveLogInterval,
+        "_pulse_" + std::to_string(STIM1));
   });
 }
 
@@ -619,8 +615,6 @@ void setupSpontaneous(CLI::App &app) {
         NBPRES,
         NBRESPS,
         Phase::spontaneous,
-        -1, // STIM1 is not used
-        -1, // STIM2 is not used
         // Inputs only fire until the 'relaxation' period at the end of each presentation
         {0, NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)},
         wff,
@@ -628,6 +622,7 @@ void setupSpontaneous(CLI::App &app) {
         delays,
         imageVector,
         saveDirectory,
-        saveLogInterval);
+        saveLogInterval,
+        "_spont");
   });
 }
