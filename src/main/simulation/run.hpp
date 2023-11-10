@@ -19,8 +19,6 @@
 #include "phase.hpp"
 #include "utils.hpp"
 
-using namespace Eigen;
-
 template <typename F>
   requires std::regular_invocable<F, std::uint32_t> &&
            std::same_as<std::invoke_result_t<F, std::uint32_t>, Eigen::ArrayXd>
@@ -32,8 +30,8 @@ int run(
     int const NBRESPS,
     Phase const phase,
     std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
-    MatrixXd const &initwff,
-    MatrixXd const &initw,
+    Eigen::MatrixXd const &initwff,
+    Eigen::MatrixXd const &initw,
     std::optional<Eigen::ArrayXXi> const &inputDelays,
     F const &getRatioLgnRates,
     int const nbpatchesinfile,
@@ -72,9 +70,10 @@ int run(
 
   // The noise excitatory input is a Poisson process (separate for each cell) with a constant rate (in KHz / per ms)
   // We store it as "frozen noise" to save time.
-  MatrixXd const negnoisein = [&]() {
+  Eigen::MatrixXd const negnoisein = [&]() {
     // The poissonMatrix should be evaluated every time because of reproductivity.
-    MatrixXd negnoisein = -poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, NEGNOISERATE)) * VSTIM;
+    Eigen::MatrixXd negnoisein =
+        -poissonMatrix(dt * Eigen::MatrixXd::Constant(NBNEUR, NBNOISESTEPS, NEGNOISERATE)) * VSTIM;
     // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
     if (NONOISE || NOSPIKE) {
       negnoisein.setZero();
@@ -82,9 +81,10 @@ int run(
     return negnoisein;
   }();
 
-  MatrixXd const posnoisein = [&]() {
+  Eigen::MatrixXd const posnoisein = [&]() {
     // The poissonMatrix should be evaluated every time because of reproductivity.
-    MatrixXd posnoisein = poissonMatrix(dt * MatrixXd::Constant(NBNEUR, NBNOISESTEPS, POSNOISERATE)) * VSTIM;
+    Eigen::MatrixXd posnoisein =
+        poissonMatrix(dt * Eigen::MatrixXd::Constant(NBNEUR, NBNOISESTEPS, POSNOISERATE)) * VSTIM;
     // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
     if (NONOISE || NOSPIKE) {
       posnoisein.setZero();
@@ -94,20 +94,20 @@ int run(
 
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
-  auto const restingMembranePotential = VectorXd::Constant(NBNEUR, -70.5);
+  auto const restingMembranePotential = Eigen::VectorXd::Constant(NBNEUR, -70.5);
 
   // Wrong:
-  // VectorXd vlongtrace = v;
+  // Eigen::VectorXd vlongtrace = v;
 
-  VectorXi const ZeroV = VectorXi::Zero(NBNEUR);
-  VectorXi const OneV = VectorXi::Constant(NBNEUR, 1);
-  VectorXd const ZeroLGN = VectorXd::Zero(FFRFSIZE);
-  VectorXd const OneLGN = VectorXd::Constant(FFRFSIZE, 1.0);
+  Eigen::VectorXi const ZeroV = Eigen::VectorXi::Zero(NBNEUR);
+  Eigen::VectorXi const OneV = Eigen::VectorXi::Constant(NBNEUR, 1);
+  Eigen::VectorXd const ZeroLGN = Eigen::VectorXd::Zero(FFRFSIZE);
+  Eigen::VectorXd const OneLGN = Eigen::VectorXd::Constant(FFRFSIZE, 1.0);
 
-  // MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
+  // Eigen::MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
 
-  ArrayXd const ALTDS = [&]() {
-    ArrayXd ALTDS(NBNEUR);
+  Eigen::ArrayXd const ALTDS = [&]() {
+    Eigen::ArrayXd ALTDS(NBNEUR);
     std::ranges::for_each(ALTDS, [](auto &i) { i = BASEALTD + RANDALTD * ((double)rand() / (double)RAND_MAX); });
     return ALTDS;
   }();
@@ -193,8 +193,8 @@ int run(
 
   auto const saveAllWeights = [](std::filesystem::path const &saveDirectory,
                                  int const index,
-                                 MatrixXd const &w,
-                                 MatrixXd const &wff) {
+                                 Eigen::MatrixXd const &w,
+                                 Eigen::MatrixXd const &wff) {
     {
       std::ofstream myfile(saveDirectory / ("wff_" + std::to_string(index) + ".txt"), std::ios::trunc | std::ios::out);
       myfile << std::endl << wff << std::endl;
@@ -221,62 +221,62 @@ int run(
     return initialIncomingspikes;
   }();
 
-  std::vector<std::vector<VectorXi>> const initialIncomingFFspikes = [&] {
-    std::vector<std::vector<VectorXi>> initialIncomingFFspikes(NBNEUR, std::vector<VectorXi>(FFRFSIZE));
+  std::vector<std::vector<Eigen::VectorXi>> const initialIncomingFFspikes = [&] {
+    std::vector<std::vector<Eigen::VectorXi>> initialIncomingFFspikes(NBNEUR, std::vector<Eigen::VectorXi>(FFRFSIZE));
     for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
       for (auto const nj : boost::counting_range<unsigned>(0, FFRFSIZE)) {
-        initialIncomingFFspikes[ni][nj] = VectorXi::Zero(delaysFF[nj][ni]);
+        initialIncomingFFspikes[ni][nj] = Eigen::VectorXi::Zero(delaysFF[nj][ni]);
       }
     }
     return initialIncomingFFspikes;
   }();
 
-  auto const initialV = VectorXd::Constant(NBNEUR, Eleak);
+  auto const initialV = Eigen::VectorXd::Constant(NBNEUR, Eleak);
 
   ModelState modelState{
       initw,                                                            // w
       initwff,                                                          // wff
-      VectorXd::Zero(NBNEUR),                                           // xplast_lat
-      VectorXd::Zero(FFRFSIZE),                                         // xplast_ff
+      Eigen::VectorXd::Zero(NBNEUR),                                    // xplast_lat
+      Eigen::VectorXd::Zero(FFRFSIZE),                                  // xplast_ff
       restingMembranePotential,                                         // vneg
       restingMembranePotential,                                         // vpos
       (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0), // vlongtrace
-      VectorXd::Zero(NBNEUR),                                           // z
-      VectorXd::Zero(NBNEUR),                                           // wadap
-      VectorXd::Constant(NBNEUR, VTREST),                               // vthresh
-      VectorXd::Zero(NBNEUR),                                           // refractime
-      VectorXi::Zero(NBNEUR),                                           // isspiking
+      Eigen::VectorXd::Zero(NBNEUR),                                    // z
+      Eigen::VectorXd::Zero(NBNEUR),                                    // wadap
+      Eigen::VectorXd::Constant(NBNEUR, VTREST),                        // vthresh
+      Eigen::VectorXd::Zero(NBNEUR),                                    // refractime
+      Eigen::VectorXi::Zero(NBNEUR),                                    // isspiking
       initialIncomingspikes,                                            // incomingspikes
       initialIncomingFFspikes,                                          // incomingFFspikes
       initialV                                                          // v
   };
 
-  MatrixXi lastnspikes = MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
-  MatrixXd lastnv = MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
-  MatrixXi resps = MatrixXi::Zero(NBNEUR, NBRESPS);
-  MatrixXd respssumv = MatrixXd::Zero(NBNEUR, NBRESPS);
+  Eigen::MatrixXi lastnspikes = Eigen::MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
+  Eigen::MatrixXd lastnv = Eigen::MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
+  Eigen::MatrixXi resps = Eigen::MatrixXi::Zero(NBNEUR, NBRESPS);
+  Eigen::MatrixXd respssumv = Eigen::MatrixXd::Zero(NBNEUR, NBRESPS);
 
-  MatrixXd &wff = modelState.wff;
-  MatrixXd &w = modelState.w;
+  Eigen::MatrixXd &wff = modelState.wff;
+  Eigen::MatrixXd &w = modelState.w;
 
   // If no-inhib mode, remove all inhibitory connections:
   if (NOINH)
     w.rightCols(NBI).setZero();
 
-  VectorXd &vneg = modelState.vneg;
-  VectorXd &vpos = modelState.vpos;
+  Eigen::VectorXd &vneg = modelState.vneg;
+  Eigen::VectorXd &vpos = modelState.vpos;
 
-  VectorXd &z = modelState.z;
+  Eigen::VectorXd &z = modelState.z;
 
-  VectorXd &xplast_ff = modelState.xplast_ff;
-  VectorXd &xplast_lat = modelState.xplast_lat;
+  Eigen::VectorXd &xplast_ff = modelState.xplast_ff;
+  Eigen::VectorXd &xplast_lat = modelState.xplast_lat;
 
-  VectorXd &vlongtrace = modelState.vlongtrace;
+  Eigen::VectorXd &vlongtrace = modelState.vlongtrace;
 
-  VectorXd &wadap = modelState.wadap;
-  VectorXd &vthresh = modelState.vthresh;
-  VectorXd &refractime = modelState.refractime;
-  VectorXi &isspiking = modelState.isspiking;
+  Eigen::VectorXd &wadap = modelState.wadap;
+  Eigen::VectorXd &vthresh = modelState.vthresh;
+  Eigen::VectorXd &refractime = modelState.refractime;
+  Eigen::VectorXi &isspiking = modelState.isspiking;
 
   auto &incomingspikes = modelState.incomingspikes;
   auto &incomingFFspikes = modelState.incomingFFspikes;
@@ -299,7 +299,7 @@ int run(
 
     double const INPUTMULT = 150.0 * 2.0;
 
-    VectorXd const lgnrates =
+    Eigen::VectorXd const lgnrates =
         getRatioLgnRates(numpres)
         // We put inputmult here to ensure that it is reflected in the actual number of incoming spikes
         * INPUTMULT *
@@ -309,7 +309,7 @@ int run(
 
     // At the beginning of every presentation, we reset everything ! (it is important for the random-patches case which
     // tends to generate epileptic self-sustaining firing; 'normal' learning doesn't need it.)
-    v = initialV; // VectorXd::Zero(NBNEUR);
+    v = initialV; // Eigen::VectorXd::Zero(NBNEUR);
 
     resps.col(numpres % NBRESPS).setZero();
 
@@ -322,11 +322,11 @@ int run(
     // Stimulus presentation
     for (auto const numstepthispres : boost::counting_range<unsigned>(0, NBSTEPSPERPRES)) {
       // We determine FF spikes, based on the specified lgnrates:
-      VectorXd const lgnfirings = [&]() -> ArrayXd {
+      Eigen::VectorXd const lgnfirings = [&]() -> Eigen::ArrayXd {
         auto const [presentationStart, presentationEnd] = presentationTimeRange;
 
         if (presentationStart <= numstepthispres && (numstepthispres < presentationEnd)) {
-          ArrayXd r(FFRFSIZE);
+          Eigen::ArrayXd r(FFRFSIZE);
           for (auto &&i : r | boost::adaptors::indexed()) {
             // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
             i.value() = (rand() / (double)RAND_MAX < std::abs(lgnrates(i.index())) ? 1.0 : 0.0);
@@ -334,7 +334,7 @@ int run(
           return r;
         }
 
-        return ArrayXd::Zero(FFRFSIZE);
+        return Eigen::ArrayXd::Zero(FFRFSIZE);
       }();
 
       // We compute the feedforward input:
@@ -371,14 +371,14 @@ int run(
 
       // This, which ignores FF delays, is much faster.... MAtrix
       // multiplications courtesy of the Eigen library.
-      VectorXd const Iff = wff * lgnfirings * VSTIM;
+      Eigen::VectorXd const Iff = wff * lgnfirings * VSTIM;
 
       // Now we compute the lateral inputs. Remember that incomingspikes is a
       // circular array.
 
       auto const [LatInput, spikesthisstep] = [&]() {
-        VectorXd LatInput = VectorXd::Zero(NBNEUR);
-        MatrixXi spikesthisstep = MatrixXi::Zero(NBNEUR, NBNEUR);
+        Eigen::VectorXd LatInput = Eigen::VectorXd::Zero(NBNEUR);
+        Eigen::MatrixXi spikesthisstep = Eigen::MatrixXi::Zero(NBNEUR, NBNEUR);
         for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
           for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
             // If NOELAT, E-E synapses are disabled.
@@ -404,17 +404,17 @@ int run(
       // std::ranges::for_each(incomingspikes, [](auto &v) { std::ranges::for_each(v, [](auto &q) { q.pop_front(); });
       // });
 
-      VectorXd const Ilat = NOLAT
-                                // This disables all lateral connections - Inhibitory and excitatory
-                                ? VectorXd::Zero(NBNEUR)
-                                : VectorXd(LATCONNMULT * VSTIM * LatInput);
+      Eigen::VectorXd const Ilat = NOLAT
+                                       // This disables all lateral connections - Inhibitory and excitatory
+                                       ? Eigen::VectorXd::Zero(NBNEUR)
+                                       : Eigen::VectorXd(LATCONNMULT * VSTIM * LatInput);
 
       // Total input (FF + lateral + frozen noise):
-      VectorXd const I =
+      Eigen::VectorXd const I =
           Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
 
-      VectorXd const vprev = v;
-      VectorXd const vprevprev = vprev;
+      Eigen::VectorXd const vprev = v;
+      Eigen::VectorXd const vprevprev = vprev;
 
       // AdEx  neurons:
       if (NOSPIKE) {
@@ -450,7 +450,8 @@ int run(
 
       // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
       // time has elapsed.
-      VectorXi const firings = NOSPIKE ? VectorXi::Zero(NBNEUR) : (v.array() > VPEAK).cast<int>().matrix().eval();
+      Eigen::VectorXi const firings =
+          NOSPIKE ? Eigen::VectorXi::Zero(NBNEUR) : (v.array() > VPEAK).cast<int>().matrix().eval();
 
       if (not NOSPIKE) {
         v = (firings.array() > 0).select(VPEAK, v);
@@ -518,9 +519,9 @@ int run(
         // For each neuron, we compute the quantities by which any synapse
         // reaching this given neuron should be modified, if the synapse's
         // firing / recent activity (xplast) commands modification.
-        VectorXd const EachNeurLTD =
+        Eigen::VectorXd const EachNeurLTD =
             dt * (-ALTDS / VREF2) * vlongtrace.array() * vlongtrace.array() * (vneg.array() - THETAVNEG).cwiseMax(0);
-        VectorXd const EachNeurLTP =
+        Eigen::VectorXd const EachNeurLTP =
             dt * ALTP * ALTPMULT * (vpos.array() - THETAVNEG).cwiseMax(0) * (v.array() - THETAVPOS).cwiseMax(0);
 
         // Feedforward synapses, then lateral synapses.
@@ -550,8 +551,9 @@ int run(
               w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
 
         // Diagonal lateral weights are 0!
-        w.topLeftCorner(NBE, NBE) =
-            w.topLeftCorner(NBE, NBE).cwiseProduct(MatrixXd::Constant(NBE, NBE, 1) - MatrixXd::Identity(NBE, NBE));
+        w.topLeftCorner(NBE, NBE) = w.topLeftCorner(NBE, NBE).cwiseProduct(
+            Eigen::MatrixXd::Constant(NBE, NBE, 1) - Eigen::MatrixXd::Identity(NBE, NBE)
+        );
 
         wff.topRows(NBE) = wff.topRows(NBE).cwiseMax(0);
         w.leftCols(NBE) = w.leftCols(NBE).cwiseMax(0);

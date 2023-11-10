@@ -7,8 +7,6 @@
 
 #include "constant.hpp"
 
-using namespace Eigen;
-
 struct Model {
   bool nonoise = false;
   bool nospike = false;
@@ -56,8 +54,8 @@ struct Model {
 };
 
 struct ModelState {
-  MatrixXd w;
-  MatrixXd wff;
+  Eigen::MatrixXd w;
+  Eigen::MatrixXd wff;
   // VectorXd v;
   // std::unique_ptr<VectorXd> vprev;
   // std::vector<std::vector<int>> delays;
@@ -65,17 +63,17 @@ struct ModelState {
   // std::vector<std::vector<VectorXi>> incomingspikes;
   // std::vector<std::vector<VectorXi>> incomingFFspikes;
   // VectorXi firings;
-  VectorXd xplast_lat;
-  VectorXd xplast_ff;
-  VectorXd vneg;
-  VectorXd vpos;
-  VectorXd vlongtrace;
-  VectorXd z;
-  VectorXd wadap;
-  VectorXd vthresh;
-  VectorXd refractime;
-  VectorXi isspiking;
+  Eigen::VectorXd xplast_lat;
+  Eigen::VectorXd xplast_ff;
+  Eigen::VectorXd vneg;
+  Eigen::VectorXd vpos;
+  Eigen::VectorXd vlongtrace;
+  Eigen::VectorXd z;
+  Eigen::VectorXd wadap;
+  Eigen::VectorXd vthresh;
+  Eigen::VectorXd refractime;
+  Eigen::VectorXi isspiking;
   std::vector<std::vector<boost::circular_buffer<int>>> incomingspikes;
-  std::vector<std::vector<VectorXi>> incomingFFspikes;
-  VectorXd v;
+  std::vector<std::vector<Eigen::VectorXi>> incomingFFspikes;
+  Eigen::VectorXd v;
 };

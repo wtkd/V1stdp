@@ -100,8 +100,8 @@ void setupLearn(CLI::App &app) {
     double const WIE_MAX = model.WIE_MAX();
     double const WII_MAX = model.WII_MAX();
 
-    MatrixXd const w = [&]() {
-      MatrixXd w = MatrixXd::Zero(NBNEUR, NBNEUR); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
+    Eigen::MatrixXd const w = [&]() {
+      Eigen::MatrixXd w = Eigen::MatrixXd::Zero(NBNEUR, NBNEUR); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
       // w.fill(1.0);
 
       // Inhbitory neurons receive excitatory inputs from excitatory neurons
@@ -115,14 +115,14 @@ void setupLearn(CLI::App &app) {
       w.bottomRows(NBI).leftCols(NBE) = w.bottomRows(NBI).leftCols(NBE).cwiseAbs() * WEI_MAX;
 
       // Diagonal lateral weights are 0 (no autapses !)
-      w = w - w.cwiseProduct(MatrixXd::Identity(NBNEUR, NBNEUR));
+      w = w - w.cwiseProduct(Eigen::MatrixXd::Identity(NBNEUR, NBNEUR));
 
       return w;
     }();
 
-    MatrixXd const wff = [&]() {
-      MatrixXd wff = MatrixXd::Zero(NBNEUR, FFRFSIZE);
-      wff = (WFFINITMIN + (WFFINITMAX - WFFINITMIN) * MatrixXd::Random(NBNEUR, FFRFSIZE).cwiseAbs().array())
+    Eigen::MatrixXd const wff = [&]() {
+      Eigen::MatrixXd wff = Eigen::MatrixXd::Zero(NBNEUR, FFRFSIZE);
+      wff = (WFFINITMIN + (WFFINITMAX - WFFINITMIN) * Eigen::MatrixXd::Random(NBNEUR, FFRFSIZE).cwiseAbs().array())
                 .cwiseMin(MAXW); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
       // Inhibitory neurons do not receive FF excitation from the sensory RFs (should they? TRY LATER)
       wff.bottomRows(NBI).setZero();
@@ -242,11 +242,12 @@ void setupTest(CLI::App &app) {
 
     int const NBSTEPSPERPRES = (int)(presentationTime / dt);
 
-    MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
-    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
+    Eigen::MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
+    Eigen::MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
-    auto const delays =
-        opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
+    auto const delays = opt->delaysFile.has_value()
+                            ? std::optional(Eigen::ArrayXXi(readMatrix<int>(opt->delaysFile.value())))
+                            : std::nullopt;
 
     std::cout << "First row of w (lateral weights): " << w.row(0) << std::endl;
     std::cout << "w(1,2) and w(2,1): " << w(1, 2) << " " << w(2, 1) << std::endl;
@@ -366,11 +367,12 @@ void setupMix(CLI::App &app) {
 
     int const NBSTEPSPERPRES = (int)(presentationTime / dt);
 
-    MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
-    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
+    Eigen::MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
+    Eigen::MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
-    auto const delays =
-        opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
+    auto const delays = opt->delaysFile.has_value()
+                            ? std::optional(Eigen::ArrayXXi(readMatrix<int>(opt->delaysFile.value())))
+                            : std::nullopt;
 
     std::cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << std::endl;
 
@@ -390,9 +392,9 @@ void setupMix(CLI::App &app) {
       return mixvals;
     }();
 
-    auto const getRatioLgnRatesMixed = [&](std::uint32_t const i) -> ArrayXd {
-      ArrayXd const lgnratesS1 = getRatioLgnRates(STIM1);
-      ArrayXd const lgnratesS2 = getRatioLgnRates(STIM2);
+    auto const getRatioLgnRatesMixed = [&](std::uint32_t const i) -> Eigen::ArrayXd {
+      Eigen::ArrayXd const lgnratesS1 = getRatioLgnRates(STIM1);
+      Eigen::ArrayXd const lgnratesS2 = getRatioLgnRates(STIM2);
       double const mixval1 = (i / NBMIXES == 2 ? 0 : mixvals[i % NBMIXES]);
       double const mixval2 = (i / NBMIXES == 1 ? 0 : 1.0 - mixvals[i % NBMIXES]);
 
@@ -503,11 +505,12 @@ void setupPulse(CLI::App &app) {
     std::cout << "Stim1: " << STIM1 << std::endl;
     std::cout << "Pulse input time: " << PULSETIME << " ms" << std::endl;
 
-    MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
-    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
+    Eigen::MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
+    Eigen::MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
-    auto const delays =
-        opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
+    auto const delays = opt->delaysFile.has_value()
+                            ? std::optional(Eigen::ArrayXXi(readMatrix<int>(opt->delaysFile.value())))
+                            : std::nullopt;
 
     auto const imageVector = readImages(inputFile, PATCHSIZE);
     decltype(imageVector) const narrowedImageVector = {imageVector.at(STIM1)};
@@ -596,11 +599,12 @@ void setupSpontaneous(CLI::App &app) {
 
     std::cout << "Spontaneous activity - no stimulus !" << std::endl;
 
-    MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
-    MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
+    Eigen::MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
+    Eigen::MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
 
-    auto const delays =
-        opt->delaysFile.has_value() ? std::optional(ArrayXXi(readMatrix<int>(opt->delaysFile.value()))) : std::nullopt;
+    auto const delays = opt->delaysFile.has_value()
+                            ? std::optional(Eigen::ArrayXXi(readMatrix<int>(opt->delaysFile.value())))
+                            : std::nullopt;
 
     run(model,
         presentationTime,

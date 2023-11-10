@@ -10,8 +10,6 @@
 #include "simulation.hpp"
 #include "tool.hpp"
 
-using namespace Eigen;
-
 int main(int argc, char *argv[]) {
   std::cout << "stdp " << VERSION << std::endl;
   for (int i = 0; i < argc; ++i) {
