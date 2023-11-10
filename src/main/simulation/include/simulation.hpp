@@ -3,10 +3,6 @@
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
 
-#include "../model.hpp"
-
-void setupModel(CLI::App &app, Model &model);
-
 void setAndPrintRandomSeed(int const randomSeed);
 
 void setupLearn(CLI::App &app);

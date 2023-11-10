@@ -9,6 +9,7 @@
 
 #include "constant.hpp"
 #include "io.hpp"
+#include "model.hpp"
 #include "phase.hpp"
 #include "run.hpp"
 #include "utils.hpp"
