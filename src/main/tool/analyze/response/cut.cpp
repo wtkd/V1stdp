@@ -7,6 +7,8 @@
 
 #include "cut.hpp"
 
+namespace v1stdp::main::tool::analyze::response::cut {
+
 struct CutOptions {
   std::filesystem::path inputFile;
   std::uint64_t excitatoryNeuronNumber;
@@ -49,22 +51,24 @@ void setupCut(CLI::App &app) {
     auto const neuronNumber = opt->excitatoryNeuronNumber + opt->inhibitoryNeuronNumber;
 
     // Row: Neuron, Colomn: Stimulation
-    auto const responseMatrix = readMatrix<std::uint64_t>(opt->inputFile, neuronNumber, opt->stimulationNumber);
+    auto const responseMatrix = io::readMatrix<std::uint64_t>(opt->inputFile, neuronNumber, opt->stimulationNumber);
 
     if (opt->excitatoryOnlyOutputFile.has_value()) {
-      ensureParentDirectory(opt->excitatoryOnlyOutputFile.value());
+      io::ensureParentDirectory(opt->excitatoryOnlyOutputFile.value());
 
-      saveMatrix<std::uint64_t>(
+      io::saveMatrix<std::uint64_t>(
           opt->excitatoryOnlyOutputFile.value(), responseMatrix.topRows(opt->excitatoryNeuronNumber)
       );
     }
 
     if (opt->inhibitoryOnlyOutputFile.has_value()) {
-      ensureParentDirectory(opt->inhibitoryOnlyOutputFile.value());
+      io::ensureParentDirectory(opt->inhibitoryOnlyOutputFile.value());
 
-      saveMatrix<std::uint64_t>(
+      io::saveMatrix<std::uint64_t>(
           opt->inhibitoryOnlyOutputFile.value(), responseMatrix.bottomRows(opt->inhibitoryNeuronNumber)
       );
     }
   });
 }
+
+} // namespace v1stdp::main::tool::analyze::response::cut

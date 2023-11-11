@@ -1,5 +1,7 @@
 #pragma once
 
+namespace v1stdp::main::simulation::constant {
+
 // #define MOD (70.0 / 126.0)
 inline double constexpr MOD = (1.0 / 126.0);
 
@@ -93,3 +95,5 @@ inline double constexpr TAUVPOS = 7.0;
 inline unsigned constexpr VREF2 = 50;
 
 inline unsigned constexpr NBNOISESTEPS = 73333;
+
+} // namespace v1stdp::main::simulation::constant

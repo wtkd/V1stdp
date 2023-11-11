@@ -10,6 +10,8 @@
 
 #include "applyPermutation.hpp"
 
+namespace v1stdp::main::tool::analyze::applyPermutation {
+
 struct AnalyzeApplyPermutationOptions {
   std::filesystem::path inputFile;
   std::filesystem::path outputFile;
@@ -38,24 +40,26 @@ void setupApplyPermutation(CLI::App &app) {
       ->check(CLI::ExistingFile);
 
   sub->callback([opt]() {
-    Eigen::MatrixXd const responseMatrix = readMatrix<double>(opt->inputFile);
+    Eigen::MatrixXd const responseMatrix = io::readMatrix<double>(opt->inputFile);
 
     Eigen::MatrixXd resultMatrix = responseMatrix;
 
     if (opt->colomnFile.has_value()) {
-      std::vector<double> const permutaion = readVector<double>(opt->colomnFile.value());
+      std::vector<double> const permutaion = io::readVector<double>(opt->colomnFile.value());
 
-      resultMatrix = applyPermutationCol(resultMatrix, permutaion);
+      resultMatrix = statistics::applyPermutationCol(resultMatrix, permutaion);
     }
 
     if (opt->rowFile.has_value()) {
-      std::vector<double> const permutaion = readVector<double>(opt->rowFile.value());
+      std::vector<double> const permutaion = io::readVector<double>(opt->rowFile.value());
 
-      resultMatrix = applyPermutationRow(resultMatrix, permutaion);
+      resultMatrix = statistics::applyPermutationRow(resultMatrix, permutaion);
     }
 
-    ensureParentDirectory(opt->outputFile);
+    io::ensureParentDirectory(opt->outputFile);
 
     std::ofstream(opt->outputFile) << resultMatrix;
   });
 }
+
+} // namespace v1stdp::main::tool::analyze::applyPermutation

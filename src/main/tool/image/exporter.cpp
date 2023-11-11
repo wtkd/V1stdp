@@ -10,6 +10,8 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/timer/progress_display.hpp>
 
+namespace v1stdp::main::tool::image {
+
 void exporterOne(Eigen::ArrayXX<std::int8_t> const &image, std::filesystem::path const &outputFile) {
   std::ofstream outputFileStream(outputFile);
   if (!outputFileStream.is_open()) {
@@ -54,3 +56,5 @@ void exporterAllEach(
     ++showProgress;
   }
 }
+
+} // namespace v1stdp::main::tool::image

@@ -7,6 +7,8 @@
 
 #include "io.hpp"
 
+namespace v1stdp::main::tool::analyze::divideLine {
+
 struct DivideLineOptions {
   std::filesystem::path inputFile;
   std::filesystem::path outputDirectory;
@@ -34,13 +36,13 @@ void setupDivideLine(CLI::App &app) {
   );
 
   sub->callback([opt]() {
-    std::vector<std::vector<std::string>> const data = readVectorVector(opt->inputFile);
+    std::vector<std::vector<std::string>> const data = io::readVectorVector(opt->inputFile);
 
     if (opt->numberFile.has_value()) {
-      writeVector(opt->numberFile.value(), std::vector{data.size()});
+      io::writeVector(opt->numberFile.value(), std::vector{data.size()});
     }
 
-    createEmptyDirectory(opt->outputDirectory);
+    io::createEmptyDirectory(opt->outputDirectory);
 
     auto const zeroPadding = opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(data.size()) + 1;
 
@@ -52,7 +54,9 @@ void setupDivideLine(CLI::App &app) {
         return baseFileNameStream.str();
       }();
 
-      writeVector(opt->outputDirectory / baseFileName, line.value());
+      io::writeVector(opt->outputDirectory / baseFileName, line.value());
     }
   });
 }
+
+} // namespace v1stdp::main::tool::analyze::divideLine

@@ -16,6 +16,8 @@
 
 #include "export.hpp"
 
+namespace v1stdp::main::tool::analyze::weight::feedforward {
+
 struct WeightFeefforwardExportOptions {
   std::filesystem::path inputFile;
   std::optional<std::filesystem::path> onDirectory;
@@ -60,7 +62,7 @@ void setupWeightFeedforwardExport(CLI::App &app) {
   );
 
   sub->callback([opt]() {
-    auto const feedforwardWeights = readMatrix<double>(
+    auto const feedforwardWeights = io::readMatrix<double>(
         opt->inputFile, opt->excitatoryNeuronNumber + opt->inhibitoryNeuronNumber, opt->edgeLength * opt->edgeLength * 2
     );
 
@@ -99,7 +101,7 @@ void setupWeightFeedforwardExport(CLI::App &app) {
       auto const zeroPadding =
           opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(onWeights.size()) + 1;
 
-      createEmptyDirectory(opt->onDirectory.value());
+      io::createEmptyDirectory(opt->onDirectory.value());
       exportMatrices(onWeights, opt->onDirectory.value(), zeroPadding);
     }
 
@@ -107,7 +109,7 @@ void setupWeightFeedforwardExport(CLI::App &app) {
       auto const zeroPadding =
           opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(offWeights.size()) + 1;
 
-      createEmptyDirectory(opt->offDirectory.value());
+      io::createEmptyDirectory(opt->offDirectory.value());
       exportMatrices(offWeights, opt->offDirectory.value(), zeroPadding);
     }
 
@@ -115,7 +117,7 @@ void setupWeightFeedforwardExport(CLI::App &app) {
       auto const zeroPadding =
           opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(onWeights.size()) + 1;
 
-      createEmptyDirectory(opt->diffDirectory.value());
+      io::createEmptyDirectory(opt->diffDirectory.value());
 
       std::vector<Eigen::MatrixXd> differences;
       std::ranges::transform(onWeights, offWeights, std::back_inserter(differences), std::minus<Eigen::MatrixXd>());
@@ -124,3 +126,5 @@ void setupWeightFeedforwardExport(CLI::App &app) {
     }
   });
 }
+
+} // namespace v1stdp::main::tool::analyze::weight::feedforward

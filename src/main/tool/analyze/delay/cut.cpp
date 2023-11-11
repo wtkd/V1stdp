@@ -7,6 +7,8 @@
 
 #include "cut.hpp"
 
+namespace v1stdp::main::tool::analyze::delay {
+
 struct DelayCutOptions {
   std::filesystem::path inputFile;
   std::uint64_t excitatoryNeuronNumber;
@@ -46,24 +48,26 @@ void setupDelayCut(CLI::App &app) {
   sub->callback([opt]() {
     auto const neuronNumber = opt->excitatoryNeuronNumber + opt->inhibitoryNeuronNumber;
 
-    auto const delays = readMatrix<int>(opt->inputFile, neuronNumber, neuronNumber);
+    auto const delays = io::readMatrix<int>(opt->inputFile, neuronNumber, neuronNumber);
 
     if (opt->excitatoryOnlyOutputFile.has_value()) {
-      ensureParentDirectory(opt->excitatoryOnlyOutputFile.value());
+      io::ensureParentDirectory(opt->excitatoryOnlyOutputFile.value());
 
-      saveMatrix<int>(
+      io::saveMatrix<int>(
           opt->excitatoryOnlyOutputFile.value(),
           delays.topRows(opt->excitatoryNeuronNumber).leftCols(opt->excitatoryNeuronNumber)
       );
     }
 
     if (opt->inhibitoryOnlyOutputFile.has_value()) {
-      ensureParentDirectory(opt->inhibitoryOnlyOutputFile.value());
+      io::ensureParentDirectory(opt->inhibitoryOnlyOutputFile.value());
 
-      saveMatrix<int>(
+      io::saveMatrix<int>(
           opt->inhibitoryOnlyOutputFile.value(),
           delays.bottomRows(opt->inhibitoryNeuronNumber).rightCols(opt->inhibitoryNeuronNumber)
       );
     }
   });
 }
+
+} // namespace v1stdp::main::tool::analyze::delay

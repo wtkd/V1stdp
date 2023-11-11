@@ -19,6 +19,8 @@
 #include "phase.hpp"
 #include "utils.hpp"
 
+namespace v1stdp::main::simulation {
+
 template <typename F>
   requires std::regular_invocable<F, std::uint32_t> &&
            std::same_as<std::invoke_result_t<F, std::uint32_t>, Eigen::ArrayXd>
@@ -59,7 +61,7 @@ int run(
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
   // number. IF using 'mix', you must specify two stimulus numbers.
 
-  int const NBSTEPSPERPRES = (int)(presentationTime / dt);
+  int const NBSTEPSPERPRES = (int)(presentationTime / constant::dt);
   int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
   // totaldatasize = fsize / sizeof(double); // To change depending on whether
   // the data is float/single (4) or double (8)
@@ -73,7 +75,10 @@ int run(
   Eigen::MatrixXd const negnoisein = [&]() {
     // The poissonMatrix should be evaluated every time because of reproductivity.
     Eigen::MatrixXd negnoisein =
-        -poissonMatrix(dt * Eigen::MatrixXd::Constant(NBNEUR, NBNOISESTEPS, NEGNOISERATE)) * VSTIM;
+        -poissonMatrix(
+            constant::dt * Eigen::MatrixXd::Constant(constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE)
+        ) *
+        constant::VSTIM;
     // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
     if (NONOISE || NOSPIKE) {
       negnoisein.setZero();
@@ -84,7 +89,10 @@ int run(
   Eigen::MatrixXd const posnoisein = [&]() {
     // The poissonMatrix should be evaluated every time because of reproductivity.
     Eigen::MatrixXd posnoisein =
-        poissonMatrix(dt * Eigen::MatrixXd::Constant(NBNEUR, NBNOISESTEPS, POSNOISERATE)) * VSTIM;
+        poissonMatrix(
+            constant::dt * Eigen::MatrixXd::Constant(constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE)
+        ) *
+        constant::VSTIM;
     // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
     if (NONOISE || NOSPIKE) {
       posnoisein.setZero();
@@ -94,36 +102,38 @@ int run(
 
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
-  auto const restingMembranePotential = Eigen::VectorXd::Constant(NBNEUR, -70.5);
+  auto const restingMembranePotential = Eigen::VectorXd::Constant(constant::NBNEUR, -70.5);
 
   // Wrong:
   // Eigen::VectorXd vlongtrace = v;
 
-  Eigen::VectorXi const ZeroV = Eigen::VectorXi::Zero(NBNEUR);
-  Eigen::VectorXi const OneV = Eigen::VectorXi::Constant(NBNEUR, 1);
-  Eigen::VectorXd const ZeroLGN = Eigen::VectorXd::Zero(FFRFSIZE);
-  Eigen::VectorXd const OneLGN = Eigen::VectorXd::Constant(FFRFSIZE, 1.0);
+  Eigen::VectorXi const ZeroV = Eigen::VectorXi::Zero(constant::NBNEUR);
+  Eigen::VectorXi const OneV = Eigen::VectorXi::Constant(constant::NBNEUR, 1);
+  Eigen::VectorXd const ZeroLGN = Eigen::VectorXd::Zero(constant::FFRFSIZE);
+  Eigen::VectorXd const OneLGN = Eigen::VectorXd::Constant(constant::FFRFSIZE, 1.0);
 
   // Eigen::MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
 
   Eigen::ArrayXd const ALTDS = [&]() {
-    Eigen::ArrayXd ALTDS(NBNEUR);
-    std::ranges::for_each(ALTDS, [](auto &i) { i = BASEALTD + RANDALTD * ((double)rand() / (double)RAND_MAX); });
+    Eigen::ArrayXd ALTDS(constant::NBNEUR);
+    std::ranges::for_each(ALTDS, [](auto &i) {
+      i = constant::BASEALTD + constant::RANDALTD * ((double)rand() / (double)RAND_MAX);
+    });
     return ALTDS;
   }();
 
   std::vector<double> const mixvals = [&]() {
-    std::vector<double> mixvals(NBMIXES);
-    for (auto const nn : boost::counting_range<unsigned>(0, NBMIXES))
+    std::vector<double> mixvals(constant::NBMIXES);
+    for (auto const nn : boost::counting_range<unsigned>(0, constant::NBMIXES))
       // NBMIXES values equally spaced from 0 to 1 inclusive.
-      mixvals[nn] = (double)nn / (double)(NBMIXES - 1);
+      mixvals[nn] = (double)nn / (double)(constant::NBMIXES - 1);
     return mixvals;
   }();
 
   // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
   // target neuron and j is the source synapse)
   auto const delays = [&]() {
-    Eigen::ArrayXXi delays(NBNEUR, NBNEUR);
+    Eigen::ArrayXXi delays(constant::NBNEUR, constant::NBNEUR);
 
     // We generate the delays:
 
@@ -135,20 +145,20 @@ int run(
     // ways to do it.
 
     // DELAYPARAM should be a small value (3 to 6). It controls the median of the exponential.
-    for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
-      for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
+    for (auto const ni : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
+      for (auto const nj : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
 
         double val = (double)rand() / (double)RAND_MAX;
         double crit = 1.0 / DELAYPARAM; // .1666666666;
         int mydelay;
-        for (mydelay = 1; mydelay <= MAXDELAYDT; mydelay++) {
+        for (mydelay = 1; mydelay <= constant::MAXDELAYDT; mydelay++) {
           if (val < crit)
             break;
           // "Cutting" and "Stretching"
           val = DELAYPARAM * (val - crit) / (DELAYPARAM - 1.0);
         }
 
-        if (mydelay > MAXDELAYDT)
+        if (mydelay > constant::MAXDELAYDT)
           mydelay = 1;
         delays(nj, ni) = mydelay;
       }
@@ -158,25 +168,25 @@ int run(
     return inputDelays.value_or(delays);
   }();
 
-  saveMatrix<int>(saveDirectory / ("delays" + filenameSuffix + ".txt"), delays.matrix());
+  io::saveMatrix<int>(saveDirectory / ("delays" + filenameSuffix + ".txt"), delays.matrix());
 
   // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
   // myfile.open("delays.txt", ios::trunc | ios::out);
   auto const delaysFF = [&]() {
-    std::vector<std::vector<int>> delaysFF(FFRFSIZE, std::vector<int>(NBNEUR));
+    std::vector<std::vector<int>> delaysFF(constant::FFRFSIZE, std::vector<int>(constant::NBNEUR));
 
-    for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
-      for (auto const nj : boost::counting_range<unsigned>(0, FFRFSIZE)) {
+    for (auto const ni : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
+      for (auto const nj : boost::counting_range<unsigned>(0, constant::FFRFSIZE)) {
 
         double val = (double)rand() / (double)RAND_MAX;
         double crit = .2;
         int mydelay;
-        for (mydelay = 1; mydelay <= MAXDELAYDT; mydelay++) {
+        for (mydelay = 1; mydelay <= constant::MAXDELAYDT; mydelay++) {
           if (val < crit)
             break;
           val = 5.0 * (val - crit) / 4.0;
         }
-        if (mydelay > MAXDELAYDT)
+        if (mydelay > constant::MAXDELAYDT)
           mydelay = 1;
         delaysFF[nj][ni] = mydelay;
       }
@@ -211,10 +221,10 @@ int run(
 
   std::vector<std::vector<boost::circular_buffer<int>>> const initialIncomingspikes = [&]() {
     std::vector<std::vector<boost::circular_buffer<int>>> initialIncomingspikes(
-        NBNEUR, std::vector<boost::circular_buffer<int>>(NBNEUR)
+        constant::NBNEUR, std::vector<boost::circular_buffer<int>>(constant::NBNEUR)
     );
-    for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
-      for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
+    for (auto const ni : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
+      for (auto const nj : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
         initialIncomingspikes[ni][nj] = boost::circular_buffer<int>(delays(nj, ni), 0);
       }
     }
@@ -222,46 +232,48 @@ int run(
   }();
 
   std::vector<std::vector<Eigen::VectorXi>> const initialIncomingFFspikes = [&] {
-    std::vector<std::vector<Eigen::VectorXi>> initialIncomingFFspikes(NBNEUR, std::vector<Eigen::VectorXi>(FFRFSIZE));
-    for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
-      for (auto const nj : boost::counting_range<unsigned>(0, FFRFSIZE)) {
+    std::vector<std::vector<Eigen::VectorXi>> initialIncomingFFspikes(
+        constant::NBNEUR, std::vector<Eigen::VectorXi>(constant::FFRFSIZE)
+    );
+    for (auto const ni : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
+      for (auto const nj : boost::counting_range<unsigned>(0, constant::FFRFSIZE)) {
         initialIncomingFFspikes[ni][nj] = Eigen::VectorXi::Zero(delaysFF[nj][ni]);
       }
     }
     return initialIncomingFFspikes;
   }();
 
-  auto const initialV = Eigen::VectorXd::Constant(NBNEUR, Eleak);
+  auto const initialV = Eigen::VectorXd::Constant(constant::NBNEUR, constant::Eleak);
 
   ModelState modelState{
-      initw,                                                            // w
-      initwff,                                                          // wff
-      Eigen::VectorXd::Zero(NBNEUR),                                    // xplast_lat
-      Eigen::VectorXd::Zero(FFRFSIZE),                                  // xplast_ff
-      restingMembranePotential,                                         // vneg
-      restingMembranePotential,                                         // vpos
-      (restingMembranePotential.array() - THETAVLONGTRACE).cwiseMax(0), // vlongtrace
-      Eigen::VectorXd::Zero(NBNEUR),                                    // z
-      Eigen::VectorXd::Zero(NBNEUR),                                    // wadap
-      Eigen::VectorXd::Constant(NBNEUR, VTREST),                        // vthresh
-      Eigen::VectorXd::Zero(NBNEUR),                                    // refractime
-      Eigen::VectorXi::Zero(NBNEUR),                                    // isspiking
-      initialIncomingspikes,                                            // incomingspikes
-      initialIncomingFFspikes,                                          // incomingFFspikes
-      initialV                                                          // v
+      initw,                                                                      // w
+      initwff,                                                                    // wff
+      Eigen::VectorXd::Zero(constant::NBNEUR),                                    // xplast_lat
+      Eigen::VectorXd::Zero(constant::FFRFSIZE),                                  // xplast_ff
+      restingMembranePotential,                                                   // vneg
+      restingMembranePotential,                                                   // vpos
+      (restingMembranePotential.array() - constant::THETAVLONGTRACE).cwiseMax(0), // vlongtrace
+      Eigen::VectorXd::Zero(constant::NBNEUR),                                    // z
+      Eigen::VectorXd::Zero(constant::NBNEUR),                                    // wadap
+      Eigen::VectorXd::Constant(constant::NBNEUR, constant::VTREST),              // vthresh
+      Eigen::VectorXd::Zero(constant::NBNEUR),                                    // refractime
+      Eigen::VectorXi::Zero(constant::NBNEUR),                                    // isspiking
+      initialIncomingspikes,                                                      // incomingspikes
+      initialIncomingFFspikes,                                                    // incomingFFspikes
+      initialV                                                                    // v
   };
 
-  Eigen::MatrixXi lastnspikes = Eigen::MatrixXi::Zero(NBNEUR, NBLASTSPIKESSTEPS);
-  Eigen::MatrixXd lastnv = Eigen::MatrixXd::Zero(NBNEUR, NBLASTSPIKESSTEPS);
-  Eigen::MatrixXi resps = Eigen::MatrixXi::Zero(NBNEUR, NBRESPS);
-  Eigen::MatrixXd respssumv = Eigen::MatrixXd::Zero(NBNEUR, NBRESPS);
+  Eigen::MatrixXi lastnspikes = Eigen::MatrixXi::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS);
+  Eigen::MatrixXd lastnv = Eigen::MatrixXd::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS);
+  Eigen::MatrixXi resps = Eigen::MatrixXi::Zero(constant::NBNEUR, NBRESPS);
+  Eigen::MatrixXd respssumv = Eigen::MatrixXd::Zero(constant::NBNEUR, NBRESPS);
 
   Eigen::MatrixXd &wff = modelState.wff;
   Eigen::MatrixXd &w = modelState.w;
 
   // If no-inhib mode, remove all inhibitory connections:
   if (NOINH)
-    w.rightCols(NBI).setZero();
+    w.rightCols(constant::NBI).setZero();
 
   Eigen::VectorXd &vneg = modelState.vneg;
   Eigen::VectorXd &vpos = modelState.vpos;
@@ -305,7 +317,7 @@ int run(
         * INPUTMULT *
         // LGN rates from the pattern file are expressed in Hz. We want it in rate
         // per dt, and dt itself is expressed in ms.
-        (dt / 1000.0);
+        (constant::dt / 1000.0);
 
     // At the beginning of every presentation, we reset everything ! (it is important for the random-patches case which
     // tends to generate epileptic self-sustaining firing; 'normal' learning doesn't need it.)
@@ -326,7 +338,7 @@ int run(
         auto const [presentationStart, presentationEnd] = presentationTimeRange;
 
         if (presentationStart <= numstepthispres && (numstepthispres < presentationEnd)) {
-          Eigen::ArrayXd r(FFRFSIZE);
+          Eigen::ArrayXd r(constant::FFRFSIZE);
           for (auto &&i : r | boost::adaptors::indexed()) {
             // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
             i.value() = (rand() / (double)RAND_MAX < std::abs(lgnrates(i.index())) ? 1.0 : 0.0);
@@ -334,7 +346,7 @@ int run(
           return r;
         }
 
-        return Eigen::ArrayXd::Zero(FFRFSIZE);
+        return Eigen::ArrayXd::Zero(constant::FFRFSIZE);
       }();
 
       // We compute the feedforward input:
@@ -371,16 +383,16 @@ int run(
 
       // This, which ignores FF delays, is much faster.... MAtrix
       // multiplications courtesy of the Eigen library.
-      Eigen::VectorXd const Iff = wff * lgnfirings * VSTIM;
+      Eigen::VectorXd const Iff = wff * lgnfirings * constant::VSTIM;
 
       // Now we compute the lateral inputs. Remember that incomingspikes is a
       // circular array.
 
       auto const [LatInput, spikesthisstep] = [&]() {
-        Eigen::VectorXd LatInput = Eigen::VectorXd::Zero(NBNEUR);
-        Eigen::MatrixXi spikesthisstep = Eigen::MatrixXi::Zero(NBNEUR, NBNEUR);
-        for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
-          for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
+        Eigen::VectorXd LatInput = Eigen::VectorXd::Zero(constant::NBNEUR);
+        Eigen::MatrixXi spikesthisstep = Eigen::MatrixXi::Zero(constant::NBNEUR, constant::NBNEUR);
+        for (auto const ni : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
+          for (auto const nj : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
             // If NOELAT, E-E synapses are disabled.
             // XXX: Number of excitatory neurons are hard-coded
             if (NOELAT && (nj < 100) && (ni < 100))
@@ -406,24 +418,27 @@ int run(
 
       Eigen::VectorXd const Ilat = NOLAT
                                        // This disables all lateral connections - Inhibitory and excitatory
-                                       ? Eigen::VectorXd::Zero(NBNEUR)
-                                       : Eigen::VectorXd(LATCONNMULT * VSTIM * LatInput);
+                                       ? Eigen::VectorXd::Zero(constant::NBNEUR)
+                                       : Eigen::VectorXd(LATCONNMULT * constant::VSTIM * LatInput);
 
       // Total input (FF + lateral + frozen noise):
-      Eigen::VectorXd const I =
-          Iff + Ilat + posnoisein.col(numstep % NBNOISESTEPS) + negnoisein.col(numstep % NBNOISESTEPS); //- InhibVect;
+      Eigen::VectorXd const I = Iff + Ilat + posnoisein.col(numstep % constant::NBNOISESTEPS) +
+                                negnoisein.col(numstep % constant::NBNOISESTEPS); //- InhibVect;
 
       Eigen::VectorXd const vprev = v;
       Eigen::VectorXd const vprevprev = vprev;
 
       // AdEx  neurons:
       if (NOSPIKE) {
-        for (auto const nn : boost::counting_range<unsigned>(0, NBNEUR))
-          v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + z(nn) - wadap(nn)) + I(nn);
+        for (auto const nn : boost::counting_range<unsigned>(0, constant::NBNEUR))
+          v(nn) +=
+              (constant::dt / constant::C) * (-constant::Gleak * (v(nn) - constant::Eleak) + z(nn) - wadap(nn)) + I(nn);
       } else {
-        for (auto const nn : boost::counting_range<unsigned>(0, NBNEUR))
-          v(nn) += (dt / C) * (-Gleak * (v(nn) - Eleak) + Gleak * DELTAT * exp((v(nn) - vthresh(nn)) / DELTAT) + z(nn) -
-                               wadap(nn)) +
+        for (auto const nn : boost::counting_range<unsigned>(0, constant::NBNEUR))
+          v(nn) += (constant::dt / constant::C) *
+                       (-constant::Gleak * (v(nn) - constant::Eleak) +
+                        constant::Gleak * constant::DELTAT * exp((v(nn) - vthresh(nn)) / constant::DELTAT) + z(nn) -
+                        wadap(nn)) +
                    I(nn);
       }
       // // The input current is also included in the diff. eq. I believe that's not the right way.
@@ -431,37 +446,37 @@ int run(
       //                      wadap(nn) + I(nn));
 
       // Currently-spiking neurons are clamped at VPEAK.
-      v = (isspiking.array() > 0).select(VPEAK - .001, v);
+      v = (isspiking.array() > 0).select(constant::VPEAK - .001, v);
 
       //  Neurons that have finished their spiking are set to VRESET.
-      v = (isspiking.array() == 1).select(VRESET, v);
+      v = (isspiking.array() == 1).select(constant::VRESET, v);
 
       // Updating some AdEx / plasticity variables
-      z = (isspiking.array() == 1).select(Isp, z);
-      vthresh = (isspiking.array() == 1).select(VTMAX, vthresh);
-      wadap = (isspiking.array() == 1).select(wadap.array() + B, wadap.array());
+      z = (isspiking.array() == 1).select(constant::Isp, z);
+      vthresh = (isspiking.array() == 1).select(constant::VTMAX, vthresh);
+      wadap = (isspiking.array() == 1).select(wadap.array() + constant::B, wadap.array());
 
       // Spiking period elapsing... (in paractice, this is not really needed since the spiking period NBSPIKINGSTEPS is
       // set to 1 for all current experiments)
       isspiking = (isspiking.array() - 1).cwiseMax(0);
 
-      v = v.cwiseMax(MINV);
-      refractime = (refractime.array() - dt).cwiseMax(0);
+      v = v.cwiseMax(constant::MINV);
+      refractime = (refractime.array() - constant::dt).cwiseMax(0);
 
       // "correct" version: Firing neurons are crested / clamped at VPEAK, will be reset to VRESET after the spiking
       // time has elapsed.
       Eigen::VectorXi const firings =
-          NOSPIKE ? Eigen::VectorXi::Zero(NBNEUR) : (v.array() > VPEAK).cast<int>().matrix().eval();
+          NOSPIKE ? Eigen::VectorXi::Zero(constant::NBNEUR) : (v.array() > constant::VPEAK).cast<int>().matrix().eval();
 
       if (not NOSPIKE) {
-        v = (firings.array() > 0).select(VPEAK, v);
+        v = (firings.array() > 0).select(constant::VPEAK, v);
         // In practice, REFRACTIME is set to 0 for all current experiments.
-        refractime = (firings.array() > 0).select(REFRACTIME, refractime);
-        isspiking = (firings.array() > 0).select(NBSPIKINGSTEPS, isspiking);
+        refractime = (firings.array() > 0).select(constant::REFRACTIME, refractime);
+        isspiking = (firings.array() > 0).select(constant::NBSPIKINGSTEPS, isspiking);
 
         // Send the spike through the network. Remember that incomingspikes is a circular array.
-        for (auto const ni : boost::counting_range<unsigned>(0, NBNEUR)) {
-          for (auto const nj : boost::counting_range<unsigned>(0, NBNEUR)) {
+        for (auto const ni : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
+          for (auto const nj : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
             incomingspikes[nj][ni].push_back(firings[ni] ? 1 : 0);
           }
         }
@@ -477,9 +492,10 @@ int run(
       // wadap = (isspiking.array() > 0).select(wadap.array(), wadap.array() +
       // (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array())); //
       // clopathlike (while spiking, don't modify wadap.
-      wadap = wadap.array() + (dt / TAUADAP) * (A * (v.array() - Eleak) - wadap.array());
-      z = z + (dt / TAUZ) * -1.0 * z;
-      vthresh = vthresh.array() + (dt / TAUVTHRESH) * (-1.0 * vthresh.array() + VTREST);
+      wadap = wadap.array() +
+              (constant::dt / constant::TAUADAP) * (constant::A * (v.array() - constant::Eleak) - wadap.array());
+      z = z + (constant::dt / constant::TAUZ) * -1.0 * z;
+      vthresh = vthresh.array() + (constant::dt / constant::TAUVTHRESH) * (-1.0 * vthresh.array() + constant::VTREST);
 
       // Wrong - using the raw v rather than "depolarization" v-vleak (or
       // v-vthresh)
@@ -487,7 +503,8 @@ int run(
 
       // Correct: using depolarization (or more precisely depolarization above
       // THETAVLONGTRACE))
-      vlongtrace += (dt / TAUVLONGTRACE) * ((vprevprev.array() - THETAVLONGTRACE).cwiseMax(0).matrix() - vlongtrace);
+      vlongtrace += (constant::dt / constant::TAUVLONGTRACE) *
+                    ((vprevprev.array() - constant::THETAVLONGTRACE).cwiseMax(0).matrix() - vlongtrace);
       vlongtrace = vlongtrace.cwiseMax(0); // Just in case.
 
       // This is also wrong - the dt/tau should not apply to the increments
@@ -506,11 +523,12 @@ int run(
 
       // Clopath-like version - the firings are also divided by tauxplast. Might
       // cause trouble if dt is modified?
-      xplast_lat = xplast_lat + firings.cast<double>() / TAUXPLAST - (dt / TAUXPLAST) * xplast_lat;
-      xplast_ff = xplast_ff + lgnfirings / TAUXPLAST - (dt / TAUXPLAST) * xplast_ff;
+      xplast_lat =
+          xplast_lat + firings.cast<double>() / constant::TAUXPLAST - (constant::dt / constant::TAUXPLAST) * xplast_lat;
+      xplast_ff = xplast_ff + lgnfirings / constant::TAUXPLAST - (constant::dt / constant::TAUXPLAST) * xplast_ff;
 
-      vneg = vneg + (dt / TAUVNEG) * (vprevprev - vneg);
-      vpos = vpos + (dt / TAUVPOS) * (vprevprev - vpos);
+      vneg = vneg + (constant::dt / constant::TAUVNEG) * (vprevprev - vneg);
+      vpos = vpos + (constant::dt / constant::TAUVPOS) * (vprevprev - vpos);
 
       if ((phase == Phase::learning) && (numpres >= startLearningStimulationNumber))
       // if (numpres >= 401)
@@ -519,47 +537,52 @@ int run(
         // For each neuron, we compute the quantities by which any synapse
         // reaching this given neuron should be modified, if the synapse's
         // firing / recent activity (xplast) commands modification.
-        Eigen::VectorXd const EachNeurLTD =
-            dt * (-ALTDS / VREF2) * vlongtrace.array() * vlongtrace.array() * (vneg.array() - THETAVNEG).cwiseMax(0);
-        Eigen::VectorXd const EachNeurLTP =
-            dt * ALTP * ALTPMULT * (vpos.array() - THETAVNEG).cwiseMax(0) * (v.array() - THETAVPOS).cwiseMax(0);
+        Eigen::VectorXd const EachNeurLTD = constant::dt * (-ALTDS / constant::VREF2) * vlongtrace.array() *
+                                            vlongtrace.array() * (vneg.array() - constant::THETAVNEG).cwiseMax(0);
+        Eigen::VectorXd const EachNeurLTP = constant::dt * constant::ALTP * ALTPMULT *
+                                            (vpos.array() - constant::THETAVNEG).cwiseMax(0) *
+                                            (v.array() - constant::THETAVPOS).cwiseMax(0);
 
         // Feedforward synapses, then lateral synapses.
 
-        wff.topRows(NBE) += EachNeurLTP.head(NBE) * xplast_ff.transpose();
+        wff.topRows(constant::NBE) += EachNeurLTP.head(constant::NBE) * xplast_ff.transpose();
 
         // wff.topRows(NBE) += EachNeurLTD.head(NBE).asDiagonal() * (1.0 + wff.topRows(NBE).array() *
         // WPENSCALE).matrix() *
         //                     (lgnfirings.array() > 1e-10).matrix().cast<double>().asDiagonal();
-        for (auto const syn : boost::counting_range<unsigned>(0, FFRFSIZE))
+        for (auto const syn : boost::counting_range<unsigned>(0, constant::FFRFSIZE))
           if (lgnfirings(syn) > 1e-10)
-            for (auto const nn : boost::counting_range<unsigned>(0, NBE))
+            for (auto const nn : boost::counting_range<unsigned>(0, constant::NBE))
               // if (spikesthisstepFF(nn, syn) > 0)
               wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
 
-        w.topLeftCorner(NBE, NBE) += EachNeurLTP.head(NBE) * xplast_lat.transpose();
+        w.topLeftCorner(constant::NBE, constant::NBE) += EachNeurLTP.head(constant::NBE) * xplast_lat.transpose();
 
         // w.topLeftCorner(NBE, NBE) +=
         //     ((spikesthisstep.topRows(NBE).array() > 0).cast<double>() *
         //      (EachNeurLTD.head(NBE).asDiagonal() * (1.0 + w.topLeftCorner(NBE, NBE).array() * WPENSCALE).matrix())
         //          .array())
         //         .matrix();
-        for (auto const syn : boost::counting_range<unsigned>(0, NBE))
+        for (auto const syn : boost::counting_range<unsigned>(0, constant::NBE))
           //    if (firingsprev(syn) > 1e-10)
-          for (auto const nn : boost::counting_range<unsigned>(0, NBE))
+          for (auto const nn : boost::counting_range<unsigned>(0, constant::NBE))
             if (spikesthisstep(nn, syn) > 0)
               w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
 
         // Diagonal lateral weights are 0!
-        w.topLeftCorner(NBE, NBE) = w.topLeftCorner(NBE, NBE).cwiseProduct(
-            Eigen::MatrixXd::Constant(NBE, NBE, 1) - Eigen::MatrixXd::Identity(NBE, NBE)
-        );
+        w.topLeftCorner(constant::NBE, constant::NBE) =
+            w.topLeftCorner(constant::NBE, constant::NBE)
+                .cwiseProduct(
+                    Eigen::MatrixXd::Constant(constant::NBE, constant::NBE, 1) -
+                    Eigen::MatrixXd::Identity(constant::NBE, constant::NBE)
+                );
 
-        wff.topRows(NBE) = wff.topRows(NBE).cwiseMax(0);
-        w.leftCols(NBE) = w.leftCols(NBE).cwiseMax(0);
+        wff.topRows(constant::NBE) = wff.topRows(constant::NBE).cwiseMax(0);
+        w.leftCols(constant::NBE) = w.leftCols(constant::NBE).cwiseMax(0);
         // w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
-        wff.topRows(NBE) = wff.topRows(NBE).cwiseMin(MAXW);
-        w.topLeftCorner(NBE, NBE) = w.topLeftCorner(NBE, NBE).cwiseMin(MAXW);
+        wff.topRows(constant::NBE) = wff.topRows(constant::NBE).cwiseMin(constant::MAXW);
+        w.topLeftCorner(constant::NBE, constant::NBE) =
+            w.topLeftCorner(constant::NBE, constant::NBE).cwiseMin(constant::MAXW);
       }
 
       // Storing some indicator variablkes...
@@ -569,7 +592,7 @@ int run(
       resps.col(numpres % NBRESPS) += firings;
       // respssumv.col(numpres % NBRESPS) += v.cwiseMin(vthresh); // We only
       // record subthreshold potentials !
-      respssumv.col(numpres % NBRESPS) += v.cwiseMin(VTMAX); // We only record subthreshold potentials !
+      respssumv.col(numpres % NBRESPS) += v.cwiseMin(constant::VTMAX); // We only record subthreshold potentials !
       lastnspikes.col(numstep % NBLASTSPIKESSTEPS) = firings;
       lastnv.col(numstep % NBLASTSPIKESSTEPS) = v;
 
@@ -770,3 +793,4 @@ int run(
     std::string const &filenameSuffix,
     std::uint16_t const startLearningStimulationNumber = 0
 );
+} // namespace v1stdp::main::simulation

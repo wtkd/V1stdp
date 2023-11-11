@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+namespace v1stdp::main::simulation {
+
 enum class Phase {
   unspecified = 0,
   learning,
@@ -23,3 +25,5 @@ inline std::istream &operator>>(std::istream &is, Phase &p) {
                       : Phase::unspecified);
   return is;
 }
+
+} // namespace v1stdp::main::simulation

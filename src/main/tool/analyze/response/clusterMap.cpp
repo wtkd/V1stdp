@@ -9,6 +9,8 @@
 
 #include "io.hpp"
 
+namespace v1stdp::main::tool::analyze::response::clusterMap {
+
 auto calculateClusterMap(
     Eigen::MatrixXd const &correlationMatrix,
     double const correlationThreshold,
@@ -121,11 +123,11 @@ void setupClusterMap(CLI::App &app) {
 
   sub->callback([opt]() {
     // Row: Neuron, Colomn: Stimulation
-    auto const correlationMatrix = readMatrix<double>(opt->inputFile, opt->inputSize, opt->inputSize);
+    auto const correlationMatrix = io::readMatrix<double>(opt->inputFile, opt->inputSize, opt->inputSize);
 
     auto const indexMap = [&]() {
       if (opt->indexFile.has_value()) {
-        return readVector<std::size_t>(opt->indexFile.value());
+        return io::readVector<std::size_t>(opt->indexFile.value());
       }
 
       std::vector<std::size_t> v(opt->inputSize);
@@ -139,7 +141,7 @@ void setupClusterMap(CLI::App &app) {
 
     auto const clusterMap = calculateClusterMap(correlationMatrix, opt->correlationThreshold, indexMap);
 
-    ensureParentDirectory(opt->outputFile);
+    io::ensureParentDirectory(opt->outputFile);
     std::ofstream ofs(opt->outputFile);
 
     for (auto const &v : clusterMap) {
@@ -153,3 +155,5 @@ void setupClusterMap(CLI::App &app) {
     }
   });
 }
+
+} // namespace v1stdp::main::tool::analyze::response::clusterMap

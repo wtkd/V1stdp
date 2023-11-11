@@ -8,12 +8,15 @@
 
 #include "analyze.hpp"
 
+namespace v1stdp::main::tool::analyze {
+
 void setupAnalyze(CLI::App &app) {
   auto sub = app.add_subcommand("analyze", "Analyze the result of simulation")->require_subcommand();
 
-  setupResponse(*sub);
-  setupWeight(*sub);
-  setupDelay(*sub);
-  setupApplyPermutation(*sub);
-  setupDivideLine(*sub);
+  response::setupResponse(*sub);
+  weight::setupWeight(*sub);
+  delay::setupDelay(*sub);
+  applyPermutation::setupApplyPermutation(*sub);
+  divideLine::setupDivideLine(*sub);
 }
+} // namespace v1stdp::main::tool::analyze

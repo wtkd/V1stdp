@@ -7,6 +7,8 @@
 
 #include "constant.hpp"
 
+namespace v1stdp::main::simulation {
+
 struct Model {
   bool nonoise = false;
   bool nospike = false;
@@ -14,7 +16,7 @@ struct Model {
   bool nolat = false;
   bool noelat = false;
   int delayparam = 5.0;
-  int latconnmult = LATCONNMULTINIT;
+  int latconnmult = constant::LATCONNMULTINIT;
   double wpenscale = 0.33;
   double altpmult = 0.75;
   double wie = 0.5;
@@ -77,3 +79,5 @@ struct ModelState {
   std::vector<std::vector<Eigen::VectorXi>> incomingFFspikes;
   Eigen::VectorXd v;
 };
+
+} // namespace v1stdp::main::simulation

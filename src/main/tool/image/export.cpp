@@ -17,6 +17,8 @@
 
 #include "export.hpp"
 
+namespace v1stdp::main::tool::image {
+
 struct ImageExportOptions {
   std::filesystem::path inputFile;
   std::optional<std::filesystem::path> allEachDirectory;
@@ -62,15 +64,15 @@ void setupImageExport(CLI::App &app) {
       ->required();
 
   sub->callback([opt]() {
-    auto const imageVector = readImages(opt->inputFile, opt->edgeLength);
+    auto const imageVector = io::readImages(opt->inputFile, opt->edgeLength);
 
     if (opt->allEachDirectory.has_value()) {
-      createEmptyDirectory(opt->allEachDirectory.value());
+      io::createEmptyDirectory(opt->allEachDirectory.value());
       exporterAllEach(imageVector, opt->allEachDirectory.value());
     }
 
     if (opt->onImageDirectory.has_value()) {
-      createEmptyDirectory(opt->onImageDirectory.value());
+      io::createEmptyDirectory(opt->onImageDirectory.value());
 
       std::vector<Eigen::ArrayXX<std::int8_t>> onCenterImageVector;
       std::ranges::transform(
@@ -83,7 +85,7 @@ void setupImageExport(CLI::App &app) {
     }
 
     if (opt->offImageDirectory.has_value()) {
-      createEmptyDirectory(opt->offImageDirectory.value());
+      io::createEmptyDirectory(opt->offImageDirectory.value());
 
       std::vector<Eigen::ArrayXX<std::int8_t>> offCenterImageVector;
       std::ranges::transform(
@@ -96,8 +98,10 @@ void setupImageExport(CLI::App &app) {
     }
 
     if (opt->allInOneFileName.has_value()) {
-      ensureParentDirectory(opt->allInOneFileName.value());
+      io::ensureParentDirectory(opt->allInOneFileName.value());
       exporterAllInOne(imageVector, opt->allInOneFileName.value());
     }
   });
 }
+
+} // namespace v1stdp::main::tool::image

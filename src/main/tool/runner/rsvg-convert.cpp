@@ -11,6 +11,8 @@
 
 #include "rsvg-convert.hpp"
 
+namespace v1stdp::main::tool::runner {
+
 struct RsvgConvertOptions {
   std::filesystem::path inputDirectory;
   std::filesystem::path outputDirectory;
@@ -36,7 +38,7 @@ void setupRsvgConvert(CLI::App &app) {
       );
     }
 
-    createEmptyDirectory(opt->outputDirectory);
+    io::createEmptyDirectory(opt->outputDirectory);
 
     for (const std::filesystem::directory_entry &it : std::filesystem::directory_iterator(opt->inputDirectory)) {
       if (it.path().extension() != ".svg")
@@ -53,3 +55,5 @@ void setupRsvgConvert(CLI::App &app) {
     }
   });
 }
+
+} // namespace v1stdp::main::tool::runner

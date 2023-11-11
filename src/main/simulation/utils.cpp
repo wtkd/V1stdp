@@ -12,6 +12,8 @@
  *  Utility functions
  */
 
+namespace v1stdp::main::simulation {
+
 int poissonScalar(double const lambd) {
   double L = exp(-1 * lambd);
   int k = 0;
@@ -102,3 +104,5 @@ Eigen::MatrixXd readWeights(Eigen::Index rowSize, Eigen::Index colSize, std::fil
 
   return wgt;
 }
+
+} // namespace v1stdp::main::simulation

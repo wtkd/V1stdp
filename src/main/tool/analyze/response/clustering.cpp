@@ -12,6 +12,8 @@
 
 #include "clustering.hpp"
 
+namespace v1stdp::main::tool::analyze::response::clustering {
+
 struct AnalyzeClusteringOptions {
   std::filesystem::path inputFile;
   std::optional<std::filesystem::path> sortedResponseOutputFile;
@@ -51,38 +53,41 @@ void setupClustering(CLI::App &app) {
 
   sub->callback([opt]() {
     // Row: Neuron, Colomn: Stimulation
-    auto const responseMatrix = readMatrix<int>(opt->inputFile, opt->neuronNumber, opt->stimulationNumber);
+    auto const responseMatrix = io::readMatrix<int>(opt->inputFile, opt->neuronNumber, opt->stimulationNumber);
 
     Eigen::MatrixXi const targetMatrix = responseMatrix;
 
     Eigen::MatrixXi resultMatrix = targetMatrix;
 
     if (opt->stimulationSortedIndexOutputFile.has_value()) {
-      ensureParentDirectory(opt->stimulationSortedIndexOutputFile.value());
+      io::ensureParentDirectory(opt->stimulationSortedIndexOutputFile.value());
 
-      auto const permutaion = singleClusteringSortPermutation(resultMatrix, correlationDistanceSquare<int>);
+      auto const permutaion =
+          statistics::singleClusteringSortPermutation(resultMatrix, statistics::correlationDistanceSquare<int>);
 
-      writeVector(opt->stimulationSortedIndexOutputFile.value(), permutaion);
+      io::writeVector(opt->stimulationSortedIndexOutputFile.value(), permutaion);
 
-      resultMatrix = applyPermutationCol(resultMatrix, permutaion);
+      resultMatrix = statistics::applyPermutationCol(resultMatrix, permutaion);
     }
 
     if (opt->neuronSortedIndexOutputFile.has_value()) {
-      ensureParentDirectory(opt->neuronSortedIndexOutputFile.value());
+      io::ensureParentDirectory(opt->neuronSortedIndexOutputFile.value());
 
-      auto const permutaion =
-          singleClusteringSortPermutation(Eigen::MatrixXi(resultMatrix.transpose()), correlationDistanceSquare<int>);
+      auto const permutaion = statistics::
+          singleClusteringSortPermutation(Eigen::MatrixXi(resultMatrix.transpose()), statistics::correlationDistanceSquare<int>);
 
-      writeVector(opt->neuronSortedIndexOutputFile.value(), permutaion);
+      io::writeVector(opt->neuronSortedIndexOutputFile.value(), permutaion);
 
-      resultMatrix = applyPermutationRow(resultMatrix, permutaion);
+      resultMatrix = statistics::applyPermutationRow(resultMatrix, permutaion);
     }
 
     if (opt->sortedResponseOutputFile.has_value()) {
-      ensureParentDirectory(opt->sortedResponseOutputFile.value());
+      io::ensureParentDirectory(opt->sortedResponseOutputFile.value());
 
       std::ofstream ofs(opt->sortedResponseOutputFile.value());
       ofs << resultMatrix;
     }
   });
 }
+
+} // namespace v1stdp::main::tool::analyze::response::clustering

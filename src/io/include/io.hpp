@@ -13,6 +13,8 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
 
+namespace v1stdp::io {
+
 std::size_t countLine(std::filesystem::path const &file);
 std::size_t countWord(std::filesystem::path const &file);
 std::vector<std::vector<std::string>> readVectorVector(std::filesystem::path const &file);
@@ -74,3 +76,5 @@ template <typename T> void saveMatrix(std::filesystem::path const &file, Eigen::
 
   ofs << matrix << std::endl;
 }
+
+} // namespace v1stdp::io
