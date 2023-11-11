@@ -11,7 +11,7 @@
 #include "tool.hpp"
 
 int main(int argc, char *argv[]) {
-  std::cout << "stdp " << VERSION << std::endl;
+  std::cout << "stdp " << v1stdp::config::VERSION << std::endl;
   for (int i = 0; i < argc; ++i) {
     std::cout << (i == 0 ? "" : " ") << argv[i];
   }
@@ -19,16 +19,16 @@ int main(int argc, char *argv[]) {
 
   CLI::App app{"Caluculate with V1 developing model"};
   app.set_config("--config");
-  app.set_version_flag("--version", std::string(VERSION));
+  app.set_version_flag("--version", std::string(v1stdp::config::VERSION));
   app.set_help_all_flag("--help-all");
 
-  setupLearn(app);
-  setupTest(app);
-  setupMix(app);
-  setupPulse(app);
-  setupSpontaneous(app);
+  v1stdp::main::simulation::setupLearn(app);
+  v1stdp::main::simulation::setupTest(app);
+  v1stdp::main::simulation::setupMix(app);
+  v1stdp::main::simulation::setupPulse(app);
+  v1stdp::main::simulation::setupSpontaneous(app);
 
-  setupTool(app);
+  v1stdp::main::tool::setupTool(app);
 
   CLI11_PARSE(app, argc, argv);
 

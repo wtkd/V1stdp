@@ -6,6 +6,8 @@
 
 #include "filesystem.hpp"
 
+namespace v1stdp::main::tool::filesystem {
+
 struct MakeDirectoryOptions {
   std::filesystem::path directory;
 };
@@ -16,7 +18,7 @@ void setupMakeDirectory(CLI::App &app) {
 
   sub->add_option("directory", opt->directory, "Directory to make.")->required()->check(CLI::NonexistentPath);
 
-  sub->callback([opt]() { createEmptyDirectory(opt->directory); });
+  sub->callback([opt]() { io::createEmptyDirectory(opt->directory); });
 }
 
 void setupFilesystem(CLI::App &app) {
@@ -24,3 +26,5 @@ void setupFilesystem(CLI::App &app) {
 
   setupMakeDirectory(*sub);
 }
+
+} // namespace v1stdp::main::tool::filesystem

@@ -6,6 +6,8 @@
 
 #include <Eigen/Dense>
 
+namespace v1stdp::main::tool::image {
+
 void exporterOne(Eigen::ArrayXX<std::int8_t> const &image, std::filesystem::path const &outputFile);
 
 void exporterAllInOne(
@@ -15,3 +17,5 @@ void exporterAllInOne(
 void exporterAllEach(
     std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector, std::filesystem::path const &outputDirectory
 );
+
+} // namespace v1stdp::main::tool::image

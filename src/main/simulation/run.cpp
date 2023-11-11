@@ -18,6 +18,8 @@
 
 #include "run.hpp"
 
+namespace v1stdp::main::simulation {
+
 int run(
     Model const &model,
     int const presentationTime,
@@ -37,9 +39,9 @@ int run(
 ) {
   auto const getRatioLgnRates = [&](std::uint32_t const i) -> Eigen::ArrayXd {
     auto const dataNumber = i % imageVector.size();
-    Eigen::ArrayXd result(FFRFSIZE);
-    result << (1.0 + (MOD * imageVector.at(dataNumber).reshaped().cast<double>()).max(0)).log(),
-        (1.0 - (MOD * imageVector.at(dataNumber).reshaped().cast<double>()).min(0)).log();
+    Eigen::ArrayXd result(constant::FFRFSIZE);
+    result << (1.0 + (constant::MOD * imageVector.at(dataNumber).reshaped().cast<double>()).max(0)).log(),
+        (1.0 - (constant::MOD * imageVector.at(dataNumber).reshaped().cast<double>()).min(0)).log();
     return result / result.maxCoeff();
   };
 
@@ -62,3 +64,5 @@ int run(
       startLearningStimulationNumber
   );
 }
+
+} // namespace v1stdp::main::simulation

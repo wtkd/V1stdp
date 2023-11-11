@@ -5,6 +5,8 @@
 
 #include "io.hpp"
 
+namespace v1stdp::main::tool::analyze::weight {
+
 struct WeightCutOptions {
   std::filesystem::path inputFile;
   std::uint64_t excitatoryNeuronNumber;
@@ -45,24 +47,26 @@ void setupWeightCut(CLI::App &app) {
   sub->callback([opt]() {
     auto const neuronNumber = opt->excitatoryNeuronNumber + opt->inhibitoryNeuronNumber;
 
-    auto const lateralWeightMatrix = readMatrix<double>(opt->inputFile, neuronNumber, neuronNumber);
+    auto const lateralWeightMatrix = io::readMatrix<double>(opt->inputFile, neuronNumber, neuronNumber);
 
     if (opt->excitatoryOnlyOutputFile.has_value()) {
-      ensureParentDirectory(opt->excitatoryOnlyOutputFile.value());
+      io::ensureParentDirectory(opt->excitatoryOnlyOutputFile.value());
 
-      saveMatrix<double>(
+      io::saveMatrix<double>(
           opt->excitatoryOnlyOutputFile.value(),
           lateralWeightMatrix.topLeftCorner(opt->excitatoryNeuronNumber, opt->excitatoryNeuronNumber)
       );
     }
 
     if (opt->inhibitoryOnlyOutputFile.has_value()) {
-      ensureParentDirectory(opt->inhibitoryOnlyOutputFile.value());
+      io::ensureParentDirectory(opt->inhibitoryOnlyOutputFile.value());
 
-      saveMatrix<double>(
+      io::saveMatrix<double>(
           opt->inhibitoryOnlyOutputFile.value(),
           lateralWeightMatrix.bottomRightCorner(opt->inhibitoryNeuronNumber, opt->inhibitoryNeuronNumber)
       );
     }
   });
 }
+
+} // namespace v1stdp::main::tool::analyze::weight

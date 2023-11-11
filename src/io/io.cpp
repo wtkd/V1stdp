@@ -11,6 +11,8 @@
 
 #include "io.hpp"
 
+namespace v1stdp::io {
+
 std::size_t countLine(std::filesystem::path const &file) {
   std::ifstream ifs(file);
   std::string s;
@@ -100,3 +102,5 @@ void ensureParentDirectory(std::filesystem::path const &p) {
     std::filesystem::create_directories(parent);
   }
 }
+
+} // namespace v1stdp::io

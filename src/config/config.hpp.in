@@ -1,3 +1,7 @@
 #include <string>
 
+namespace v1stdp::config {
+
 std::string_view constexpr inline VERSION = "@VERSION@";
+
+}

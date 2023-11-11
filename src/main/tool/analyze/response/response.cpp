@@ -7,11 +7,15 @@
 
 #include "response.hpp"
 
+namespace v1stdp::main::tool::analyze::response {
+
 void setupResponse(CLI::App &app) {
   auto sub = app.add_subcommand("response", "Analyze responses");
 
-  setupClustering(*sub);
-  setupClusterMap(*sub);
-  setupCorrelationMatrix(*sub);
-  setupCut(*sub);
+  clustering::setupClustering(*sub);
+  clusterMap::setupClusterMap(*sub);
+  correlationMatrix::setupCorrelationMatrix(*sub);
+  cut::setupCut(*sub);
 }
+
+} // namespace v1stdp::main::tool::analyze::response

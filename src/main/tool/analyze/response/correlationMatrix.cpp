@@ -9,6 +9,8 @@
 #include "io.hpp"
 #include "statistics.hpp"
 
+namespace v1stdp::main::tool::analyze::response::correlationMatrix {
+
 struct CorrelationMatrixOptions {
   std::filesystem::path inputFile1;
   std::optional<std::filesystem::path> inputFile2;
@@ -56,26 +58,30 @@ void setupCorrelationMatrix(CLI::App &app) {
 
   sub->callback([opt]() {
     // Row: Neuron, Colomn: Stimulation
-    auto const responseMatrix1 = readMatrix<std::uint64_t>(opt->inputFile1, opt->neuronNumber, opt->stimulationNumber);
-    auto const responseMatrix2 =
-        readMatrix<std::uint64_t>(opt->inputFile2.value_or(opt->inputFile1), opt->neuronNumber, opt->stimulationNumber);
+    auto const responseMatrix1 =
+        io::readMatrix<std::uint64_t>(opt->inputFile1, opt->neuronNumber, opt->stimulationNumber);
+    auto const responseMatrix2 = io::readMatrix<std::uint64_t>(
+        opt->inputFile2.value_or(opt->inputFile1), opt->neuronNumber, opt->stimulationNumber
+    );
 
     if (opt->eachNeuronOutputFile.has_value()) {
-      auto const matrix = calculateCorrelationMatrix<
-          ColomnOrRow::Row,
-          double>(responseMatrix1.cast<double>(), responseMatrix2.cast<double>(), correlation<double>);
+      auto const matrix = statistics::calculateCorrelationMatrix<
+          statistics::ColomnOrRow::Row,
+          double>(responseMatrix1.cast<double>(), responseMatrix2.cast<double>(), statistics::correlation<double>);
 
-      ensureParentDirectory(opt->eachNeuronOutputFile.value());
-      saveMatrix(opt->eachNeuronOutputFile.value(), matrix);
+      io::ensureParentDirectory(opt->eachNeuronOutputFile.value());
+      io::saveMatrix(opt->eachNeuronOutputFile.value(), matrix);
     }
 
     if (opt->eachStimulationOutputFile.has_value()) {
-      auto const matrix = calculateCorrelationMatrix<
-          ColomnOrRow::Col,
-          double>(responseMatrix1.cast<double>(), responseMatrix2.cast<double>(), correlation<double>);
+      auto const matrix = statistics::calculateCorrelationMatrix<
+          statistics::ColomnOrRow::Col,
+          double>(responseMatrix1.cast<double>(), responseMatrix2.cast<double>(), statistics::correlation<double>);
 
-      ensureParentDirectory(opt->eachStimulationOutputFile.value());
-      saveMatrix(opt->eachStimulationOutputFile.value(), matrix);
+      io::ensureParentDirectory(opt->eachStimulationOutputFile.value());
+      io::saveMatrix(opt->eachStimulationOutputFile.value(), matrix);
     }
   });
 }
+
+} // namespace v1stdp::main::tool::analyze::response::correlationMatrix

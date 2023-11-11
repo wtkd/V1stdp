@@ -16,6 +16,8 @@
 
 #include "simulation.hpp"
 
+namespace v1stdp::main::simulation {
+
 void setupModel(CLI::App &app, Model &model) {
   app.add_flag("--nonoise", model.nonoise, "No noise");
   app.add_flag("--nospike", model.nospike, "No spike");
@@ -82,7 +84,7 @@ void setupLearn(CLI::App &app) {
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
-    createEmptyDirectory(saveDirectory);
+    io::createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -91,7 +93,7 @@ void setupLearn(CLI::App &app) {
     // NOTE: At first, it was initialized 50 but became 30 soon, so I squashed it.
     int const NBLASTSPIKESPRES = 30;
 
-    int const NBSTEPSPERPRES = (int)(presentationTime / dt);
+    int const NBSTEPSPERPRES = (int)(presentationTime / constant::dt);
 
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
@@ -102,36 +104,42 @@ void setupLearn(CLI::App &app) {
     double const WII_MAX = model.WII_MAX();
 
     Eigen::MatrixXd const w = [&]() {
-      Eigen::MatrixXd w = Eigen::MatrixXd::Zero(NBNEUR, NBNEUR); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
+      Eigen::MatrixXd w =
+          Eigen::MatrixXd::Zero(constant::NBNEUR, constant::NBNEUR); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
       // w.fill(1.0);
 
       // Inhbitory neurons receive excitatory inputs from excitatory neurons
-      w.bottomRows(NBI).leftCols(NBE).setRandom();
+      w.bottomRows(constant::NBI).leftCols(constant::NBE).setRandom();
 
       // Everybody receives inhibition (including inhibitory neurons)
-      w.rightCols(NBI).setRandom();
+      w.rightCols(constant::NBI).setRandom();
 
-      w.bottomRows(NBI).rightCols(NBI) = -w.bottomRows(NBI).rightCols(NBI).cwiseAbs() * WII_MAX;
-      w.topRows(NBE).rightCols(NBI) = -w.topRows(NBE).rightCols(NBI).cwiseAbs() * WIE_MAX;
-      w.bottomRows(NBI).leftCols(NBE) = w.bottomRows(NBI).leftCols(NBE).cwiseAbs() * WEI_MAX;
+      w.bottomRows(constant::NBI).rightCols(constant::NBI) =
+          -w.bottomRows(constant::NBI).rightCols(constant::NBI).cwiseAbs() * WII_MAX;
+      w.topRows(constant::NBE).rightCols(constant::NBI) =
+          -w.topRows(constant::NBE).rightCols(constant::NBI).cwiseAbs() * WIE_MAX;
+      w.bottomRows(constant::NBI).leftCols(constant::NBE) =
+          w.bottomRows(constant::NBI).leftCols(constant::NBE).cwiseAbs() * WEI_MAX;
 
       // Diagonal lateral weights are 0 (no autapses !)
-      w = w - w.cwiseProduct(Eigen::MatrixXd::Identity(NBNEUR, NBNEUR));
+      w = w - w.cwiseProduct(Eigen::MatrixXd::Identity(constant::NBNEUR, constant::NBNEUR));
 
       return w;
     }();
 
     Eigen::MatrixXd const wff = [&]() {
-      Eigen::MatrixXd wff = Eigen::MatrixXd::Zero(NBNEUR, FFRFSIZE);
-      wff = (WFFINITMIN + (WFFINITMAX - WFFINITMIN) * Eigen::MatrixXd::Random(NBNEUR, FFRFSIZE).cwiseAbs().array())
-                .cwiseMin(MAXW); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
+      Eigen::MatrixXd wff = Eigen::MatrixXd::Zero(constant::NBNEUR, constant::FFRFSIZE);
+      wff =
+          (constant::WFFINITMIN + (constant::WFFINITMAX - constant::WFFINITMIN) *
+                                      Eigen::MatrixXd::Random(constant::NBNEUR, constant::FFRFSIZE).cwiseAbs().array())
+              .cwiseMin(constant::MAXW); // MatrixXd::Random(NBNEUR, NBNEUR).cwiseAbs();
       // Inhibitory neurons do not receive FF excitation from the sensory RFs (should they? TRY LATER)
-      wff.bottomRows(NBI).setZero();
+      wff.bottomRows(constant::NBI).setZero();
 
       return wff;
     }();
 
-    auto const imageVector = readImages(inputFile, PATCHSIZE);
+    auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
 
     decltype(imageVector) const narrowedImageVector(
         imageVector.begin(),
@@ -148,7 +156,7 @@ void setupLearn(CLI::App &app) {
         NBRESPS,
         Phase::learning,
         // Inputs only fire until the 'relaxation' period at the end of each presentation
-        {0, NBSTEPSPERPRES - double(TIMEZEROINPUT) / dt},
+        {0, NBSTEPSPERPRES - double(constant::TIMEZEROINPUT) / constant::dt},
         wff,
         w,
         std::nullopt,
@@ -228,7 +236,7 @@ void setupTest(CLI::App &app) {
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
-    createEmptyDirectory(saveDirectory);
+    io::createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -241,13 +249,13 @@ void setupTest(CLI::App &app) {
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = NBPRES;
 
-    int const NBSTEPSPERPRES = (int)(presentationTime / dt);
+    int const NBSTEPSPERPRES = (int)(presentationTime / constant::dt);
 
-    Eigen::MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
-    Eigen::MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
+    Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
+    Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
     auto const delays = opt->delaysFile.has_value()
-                            ? std::optional(Eigen::ArrayXXi(readMatrix<int>(opt->delaysFile.value())))
+                            ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
                             : std::nullopt;
 
     std::cout << "First row of w (lateral weights): " << w.row(0) << std::endl;
@@ -256,7 +264,7 @@ void setupTest(CLI::App &app) {
     // w.bottomRows(NBI).leftCols(NBE).fill(1.0); // Inhbitory neurons receive excitatory inputs from excitatory neurons
     // w.rightCols(NBI).fill(-1.0); // Everybody receives fixed, negative inhibition (including inhibitory neurons)
 
-    auto const imageVector = readImages(inputFile, PATCHSIZE);
+    auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
     decltype(imageVector) const narrowedImageVector(
         imageVector.end() - (opt->imageRange > 0 ? opt->imageRange : imageVector.size() + opt->imageRange),
         imageVector.end()
@@ -282,7 +290,7 @@ void setupTest(CLI::App &app) {
         NBRESPS,
         Phase::testing,
         // Inputs only fire until the 'relaxation' period at the end of each presentation
-        {0, NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)},
+        {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
         wff,
         w,
         delays,
@@ -303,7 +311,7 @@ struct MixOptions {
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
   int saveLogInterval = 50'000;
-  int presentationTime = PRESTIMEMIXING;
+  int presentationTime = constant::PRESTIMEMIXING;
   std::pair<int, int> stimulationNumbers;
 };
 
@@ -346,7 +354,7 @@ void setupMix(CLI::App &app) {
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
-    createEmptyDirectory(saveDirectory);
+    io::createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -358,7 +366,7 @@ void setupMix(CLI::App &app) {
 
     int const NBLASTSPIKESPRES = 30;
 
-    int const NBPRES = NBMIXES * 3; //* NBPRESPERPATTERNTESTING;
+    int const NBPRES = constant::NBMIXES * 3; //* NBPRESPERPATTERNTESTING;
 
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
@@ -366,38 +374,38 @@ void setupMix(CLI::App &app) {
 
     int const presentationTime = opt->presentationTime;
 
-    int const NBSTEPSPERPRES = (int)(presentationTime / dt);
+    int const NBSTEPSPERPRES = (int)(presentationTime / constant::dt);
 
-    Eigen::MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
-    Eigen::MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
+    Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
+    Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
     auto const delays = opt->delaysFile.has_value()
-                            ? std::optional(Eigen::ArrayXXi(readMatrix<int>(opt->delaysFile.value())))
+                            ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
                             : std::nullopt;
 
     std::cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << std::endl;
 
-    auto const imageVector = readImages(inputFile, PATCHSIZE);
+    auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
 
     auto const getRatioLgnRates = [&](std::uint32_t const i) -> Eigen::ArrayXd {
-      Eigen::ArrayXd result(FFRFSIZE);
+      Eigen::ArrayXd result(constant::FFRFSIZE);
       result << (1.0 + (imageVector.at(i).reshaped().cast<double>()).max(0)).log(),
           (1.0 - (imageVector.at(i).reshaped().cast<double>()).min(0)).log();
       return result / result.maxCoeff();
     };
     std::vector<double> const mixvals = [&]() {
-      std::vector<double> mixvals(NBMIXES);
-      for (auto const nn : boost::counting_range<unsigned>(0, NBMIXES))
+      std::vector<double> mixvals(constant::NBMIXES);
+      for (auto const nn : boost::counting_range<unsigned>(0, constant::NBMIXES))
         // NBMIXES values equally spaced from 0 to 1 inclusive.
-        mixvals[nn] = (double)nn / (double)(NBMIXES - 1);
+        mixvals[nn] = (double)nn / (double)(constant::NBMIXES - 1);
       return mixvals;
     }();
 
     auto const getRatioLgnRatesMixed = [&](std::uint32_t const i) -> Eigen::ArrayXd {
       Eigen::ArrayXd const lgnratesS1 = getRatioLgnRates(STIM1);
       Eigen::ArrayXd const lgnratesS2 = getRatioLgnRates(STIM2);
-      double const mixval1 = (i / NBMIXES == 2 ? 0 : mixvals[i % NBMIXES]);
-      double const mixval2 = (i / NBMIXES == 1 ? 0 : 1.0 - mixvals[i % NBMIXES]);
+      double const mixval1 = (i / constant::NBMIXES == 2 ? 0 : mixvals[i % constant::NBMIXES]);
+      double const mixval2 = (i / constant::NBMIXES == 1 ? 0 : 1.0 - mixvals[i % constant::NBMIXES]);
 
       return mixval1 * lgnratesS1 + mixval2 * lgnratesS2;
     };
@@ -409,7 +417,7 @@ void setupMix(CLI::App &app) {
         NBRESPS,
         Phase::mixing,
         // Inputs only fire until the 'relaxation' period at the end of each presentation
-        {0, NBSTEPSPERPRES - ((double)TIMEZEROINPUT / dt)},
+        {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
         wff,
         w,
         delays,
@@ -432,7 +440,7 @@ struct PulseOptions {
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
   int saveLogInterval = 50'000;
-  int presentationTime = PRESTIMEPULSE;
+  int presentationTime = constant::PRESTIMEPULSE;
   int stimulationNumber;
   int pulsetime = 100;
 };
@@ -485,7 +493,7 @@ void setupPulse(CLI::App &app) {
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
-    createEmptyDirectory(saveDirectory);
+    io::createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -506,14 +514,14 @@ void setupPulse(CLI::App &app) {
     std::cout << "Stim1: " << STIM1 << std::endl;
     std::cout << "Pulse input time: " << PULSETIME << " ms" << std::endl;
 
-    Eigen::MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
-    Eigen::MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
+    Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
+    Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
     auto const delays = opt->delaysFile.has_value()
-                            ? std::optional(Eigen::ArrayXXi(readMatrix<int>(opt->delaysFile.value())))
+                            ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
                             : std::nullopt;
 
-    auto const imageVector = readImages(inputFile, PATCHSIZE);
+    auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
     decltype(imageVector) const narrowedImageVector = {imageVector.at(STIM1)};
 
     run(model,
@@ -523,7 +531,7 @@ void setupPulse(CLI::App &app) {
         NBRESPS,
         Phase::pulse,
         // In the PULSE case, inputs only fire for a short period of time
-        {PULSESTART, double(PULSETIME) / dt},
+        {constant::PULSESTART, double(PULSETIME) / constant::dt},
         wff,
         w,
         delays,
@@ -545,7 +553,7 @@ struct SpontaneousOptions {
   bool randomDelay = false;
 
   int saveLogInterval = 50'000;
-  int presentationTime = PRESTIMESPONT;
+  int presentationTime = constant::PRESTIMESPONT;
   int imageRange = 0;
 };
 
@@ -586,7 +594,7 @@ void setupSpontaneous(CLI::App &app) {
 
     auto const &saveDirectory = opt->saveDirectory;
 
-    createEmptyDirectory(saveDirectory);
+    io::createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
 
@@ -600,11 +608,11 @@ void setupSpontaneous(CLI::App &app) {
 
     std::cout << "Spontaneous activity - no stimulus !" << std::endl;
 
-    Eigen::MatrixXd const w = readWeights(NBNEUR, NBNEUR, opt->lateralWeight);
-    Eigen::MatrixXd const wff = readWeights(NBNEUR, FFRFSIZE, opt->feedforwardWeight);
+    Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
+    Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
     auto const delays = opt->delaysFile.has_value()
-                            ? std::optional(Eigen::ArrayXXi(readMatrix<int>(opt->delaysFile.value())))
+                            ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
                             : std::nullopt;
 
     run(model,
@@ -619,9 +627,12 @@ void setupSpontaneous(CLI::App &app) {
         w,
         delays,
         // Dummy input image
-        std::vector<Eigen::ArrayXX<std::int8_t>>{Eigen::ArrayXX<std::int8_t>::Zero(PATCHSIZE, PATCHSIZE)},
+        std::vector<Eigen::ArrayXX<std::int8_t>>{
+            Eigen::ArrayXX<std::int8_t>::Zero(constant::PATCHSIZE, constant::PATCHSIZE)},
         saveDirectory,
         saveLogInterval,
         "_spont");
   });
 }
+
+} // namespace v1stdp::main::simulation

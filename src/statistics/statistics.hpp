@@ -12,6 +12,8 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
 
+namespace v1stdp::statistics {
+
 enum class ColomnOrRow { Col, Row };
 
 template <typename T>
@@ -161,3 +163,5 @@ Eigen::MatrixX<T> calculateCorrelationMatrix(
 
   return correlationMatrix;
 }
+
+} // namespace v1stdp::statistics
