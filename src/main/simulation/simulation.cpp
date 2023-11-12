@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <string>
 
 #include <CLI/App.hpp>
 
@@ -149,22 +150,31 @@ void setupLearn(CLI::App &app) {
             - 1
     );
 
-    run(model,
-        presentationTime,
-        NBLASTSPIKESPRES,
-        step,
-        NBRESPS,
-        Phase::learning,
-        // Inputs only fire until the 'relaxation' period at the end of each presentation
-        {0, NBSTEPSPERPRES - double(constant::TIMEZEROINPUT) / constant::dt},
-        wff,
-        w,
-        std::nullopt,
-        narrowedImageVector,
-        saveDirectory,
-        saveLogInterval,
-        "",
-        opt->startLearningNumber);
+    auto const [state, result] =
+        run(model,
+            presentationTime,
+            NBLASTSPIKESPRES,
+            step,
+            NBRESPS,
+            Phase::learning,
+            // Inputs only fire until the 'relaxation' period at the end of each presentation
+            {0, NBSTEPSPERPRES - double(constant::TIMEZEROINPUT) / constant::dt},
+            wff,
+            w,
+            std::nullopt,
+            narrowedImageVector,
+            saveDirectory,
+            saveLogInterval,
+            "",
+            opt->startLearningNumber);
+
+    io::saveMatrix(saveDirectory / ("lastnspikes" + model.getIndicator() + ".txt"), result.lastnspikes);
+    io::saveMatrix(saveDirectory / ("resps" + model.getIndicator() + ".txt"), result.resps);
+
+    io::saveMatrix(saveDirectory / "w.txt", state.w);
+    io::saveMatrix(saveDirectory / "wff.txt", state.wff);
+    saveWeights(state.w, saveDirectory / "w.dat");
+    saveWeights(state.wff, saveDirectory / "wff.dat");
   });
 }
 
@@ -283,21 +293,26 @@ void setupTest(CLI::App &app) {
         }
     );
 
-    run(model,
-        presentationTime,
-        NBLASTSPIKESPRES,
-        step,
-        NBRESPS,
-        Phase::testing,
-        // Inputs only fire until the 'relaxation' period at the end of each presentation
-        {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
-        wff,
-        w,
-        delays,
-        reversedImageVector,
-        saveDirectory,
-        saveLogInterval,
-        "_test");
+    auto const [state, result] =
+        run(model,
+            presentationTime,
+            NBLASTSPIKESPRES,
+            step,
+            NBRESPS,
+            Phase::testing,
+            // Inputs only fire until the 'relaxation' period at the end of each presentation
+            {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
+            wff,
+            w,
+            delays,
+            reversedImageVector,
+            saveDirectory,
+            saveLogInterval,
+            "_test");
+
+    io::saveMatrix(saveDirectory / ("lastnspikes_test" + model.getIndicator() + ".txt"), result.lastnspikes);
+    io::saveMatrix(saveDirectory / ("resps_test" + model.getIndicator() + ".txt"), result.resps);
+    io::saveMatrix(saveDirectory / ("lastnv_test" + model.getIndicator() + ".txt"), result.lastnv);
   });
 }
 
@@ -410,22 +425,34 @@ void setupMix(CLI::App &app) {
       return mixval1 * lgnratesS1 + mixval2 * lgnratesS2;
     };
 
-    run(model,
-        presentationTime,
-        NBLASTSPIKESPRES,
-        NBPRES,
-        NBRESPS,
-        Phase::mixing,
-        // Inputs only fire until the 'relaxation' period at the end of each presentation
-        {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
-        wff,
-        w,
-        delays,
-        getRatioLgnRatesMixed,
-        imageVector.size(),
-        saveDirectory,
-        saveLogInterval,
-        "_mix_" + std::to_string(STIM1) + "_" + std::to_string(STIM2));
+    auto const [state, result] =
+        run(model,
+            presentationTime,
+            NBLASTSPIKESPRES,
+            NBPRES,
+            NBRESPS,
+            Phase::mixing,
+            // Inputs only fire until the 'relaxation' period at the end of each presentation
+            {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
+            wff,
+            w,
+            delays,
+            getRatioLgnRatesMixed,
+            imageVector.size(),
+            saveDirectory,
+            saveLogInterval,
+            "_mix_" + std::to_string(STIM1) + "_" + std::to_string(STIM2));
+
+    io::saveMatrix(
+        saveDirectory /
+            ("resps_mix_" + std::to_string(STIM1) + "_" + std::to_string(STIM2) + model.getIndicator() + ".txt"),
+        result.resps
+    );
+    io::saveMatrix(
+        saveDirectory /
+            ("respssumv_mix_" + std::to_string(STIM1) + "_" + std::to_string(STIM2) + model.getIndicator() + ".txt"),
+        result.respssumv
+    );
   });
 }
 
@@ -524,21 +551,30 @@ void setupPulse(CLI::App &app) {
     auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
     decltype(imageVector) const narrowedImageVector = {imageVector.at(STIM1)};
 
-    run(model,
-        presentationTime,
-        NBLASTSPIKESPRES,
-        NBPRES,
-        NBRESPS,
-        Phase::pulse,
-        // In the PULSE case, inputs only fire for a short period of time
-        {constant::PULSESTART, double(PULSETIME) / constant::dt},
-        wff,
-        w,
-        delays,
-        narrowedImageVector,
-        saveDirectory,
-        saveLogInterval,
-        "_pulse_" + std::to_string(STIM1));
+    auto const [state, result] =
+        run(model,
+            presentationTime,
+            NBLASTSPIKESPRES,
+            NBPRES,
+            NBRESPS,
+            Phase::pulse,
+            // In the PULSE case, inputs only fire for a short period of time
+            {constant::PULSESTART, double(PULSETIME) / constant::dt},
+            wff,
+            w,
+            delays,
+            narrowedImageVector,
+            saveDirectory,
+            saveLogInterval,
+            "_pulse_" + std::to_string(STIM1));
+
+    io::saveMatrix(
+        saveDirectory / ("lastnspikes_pulse_" + std::to_string(STIM1) + model.getIndicator() + ".txt"),
+        result.lastnspikes
+    );
+    io::saveMatrix(
+        saveDirectory / ("resps_pulse_" + std::to_string(STIM1) + model.getIndicator() + ".txt"), result.resps
+    );
   });
 }
 
@@ -615,23 +651,26 @@ void setupSpontaneous(CLI::App &app) {
                             ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
                             : std::nullopt;
 
-    run(model,
-        presentationTime,
-        NBLASTSPIKESPRES,
-        NBPRES,
-        NBRESPS,
-        Phase::spontaneous,
-        // Without presentation
-        {0, 0},
-        wff,
-        w,
-        delays,
-        // Dummy input image
-        std::vector<Eigen::ArrayXX<std::int8_t>>{
-            Eigen::ArrayXX<std::int8_t>::Zero(constant::PATCHSIZE, constant::PATCHSIZE)},
-        saveDirectory,
-        saveLogInterval,
-        "_spont");
+    auto const [state, result] =
+        run(model,
+            presentationTime,
+            NBLASTSPIKESPRES,
+            NBPRES,
+            NBRESPS,
+            Phase::spontaneous,
+            // Without presentation
+            {0, 0},
+            wff,
+            w,
+            delays,
+            // Dummy input image
+            std::vector<Eigen::ArrayXX<std::int8_t>>{
+                Eigen::ArrayXX<std::int8_t>::Zero(constant::PATCHSIZE, constant::PATCHSIZE)},
+            saveDirectory,
+            saveLogInterval,
+            "_spont");
+
+    io::saveMatrix(saveDirectory / ("lastnspikes_spont" + model.getIndicator() + ".txt"), result.lastnspikes);
   });
 }
 

@@ -6,12 +6,13 @@
 #include <fstream>
 #include <optional>
 #include <string>
+#include <type_traits>
+#include <utility>
 
 #include <Eigen/Dense>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
 #include <boost/timer/progress_display.hpp>
-#include <type_traits>
 
 #include "constant.hpp"
 #include "io.hpp"
@@ -21,11 +22,18 @@
 
 namespace v1stdp::main::simulation {
 
+struct ModelResult {
+  Eigen::MatrixXi lastnspikes;
+  Eigen::MatrixXd lastnv;
+  Eigen::MatrixXi resps;
+  Eigen::MatrixXd respssumv;
+};
+
 template <typename F>
   requires std::regular_invocable<F, std::uint32_t> &&
            std::same_as<std::invoke_result_t<F, std::uint32_t>, Eigen::ArrayXd>
-int run(
-    Model const &model,
+std::pair<ModelState, ModelResult>
+run(Model const &model,
     int const presentationTime,
     int const NBLASTSPIKESPRES,
     unsigned const NBPRES,
@@ -40,8 +48,7 @@ int run(
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
     std::string const &filenameSuffix,
-    std::uint16_t const startLearningStimulationNumber = 0
-) {
+    std::uint16_t const startLearningStimulationNumber = 0) {
   model.outputLog();
 
   auto const &NOLAT = model.nolat;
@@ -205,15 +212,8 @@ int run(
                                  int const index,
                                  Eigen::MatrixXd const &w,
                                  Eigen::MatrixXd const &wff) {
-    {
-      std::ofstream myfile(saveDirectory / ("wff_" + std::to_string(index) + ".txt"), std::ios::trunc | std::ios::out);
-      myfile << std::endl << wff << std::endl;
-    }
-
-    {
-      std::ofstream myfile(saveDirectory / ("w_" + std::to_string(index) + ".txt"), std::ios::trunc | std::ios::out);
-      myfile << std::endl << w << std::endl;
-    }
+    io::saveMatrix(saveDirectory / ("wff_" + std::to_string(index) + ".txt"), wff);
+    io::saveMatrix(saveDirectory / ("w_" + std::to_string(index) + ".txt"), w);
 
     saveWeights(w, saveDirectory / ("w_" + std::to_string((long long int)(index)) + ".dat"));
     saveWeights(wff, saveDirectory / ("wff_" + std::to_string((long long int)(index)) + ".dat"));
@@ -263,10 +263,16 @@ int run(
       initialV                                                                    // v
   };
 
-  Eigen::MatrixXi lastnspikes = Eigen::MatrixXi::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS);
-  Eigen::MatrixXd lastnv = Eigen::MatrixXd::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS);
-  Eigen::MatrixXi resps = Eigen::MatrixXi::Zero(constant::NBNEUR, NBRESPS);
-  Eigen::MatrixXd respssumv = Eigen::MatrixXd::Zero(constant::NBNEUR, NBRESPS);
+  ModelResult modelResult = {
+      Eigen::MatrixXi::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS),
+      Eigen::MatrixXd::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS),
+      Eigen::MatrixXi::Zero(constant::NBNEUR, NBRESPS),
+      Eigen::MatrixXd::Zero(constant::NBNEUR, NBRESPS)};
+
+  Eigen::MatrixXi &lastnspikes = modelResult.lastnspikes;
+  Eigen::MatrixXd &lastnv = modelResult.lastnv;
+  Eigen::MatrixXi &resps = modelResult.resps;
+  Eigen::MatrixXd &respssumv = modelResult.respssumv;
 
   Eigen::MatrixXd &wff = modelState.wff;
   Eigen::MatrixXd &w = modelState.w;
@@ -610,121 +616,6 @@ int run(
       std::cout << " Max LGN rate (should be << 1.0): " << lgnrates.maxCoeff() << std::endl;
     }
     if (((numpres + 1) % 10000 == 0) || (numpres == 0) || (numpres + 1 == NBPRES)) {
-      std::string nolatindicator("");
-      std::string noinhindicator("");
-      std::string nospikeindicator("");
-      if (NOINH)
-        noinhindicator = "_noinh";
-      if (NOSPIKE)
-        nospikeindicator = "_nospike";
-      if (NOLAT)
-        nolatindicator = "_nolat";
-      if (NOELAT)
-        nolatindicator = "_noelat";
-      {
-        std::ofstream myfile(
-            saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + ".txt"), std::ios::trunc | std::ios::out
-        );
-        myfile << std::endl << lastnspikes << std::endl;
-      }
-      if (phase == Phase::testing) {
-        {
-          std::ofstream myfile(
-              saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + ".txt"),
-              std::ios::trunc | std::ios::out
-          );
-          myfile << std::endl << lastnspikes << std::endl;
-        }
-
-        {
-          std::ofstream myfile(saveDirectory / ("resps" + filenameSuffix + ".txt"), std::ios::trunc | std::ios::out);
-          myfile << std::endl << resps << std::endl;
-        }
-
-        // myfile.open("respssumv_test.txt", std::ios::trunc | std::ios::out);  myfile <<
-        // std::endl << respssumv << std::endl; myfile.close();
-
-        {
-          std::ofstream myfile(
-              saveDirectory / ("lastnv" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
-              std::ios::trunc | std::ios::out
-          );
-          myfile << std::endl << lastnv << std::endl;
-        }
-
-        // myfile.open("lastnv_spont"+nolatindicator+noinhindicator+".txt",
-        // std::ios::trunc | std::ios::out);  myfile << std::endl << lastnv << std::endl;
-        // myfile.close();
-      }
-
-      if (phase == Phase::spontaneous) {
-        std::ofstream myfile(
-            saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
-            std::ios::trunc | std::ios::out
-        );
-        myfile << std::endl << lastnspikes << std::endl;
-      }
-
-      if (phase == Phase::pulse) {
-        {
-          std::ofstream myfile(
-              saveDirectory / ("resps" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
-              std::ios::trunc | std::ios::out
-          );
-          myfile << std::endl << resps << std::endl;
-        }
-
-        {
-          std::ofstream myfile(saveDirectory / ("resps" + filenameSuffix + ".txt"), std::ios::trunc | std::ios::out);
-          myfile << std::endl << resps << std::endl;
-        }
-
-        {
-          std::ofstream myfile(
-              saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
-              std::ios::trunc | std::ios::out
-          );
-          myfile << std::endl << lastnspikes << std::endl;
-        }
-
-        {
-          std::ofstream myfile(
-              saveDirectory / ("lastnspikes" + filenameSuffix + nolatindicator + noinhindicator + ".txt"),
-              std::ios::trunc | std::ios::out
-          );
-          myfile << std::endl << lastnspikes << std::endl;
-        }
-
-        // myfile.open("lastnv_pulse_"+std::to_string((long long
-        // int)STIM1)+nolatindicator+noinhindicator+".txt", ios::trunc |
-        // ios::out);  myfile << endl << lastnv << endl; myfile.close();
-      }
-
-      if (phase == Phase::mixing) {
-        {
-          std::ofstream myfile(
-              saveDirectory /
-                  ("respssumv" + filenameSuffix + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
-              std::ios::trunc | std::ios::out
-          );
-          myfile << std::endl << respssumv << std::endl;
-        }
-
-        {
-          std::ofstream myfile(
-              saveDirectory / ("resps" + filenameSuffix + nolatindicator + noinhindicator + nospikeindicator + ".txt"),
-              std::ios::trunc | std::ios::out
-          );
-          myfile << std::endl << resps << std::endl;
-        }
-
-        {
-          std::ofstream myfile(
-              saveDirectory / ("respssumv" + filenameSuffix + ".txt"), std::ios::trunc | std::ios::out
-          );
-          myfile << std::endl << respssumv << std::endl;
-        }
-      }
 
       if (phase == Phase::learning) {
         std::cout << "(Saving temporary data ... )" << std::endl;
@@ -738,11 +629,6 @@ int run(
           std::ofstream myfile(saveDirectory / "wff.txt", std::ios::trunc | std::ios::out);
           myfile << std::endl << wff << std::endl;
           myfile.close();
-        }
-
-        {
-          std::ofstream myfile(saveDirectory / "resps.txt", std::ios::trunc | std::ios::out);
-          myfile << std::endl << resps << std::endl;
         }
 
         // myfile.open("patterns.txt", ios::trunc | ios::out);  myfile << endl
@@ -773,11 +659,11 @@ int run(
     saveAllWeights(saveDirectory, NBPRES, w, wff);
   }
 
-  return 0;
+  return std::make_pair(modelState, modelResult);
 }
 
-int run(
-    Model const &model,
+std::pair<ModelState, ModelResult>
+run(Model const &model,
     int const presentationTime,
     int const NBLASTSPIKESPRES,
     unsigned const NBPRES,
@@ -791,6 +677,6 @@ int run(
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
     std::string const &filenameSuffix,
-    std::uint16_t const startLearningStimulationNumber = 0
-);
+    std::uint16_t const startLearningStimulationNumber = 0);
+
 } // namespace v1stdp::main::simulation
