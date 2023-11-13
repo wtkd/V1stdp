@@ -37,6 +37,20 @@
            (sort-index-stimulation #:type File
                                    #:binding '((glob . "sort-index-stimulation.txt")))))
 
+(define sort-response-half
+  (command #:inputs
+           (stdp-executable #:type File)
+           (response #:type File)
+           (sort-index-stimulation #:type File)
+           (output-name #:type string)
+           #:run
+           stdp-executable "tool" "analyze" "apply-permutation"
+           response output-name
+           "--colomn" sort-index-stimulation
+           #:outputs
+           (response-sorted-half #:type File
+                                 #:binding '((glob . "$(inputs[\"output-name\"])")))))
+
 (define lateral-weight-cut-out-excitatory
   (command #:inputs
            (stdp-executable #:type File)
@@ -441,6 +455,17 @@
                             #:output-name "response-sorted.svg"
                             #:title "Response of excitatory neurons on each stimulation")
                (rename #:plot-response-matrix matrix-plot))
+              (pipe
+               (sort-response-half
+                #:stdp-executable stdp-executable
+                #:response response-test
+                #:sort-index-stimulation sort-index-stimulation
+                #:output-name "response-sorted-half.svg")
+               (plot-matrix (plot-response-half)
+                            #:matrix response-sorted-half
+                            #:output-name "response-sorted-half.svg"
+                            #:title "Response of neurons on each stimulation")
+               (rename #:plot-response-matrix-sorted-half matrix-plot))
               (pipe
                (sort-lateral-weight
                 #:stdp-executable stdp-executable
