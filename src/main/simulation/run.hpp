@@ -129,14 +129,6 @@ run(Model const &model,
     return ALTDS;
   }();
 
-  std::vector<double> const mixvals = [&]() {
-    std::vector<double> mixvals(constant::NBMIXES);
-    for (auto const nn : boost::counting_range<unsigned>(0, constant::NBMIXES))
-      // NBMIXES values equally spaced from 0 to 1 inclusive.
-      mixvals[nn] = (double)nn / (double)(constant::NBMIXES - 1);
-    return mixvals;
-  }();
-
   // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
   // target neuron and j is the source synapse)
   auto const delays = [&]() {
