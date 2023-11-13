@@ -14,11 +14,12 @@
 #include <boost/range/counting_range.hpp>
 #include <boost/timer/progress_display.hpp>
 
-#include "constant.hpp"
 #include "io.hpp"
-#include "model.hpp"
-#include "phase.hpp"
-#include "utils.hpp"
+
+#include "../constant.hpp"
+#include "../model.hpp"
+#include "../phase.hpp"
+#include "../utils.hpp"
 
 namespace v1stdp::main::simulation {
 
