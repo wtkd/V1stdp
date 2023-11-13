@@ -17,6 +17,7 @@ add_subdirectory(delay)
 add_subdirectory(divideLine)
 add_subdirectory(response)
 add_subdirectory(weight)
+add_subdirectory(exploreMaximum)
 
 add_library(Analyze STATIC
   analyze.cpp
@@ -27,6 +28,7 @@ target_link_libraries(Analyze PUBLIC Delay)
 target_link_libraries(Analyze PUBLIC DivideLine)
 target_link_libraries(Analyze PUBLIC Response)
 target_link_libraries(Analyze PUBLIC Weight)
+target_link_libraries(Analyze PUBLIC ExploreMaximum)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
