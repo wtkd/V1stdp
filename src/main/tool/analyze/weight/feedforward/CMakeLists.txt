@@ -15,9 +15,12 @@ endif()
 add_library(Feedforward STATIC
   feedforward.cpp
   export.cpp
+  orientation.cpp
 )
 
 target_link_libraries(Feedforward PUBLIC IO)
+
+target_link_libraries(Feedforward PUBLIC Statistics)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
