@@ -59,6 +59,17 @@ double correlationDistanceSquare(Eigen::VectorX<T> const &x, Eigen::VectorX<T> c
   return d * d;
 }
 
+template <typename T>
+  requires std::integral<T> || std::floating_point<T>
+Eigen::Matrix2d covarianceMatrix(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y) {
+  assert(x.rows() == y.rows());
+  Eigen::MatrixX<T> a(x.rows(), 2);
+  a << x.template cast<double>(), y.template cast<double>();
+
+  Eigen::MatrixXd const centered = a.rowwise() - a.colwise().mean();
+  return (centered.adjoint() * centered) / double(a.rows() - 1);
+}
+
 template <typename F, typename T>
   requires std::regular_invocable<F, Eigen::VectorX<T>, Eigen::VectorX<T>>
 std::vector<std::size_t> singleClusteringSortPermutation(Eigen::MatrixX<T> const &matrix, F const &distance2) {
