@@ -30,11 +30,11 @@ run(Model const &model,
     std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
-    std::optional<Eigen::ArrayXXi> const &inputDelays,
+    Eigen::ArrayXd const &ALTDs,
+    Eigen::ArrayXXi const &delays,
     std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
-    std::string const &filenameSuffix,
     std::uint16_t const startLearningStimulationNumber) {
 
   auto const getRatioLgnRates = [&](std::uint32_t const i) -> Eigen::ArrayXd {
@@ -56,12 +56,12 @@ run(Model const &model,
       presentationTimeRange,
       initwff,
       initw,
-      inputDelays,
+      ALTDs,
+      delays,
       getRatioLgnRates,
       imageVector.size(),
       saveDirectory,
       saveLogInterval,
-      filenameSuffix,
       startLearningStimulationNumber
   );
 }

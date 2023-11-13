@@ -14,6 +14,8 @@ endif()
 
 add_library(Simulation STATIC
   simulation.cpp
+  ALTDs.cpp
+  delays.cpp
   run.cpp
   utils.cpp)
 

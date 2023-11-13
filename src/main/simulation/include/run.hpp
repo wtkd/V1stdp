@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -43,12 +44,14 @@ run(Model const &model,
     std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
-    std::optional<Eigen::ArrayXXi> const &inputDelays,
+    Eigen::ArrayXd const &ALTDs,
+    // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
+    // target neuron and j is the source synapse)
+    Eigen::ArrayXXi const &delays,
     F const &getRatioLgnRates,
     int const nbpatchesinfile,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
-    std::string const &filenameSuffix,
     std::uint16_t const startLearningStimulationNumber = 0) {
   model.outputLog();
 
@@ -59,8 +62,6 @@ run(Model const &model,
   auto const &NONOISE = model.nonoise;
 
   auto const &LATCONNMULT = model.latconnmult;
-
-  auto const &DELAYPARAM = model.delayparam;
 
   double const &WPENSCALE = model.wpenscale;
   double const &ALTPMULT = model.altpmult;
@@ -122,56 +123,10 @@ run(Model const &model,
 
   // Eigen::MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
 
-  Eigen::ArrayXd const ALTDS = [&]() {
-    Eigen::ArrayXd ALTDS(constant::NBNEUR);
-    std::ranges::for_each(ALTDS, [](auto &i) {
-      i = constant::BASEALTD + constant::RANDALTD * ((double)rand() / (double)RAND_MAX);
-    });
-    return ALTDS;
-  }();
-
-  // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
-  // target neuron and j is the source synapse)
-  auto const delays = [&]() {
-    Eigen::ArrayXXi delays(constant::NBNEUR, constant::NBNEUR);
-
-    // We generate the delays:
-
-    // We use a trick to generate an exponential distribution, median should be small (maybe 2-4ms) The mental image is
-    // that you pick a uniform value in the unit line, repeatedly check if it falls below a certain threshold - if not,
-    // you cut out the portion of the unit line below that threshold and stretch the remainder (including the random
-    // value) to fill the unit line again. Each time you increase a counter, stopping when the value finally falls below
-    // the threshold. The counter at the end of this process has exponential distribution. There's very likely simpler
-    // ways to do it.
-
-    // DELAYPARAM should be a small value (3 to 6). It controls the median of the exponential.
-    for (auto const ni : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
-      for (auto const nj : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
-
-        double val = (double)rand() / (double)RAND_MAX;
-        double crit = 1.0 / DELAYPARAM; // .1666666666;
-        int mydelay;
-        for (mydelay = 1; mydelay <= constant::MAXDELAYDT; mydelay++) {
-          if (val < crit)
-            break;
-          // "Cutting" and "Stretching"
-          val = DELAYPARAM * (val - crit) / (DELAYPARAM - 1.0);
-        }
-
-        if (mydelay > constant::MAXDELAYDT)
-          mydelay = 1;
-        delays(nj, ni) = mydelay;
-      }
-    }
-
-    // NOTE: Do not use "delays" when "inputDelays" is passed, but always generate "delays" for reproductivity
-    return inputDelays.value_or(delays);
-  }();
-
-  io::saveMatrix<int>(saveDirectory / ("delays" + filenameSuffix + ".txt"), delays.matrix());
-
   // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
   // myfile.open("delays.txt", ios::trunc | ios::out);
+
+  // TODO: rand
   auto const delaysFF = [&]() {
     std::vector<std::vector<int>> delaysFF(constant::FFRFSIZE, std::vector<int>(constant::NBNEUR));
 
@@ -331,6 +286,7 @@ run(Model const &model,
     incomingFFspikes = initialIncomingFFspikes;
 
     // Stimulus presentation
+    // TODO: rand
     for (auto const numstepthispres : boost::counting_range<unsigned>(0, NBSTEPSPERPRES)) {
       // We determine FF spikes, based on the specified lgnrates:
       Eigen::VectorXd const lgnfirings = [&]() -> Eigen::ArrayXd {
@@ -536,7 +492,7 @@ run(Model const &model,
         // For each neuron, we compute the quantities by which any synapse
         // reaching this given neuron should be modified, if the synapse's
         // firing / recent activity (xplast) commands modification.
-        Eigen::VectorXd const EachNeurLTD = constant::dt * (-ALTDS / constant::VREF2) * vlongtrace.array() *
+        Eigen::VectorXd const EachNeurLTD = constant::dt * (-ALTDs / constant::VREF2) * vlongtrace.array() *
                                             vlongtrace.array() * (vneg.array() - constant::THETAVNEG).cwiseMax(0);
         Eigen::VectorXd const EachNeurLTP = constant::dt * constant::ALTP * ALTPMULT *
                                             (vpos.array() - constant::THETAVNEG).cwiseMax(0) *
@@ -665,11 +621,11 @@ run(Model const &model,
     std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
-    std::optional<Eigen::ArrayXXi> const &inputDelays,
+    Eigen::ArrayXd const &ALTDs,
+    Eigen::ArrayXXi const &delays,
     std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
-    std::string const &filenameSuffix,
     std::uint16_t const startLearningStimulationNumber = 0);
 
 } // namespace v1stdp::main::simulation
