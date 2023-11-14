@@ -18,6 +18,7 @@ add_library(ExploreMaximum STATIC
 
 target_link_libraries(ExploreMaximum PUBLIC IO)
 target_link_libraries(ExploreMaximum PUBLIC Simulation)
+target_link_libraries(ExploreMaximum PUBLIC Statistics)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
