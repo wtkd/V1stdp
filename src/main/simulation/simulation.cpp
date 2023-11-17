@@ -13,6 +13,7 @@
 #include "delays.hpp"
 #include "io.hpp"
 #include "model.hpp"
+#include "noise.hpp"
 #include "phase.hpp"
 #include "run.hpp"
 #include "utils.hpp"
@@ -151,6 +152,13 @@ void setupLearn(CLI::App &app) {
       return wff;
     }();
 
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
     auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
 
     auto const delays = opt->randomDelay ? generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT)
@@ -181,6 +189,8 @@ void setupLearn(CLI::App &app) {
             {0, NBSTEPSPERPRES - double(constant::TIMEZEROINPUT) / constant::dt},
             wff,
             w,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
             ALTDs,
             delays,
             narrowedImageVector,
@@ -284,6 +294,13 @@ void setupTest(CLI::App &app) {
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
     auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
 
     auto const generatedDelays = generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT);
@@ -328,6 +345,8 @@ void setupTest(CLI::App &app) {
             {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
             wff,
             w,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
             ALTDs,
             opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
             reversedImageVector,
@@ -418,6 +437,13 @@ void setupMix(CLI::App &app) {
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
     auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
 
     auto const generatedDelays = generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT);
@@ -464,6 +490,8 @@ void setupMix(CLI::App &app) {
             {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
             wff,
             w,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
             ALTDs,
             opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
             getRatioLgnRatesMixed,
@@ -572,6 +600,13 @@ void setupPulse(CLI::App &app) {
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
     auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
 
     auto const generatedDelays = generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT);
@@ -594,6 +629,8 @@ void setupPulse(CLI::App &app) {
             {constant::PULSESTART, double(PULSETIME) / constant::dt},
             wff,
             w,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
             ALTDs,
             opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
             narrowedImageVector,
@@ -679,6 +716,13 @@ void setupSpontaneous(CLI::App &app) {
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
     auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
 
     auto const generatedDelays = generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT);
@@ -698,6 +742,8 @@ void setupSpontaneous(CLI::App &app) {
             {0, 0},
             wff,
             w,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
             ALTDs,
             opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
             // Dummy input image

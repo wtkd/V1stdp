@@ -44,6 +44,8 @@ run(Model const &model,
     std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
+    Eigen::MatrixXd const &negnoisein,
+    Eigen::MatrixXd const &posnoisein,
     Eigen::ArrayXd const &ALTDs,
     // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
     // target neuron and j is the source synapse)
@@ -78,36 +80,6 @@ run(Model const &model,
   // XXX: This should use type of the vector imagedata.
   // To change depending on whether the data is float/single (4) or double (8)
   std::cout << "Number of patches in file: " << nbpatchesinfile << std::endl;
-
-  // The noise excitatory input is a Poisson process (separate for each cell) with a constant rate (in KHz / per ms)
-  // We store it as "frozen noise" to save time.
-  Eigen::MatrixXd const negnoisein = [&]() {
-    // The poissonMatrix should be evaluated every time because of reproductivity.
-    Eigen::MatrixXd negnoisein =
-        -poissonMatrix(
-            constant::dt * Eigen::MatrixXd::Constant(constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE)
-        ) *
-        constant::VSTIM;
-    // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
-    if (NONOISE || NOSPIKE) {
-      negnoisein.setZero();
-    }
-    return negnoisein;
-  }();
-
-  Eigen::MatrixXd const posnoisein = [&]() {
-    // The poissonMatrix should be evaluated every time because of reproductivity.
-    Eigen::MatrixXd posnoisein =
-        poissonMatrix(
-            constant::dt * Eigen::MatrixXd::Constant(constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE)
-        ) *
-        constant::VSTIM;
-    // If No-noise or no-spike, suppress the background bombardment of random I and E spikes
-    if (NONOISE || NOSPIKE) {
-      posnoisein.setZero();
-    }
-    return posnoisein;
-  }();
 
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
@@ -621,6 +593,8 @@ run(Model const &model,
     std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
+    Eigen::MatrixXd const &negnoisein,
+    Eigen::MatrixXd const &posnoisein,
     Eigen::ArrayXd const &ALTDs,
     Eigen::ArrayXXi const &delays,
     std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
