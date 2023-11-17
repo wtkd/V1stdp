@@ -37,3 +37,26 @@ Eigen::ArrayXXi generateDelays(unsigned const totalNeuronNumber, int const delay
 
   return delays;
 }
+
+std::vector<std::vector<int>>
+generateDelaysFF(unsigned const totalNeuronNumber, unsigned const inputSize, double const maximumDelay) {
+  std::vector<std::vector<int>> delaysFF(inputSize, std::vector<int>(totalNeuronNumber));
+
+  for (auto const ni : boost::counting_range<unsigned>(0, totalNeuronNumber)) {
+    for (auto const nj : boost::counting_range<unsigned>(0, inputSize)) {
+
+      double val = (double)rand() / (double)RAND_MAX;
+      double crit = .2;
+      int mydelay;
+      for (mydelay = 1; mydelay <= maximumDelay; mydelay++) {
+        if (val < crit)
+          break;
+        val = 5.0 * (val - crit) / 4.0;
+      }
+      if (mydelay > maximumDelay)
+        mydelay = 1;
+      delaysFF[nj][ni] = mydelay;
+    }
+  }
+  return delaysFF;
+}

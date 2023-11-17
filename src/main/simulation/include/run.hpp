@@ -50,6 +50,9 @@ run(Model const &model,
     // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
     // target neuron and j is the source synapse)
     Eigen::ArrayXXi const &delays,
+    // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
+    // myfile.open("delays.txt", ios::trunc | ios::out);
+    std::vector<std::vector<int>> const &delaysFF,
     F const &getRatioLgnRates,
     int const nbpatchesinfile,
     std::filesystem::path const saveDirectory,
@@ -94,34 +97,6 @@ run(Model const &model,
   Eigen::VectorXd const OneLGN = Eigen::VectorXd::Constant(constant::FFRFSIZE, 1.0);
 
   // Eigen::MatrixXi spikesthisstepFF(NBNEUR, FFRFSIZE);
-
-  // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
-  // myfile.open("delays.txt", ios::trunc | ios::out);
-
-  // TODO: rand
-  auto const delaysFF = [&]() {
-    std::vector<std::vector<int>> delaysFF(constant::FFRFSIZE, std::vector<int>(constant::NBNEUR));
-
-    for (auto const ni : boost::counting_range<unsigned>(0, constant::NBNEUR)) {
-      for (auto const nj : boost::counting_range<unsigned>(0, constant::FFRFSIZE)) {
-
-        double val = (double)rand() / (double)RAND_MAX;
-        double crit = .2;
-        int mydelay;
-        for (mydelay = 1; mydelay <= constant::MAXDELAYDT; mydelay++) {
-          if (val < crit)
-            break;
-          val = 5.0 * (val - crit) / 4.0;
-        }
-        if (mydelay > constant::MAXDELAYDT)
-          mydelay = 1;
-        delaysFF[nj][ni] = mydelay;
-      }
-    }
-    return delaysFF;
-  }();
-
-  // myfile << endl; myfile.close();
 
   // Initializations done, let's get to it!
 
@@ -597,6 +572,7 @@ run(Model const &model,
     Eigen::MatrixXd const &posnoisein,
     Eigen::ArrayXd const &ALTDs,
     Eigen::ArrayXXi const &delays,
+    std::vector<std::vector<int>> const &delaysFF,
     std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
