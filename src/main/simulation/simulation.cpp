@@ -763,7 +763,8 @@ void setupSpontaneous(CLI::App &app) {
             delaysFF,
             // Dummy input image
             std::vector<Eigen::ArrayXX<std::int8_t>>{
-                Eigen::ArrayXX<std::int8_t>::Zero(constant::PATCHSIZE, constant::PATCHSIZE)},
+                Eigen::ArrayXX<std::int8_t>::Zero(constant::PATCHSIZE, constant::PATCHSIZE)
+            },
             saveDirectory,
             saveLogInterval);
 
