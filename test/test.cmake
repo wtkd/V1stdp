@@ -33,6 +33,7 @@ add_test(
   --save-log-interval 50
   --image-range -200
   --start-learning-number 0
+  --random-delay
 )
 set_tests_properties(
   run_learn PROPERTIES

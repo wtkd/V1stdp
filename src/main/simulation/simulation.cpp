@@ -8,9 +8,12 @@
 
 #include <CLI/App.hpp>
 
+#include "ALTDs.hpp"
 #include "constant.hpp"
+#include "delays.hpp"
 #include "io.hpp"
 #include "model.hpp"
+#include "noise.hpp"
 #include "phase.hpp"
 #include "run.hpp"
 #include "utils.hpp"
@@ -44,6 +47,8 @@ struct LearnOptions {
   int step = 500'000;
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
+  std::optional<std::filesystem::path> delaysFile;
+  bool randomDelay = false;
   int saveLogInterval = 50'000;
   int presentationTime = 350;
   int startLearningNumber = 401;
@@ -62,6 +67,13 @@ void setupLearn(CLI::App &app) {
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
       ->required()
       ->check(CLI::NonexistentPath);
+
+  auto delayPolicy = sub->add_option_group("delay-policy");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays")
+      ->check(CLI::ExistingFile);
+  delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
+  delayPolicy->require_option(1);
+
   sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
   sub->add_option("--start-learning-number", opt->startLearningNumber, "Start learning after this number ostimulation");
@@ -140,6 +152,24 @@ void setupLearn(CLI::App &app) {
       return wff;
     }();
 
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
+    auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
+
+    auto const delays = opt->randomDelay ? generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT)
+                                         : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value()));
+
+    if (opt->randomDelay) {
+      io::saveMatrix<int>(saveDirectory / "delays.txt", delays.matrix());
+    }
+
+    auto const delaysFF = generateDelaysFF(constant::NBNEUR, constant::FFRFSIZE, constant::MAXDELAYDT);
+
     auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
 
     decltype(imageVector) const narrowedImageVector(
@@ -161,11 +191,14 @@ void setupLearn(CLI::App &app) {
             {0, NBSTEPSPERPRES - double(constant::TIMEZEROINPUT) / constant::dt},
             wff,
             w,
-            std::nullopt,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+            ALTDs,
+            delays,
+            delaysFF,
             narrowedImageVector,
             saveDirectory,
             saveLogInterval,
-            "",
             opt->startLearningNumber);
 
     io::saveMatrix(saveDirectory / ("lastnspikes" + model.getIndicator() + ".txt"), result.lastnspikes);
@@ -264,9 +297,22 @@ void setupTest(CLI::App &app) {
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
-    auto const delays = opt->delaysFile.has_value()
-                            ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
-                            : std::nullopt;
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
+    auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
+
+    auto const generatedDelays = generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT);
+
+    if (not opt->delaysFile.has_value()) {
+      io::saveMatrix<int>(saveDirectory / ("delays.txt"), generatedDelays.matrix());
+    }
+
+    auto const delaysFF = generateDelaysFF(constant::NBNEUR, constant::FFRFSIZE, constant::MAXDELAYDT);
 
     std::cout << "First row of w (lateral weights): " << w.row(0) << std::endl;
     std::cout << "w(1,2) and w(2,1): " << w(1, 2) << " " << w(2, 1) << std::endl;
@@ -304,11 +350,14 @@ void setupTest(CLI::App &app) {
             {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
             wff,
             w,
-            delays,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+            ALTDs,
+            opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
+            delaysFF,
             reversedImageVector,
             saveDirectory,
-            saveLogInterval,
-            "_test");
+            saveLogInterval);
 
     io::saveMatrix(saveDirectory / ("lastnspikes_test" + model.getIndicator() + ".txt"), result.lastnspikes);
     io::saveMatrix(saveDirectory / ("resps_test" + model.getIndicator() + ".txt"), result.resps);
@@ -394,9 +443,22 @@ void setupMix(CLI::App &app) {
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
-    auto const delays = opt->delaysFile.has_value()
-                            ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
-                            : std::nullopt;
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
+    auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
+
+    auto const generatedDelays = generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT);
+
+    if (not opt->delaysFile.has_value()) {
+      io::saveMatrix<int>(saveDirectory / ("delays.txt"), generatedDelays.matrix());
+    }
+
+    auto const delaysFF = generateDelaysFF(constant::NBNEUR, constant::FFRFSIZE, constant::MAXDELAYDT);
 
     std::cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << std::endl;
 
@@ -436,12 +498,15 @@ void setupMix(CLI::App &app) {
             {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
             wff,
             w,
-            delays,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+            ALTDs,
+            opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
+            delaysFF,
             getRatioLgnRatesMixed,
             imageVector.size(),
             saveDirectory,
-            saveLogInterval,
-            "_mix_" + std::to_string(STIM1) + "_" + std::to_string(STIM2));
+            saveLogInterval);
 
     io::saveMatrix(
         saveDirectory /
@@ -544,9 +609,22 @@ void setupPulse(CLI::App &app) {
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
-    auto const delays = opt->delaysFile.has_value()
-                            ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
-                            : std::nullopt;
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
+    auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
+
+    auto const generatedDelays = generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT);
+
+    if (not opt->delaysFile.has_value()) {
+      io::saveMatrix<int>(saveDirectory / ("delays.txt"), generatedDelays.matrix());
+    }
+
+    auto const delaysFF = generateDelaysFF(constant::NBNEUR, constant::FFRFSIZE, constant::MAXDELAYDT);
 
     auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
     decltype(imageVector) const narrowedImageVector = {imageVector.at(STIM1)};
@@ -562,11 +640,14 @@ void setupPulse(CLI::App &app) {
             {constant::PULSESTART, double(PULSETIME) / constant::dt},
             wff,
             w,
-            delays,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+            ALTDs,
+            opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
+            delaysFF,
             narrowedImageVector,
             saveDirectory,
-            saveLogInterval,
-            "_pulse_" + std::to_string(STIM1));
+            saveLogInterval);
 
     io::saveMatrix(
         saveDirectory / ("lastnspikes_pulse_" + std::to_string(STIM1) + model.getIndicator() + ".txt"),
@@ -647,9 +728,22 @@ void setupSpontaneous(CLI::App &app) {
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
-    auto const delays = opt->delaysFile.has_value()
-                            ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
-                            : std::nullopt;
+    Eigen::MatrixXd const negnoisein = -generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::NEGNOISERATE, constant::VSTIM, constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = generateNoiseInput(
+        constant::NBNEUR, constant::NBNOISESTEPS, constant::POSNOISERATE, constant::VSTIM, constant::dt
+    );
+
+    auto const ALTDs = generateALTDs(constant::NBNEUR, constant::BASEALTD, constant::RANDALTD);
+
+    auto const generatedDelays = generateDelays(constant::NBNEUR, model.delayparam, constant::MAXDELAYDT);
+
+    if (not opt->delaysFile.has_value()) {
+      io::saveMatrix<int>(saveDirectory / ("delays.txt"), generatedDelays.matrix());
+    }
+
+    auto const delaysFF = generateDelaysFF(constant::NBNEUR, constant::FFRFSIZE, constant::MAXDELAYDT);
 
     auto const [state, result] =
         run(model,
@@ -662,13 +756,16 @@ void setupSpontaneous(CLI::App &app) {
             {0, 0},
             wff,
             w,
-            delays,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+            ALTDs,
+            opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
+            delaysFF,
             // Dummy input image
             std::vector<Eigen::ArrayXX<std::int8_t>>{
                 Eigen::ArrayXX<std::int8_t>::Zero(constant::PATCHSIZE, constant::PATCHSIZE)},
             saveDirectory,
-            saveLogInterval,
-            "_spont");
+            saveLogInterval);
 
     io::saveMatrix(saveDirectory / ("lastnspikes_spont" + model.getIndicator() + ".txt"), result.lastnspikes);
   });
