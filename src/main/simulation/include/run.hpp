@@ -162,7 +162,8 @@ run(Model const &model,
       Eigen::MatrixXi::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS),
       Eigen::MatrixXd::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS),
       Eigen::MatrixXi::Zero(constant::NBNEUR, NBRESPS),
-      Eigen::MatrixXd::Zero(constant::NBNEUR, NBRESPS)};
+      Eigen::MatrixXd::Zero(constant::NBNEUR, NBRESPS)
+  };
 
   Eigen::MatrixXi &lastnspikes = modelResult.lastnspikes;
   Eigen::MatrixXd &lastnv = modelResult.lastnv;

@@ -65,7 +65,8 @@ struct Model {
         std::pair{&Model::nospike, std::string_view("_nospike")},
         std::pair{&Model::nolat, std::string_view("_nolat")},
         std::pair{&Model::noelat, std::string_view("_noelat")},
-        std::pair{&Model::nonoise, std::string_view("_nonoise")}};
+        std::pair{&Model::nonoise, std::string_view("_nonoise")}
+    };
 
     return std::accumulate(
         indicators.begin(),
