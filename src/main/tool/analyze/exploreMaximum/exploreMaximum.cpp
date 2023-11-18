@@ -6,7 +6,10 @@
 #include <optional>
 #include <utility>
 
+#include "ALTDs.hpp"
+#include "delays.hpp"
 #include "io.hpp"
+#include "noise.hpp"
 #include "run.hpp"
 
 #include "evaluationFunction.hpp"
@@ -28,6 +31,8 @@ struct exploreMaximumOptions {
 
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
+
+  int delayparam = 5.0;
 
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
@@ -71,6 +76,8 @@ void setupExploreMaximum(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
+  app.add_option("--delayparam", opt->delayparam, "Delay parameter");
+
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
 
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
@@ -88,13 +95,38 @@ void setupExploreMaximum(CLI::App &app) {
         simulation::readWeights(simulation::constant::NBNEUR, simulation::constant::FFRFSIZE, opt->feedforwardWeight);
 
     auto const delays = opt->delaysFile.has_value()
-                            ? std::optional(Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())))
-                            : std::nullopt;
+                            ? Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value()))
+                            : simulation::generateDelays(
+                                  simulation::constant::NBNEUR, opt->delayparam, simulation::constant::MAXDELAYDT
+                              );
+
+    auto const delaysFF = simulation::generateDelaysFF(
+        simulation::constant::NBNEUR, simulation::constant::FFRFSIZE, simulation::constant::MAXDELAYDT
+    );
+
+    Eigen::MatrixXd const negnoisein = -simulation::generateNoiseInput(
+        simulation::constant::NBNEUR,
+        simulation::constant::NBNOISESTEPS,
+        simulation::constant::NEGNOISERATE,
+        simulation::constant::VSTIM,
+        simulation::constant::dt
+    );
+    Eigen::MatrixXd const posnoisein = simulation::generateNoiseInput(
+        simulation::constant::NBNEUR,
+        simulation::constant::NBNOISESTEPS,
+        simulation::constant::POSNOISERATE,
+        simulation::constant::VSTIM,
+        simulation::constant::dt
+    );
 
     auto const imageVector = io::readImages(opt->inputFile, simulation::constant::PATCHSIZE);
 
     Eigen::VectorXd const templateResponse =
         io::readMatrix<double>(opt->templateResponseFile, opt->neuronNumber, 1).reshaped();
+
+    auto const ALTDs = simulation::generateALTDs(
+        simulation::constant::NBNEUR, simulation::constant::BASEALTD, simulation::constant::RANDALTD
+    );
 
     auto const responseEvaluationFunction = evaluationFunction::meta::correlation(1, 1, templateResponse);
     auto const evaluationFunction = [&](Eigen::ArrayXX<std::int8_t> const &image) -> double {
@@ -108,11 +140,14 @@ void setupExploreMaximum(CLI::App &app) {
           {0, NBSTEPSPERPRES - ((double)simulation::constant::TIMEZEROINPUT / simulation::constant::dt)},
           wff,
           w,
+          negnoisein,
+          posnoisein,
+          ALTDs,
           delays,
+          delaysFF,
           {image},
           opt->saveDirectory,
-          100,
-          "explore-maximum"
+          100
       );
 
       return responseEvaluationFunction(result.resps.reshaped().cast<double>());
