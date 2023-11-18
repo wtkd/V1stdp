@@ -3,6 +3,7 @@
 
 #include "delays.hpp"
 
+namespace v1stdp::main::simulation {
 Eigen::ArrayXXi generateDelays(unsigned const totalNeuronNumber, int const delayParameter, double const maximumDelay) {
   Eigen::ArrayXXi delays(totalNeuronNumber, totalNeuronNumber);
 
@@ -60,3 +61,5 @@ generateDelaysFF(unsigned const totalNeuronNumber, unsigned const inputSize, dou
   }
   return delaysFF;
 }
+
+} // namespace v1stdp::main::simulation
