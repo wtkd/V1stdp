@@ -1,11 +1,9 @@
-#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <iterator>
 #include <memory>
 #include <optional>
 #include <ranges>
-#include <system_error>
 #include <vector>
 
 #include <CLI/CLI.hpp>

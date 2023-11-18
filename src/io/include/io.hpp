@@ -1,11 +1,10 @@
 #pragma once
 
-#include <concepts>
+#include <algorithm>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <optional>
-#include <ranges>
 #include <string>
 #include <vector>
 
