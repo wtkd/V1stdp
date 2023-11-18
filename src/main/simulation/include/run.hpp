@@ -10,7 +10,6 @@
 #include <Eigen/Dense>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/counting_range.hpp>
-#include <boost/timer/progress_display.hpp>
 
 #include "io.hpp"
 
@@ -192,8 +191,6 @@ run(Model const &model,
   auto &incomingFFspikes = modelState.incomingFFspikes;
 
   auto &v = modelState.v;
-
-  boost::timer::progress_display showProgress(NBPRES, std::cerr);
 
   // For each stimulus presentation...
   for (auto const numpres : boost::counting_range<unsigned>(0, NBPRES)) {
@@ -545,7 +542,6 @@ run(Model const &model,
         saveWeights(wff, saveDirectory / "wff.dat");
       }
     }
-    ++showProgress;
   }
 
   if (phase == Phase::learning) {
