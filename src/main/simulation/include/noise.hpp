@@ -1,7 +1,5 @@
 #include <Eigen/Dense>
 
-#include "utils.hpp"
-
 namespace v1stdp::main::simulation {
 
 Eigen::MatrixXd generateNoiseInput(
