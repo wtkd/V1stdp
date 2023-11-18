@@ -61,7 +61,6 @@ run(Model const &model,
   auto const &NOELAT = model.noelat;
   auto const &NOINH = model.noinh;
   auto const &NOSPIKE = model.nospike;
-  auto const &NONOISE = model.nonoise;
 
   auto const &LATCONNMULT = model.latconnmult;
 
