@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 
 #include <CLI/CLI.hpp>
@@ -24,7 +25,7 @@ struct exploreMaximumOptions {
   double evaluationFunctionParameterA = 0.01;
   double evaluationFunctionParameterB = 0.01;
 
-  unsigned delta = 1;
+  double delta;
 
   std::uint64_t neuronNumber;
 
@@ -48,6 +49,9 @@ struct exploreMaximumOptions {
   std::filesystem::path saveDirectory;
 
   std::filesystem::path outputFile;
+
+  unsigned saveInterval = 10;
+  std::filesystem::path saveLogDirectory;
 };
 
 void setupExploreMaximum(CLI::App &app) {
@@ -67,9 +71,8 @@ void setupExploreMaximum(CLI::App &app) {
        "It means relative intensity of inactive neuron responses against correlation.")
   );
 
-  sub->add_option(
-      "-D,--delta", opt->delta, "Add/substract this value to/from intensity of pixel on gradient discnent."
-  );
+  sub->add_option("-D,--delta", opt->delta, "Add/substract this value to/from intensity of pixel on gradient discnent.")
+      ->required();
 
   sub->add_option("--template-response", opt->templateResponseFile, "File which contains template response.")
       ->required()
@@ -109,6 +112,11 @@ void setupExploreMaximum(CLI::App &app) {
 
   sub->add_option("-o,--output-file", opt->outputFile, "Output file")->required()->check(CLI::NonexistentPath);
 
+  sub->add_option("--save-log-interval", opt->saveInterval, "Interval to save image log");
+  sub->add_option("--save-log-directory", opt->saveLogDirectory, "Directory to save log")
+      ->required()
+      ->check(CLI::NonexistentPath);
+
   sub->callback([opt] {
     int const NBSTEPSPERPRES = (int)(opt->presentationTime / simulation::constant::dt);
 
@@ -147,6 +155,8 @@ void setupExploreMaximum(CLI::App &app) {
     Eigen::VectorXd const templateResponse =
         io::readMatrix<double>(opt->templateResponseFile, opt->neuronNumber, 1).reshaped();
 
+    io::createEmptyDirectory(opt->saveLogDirectory);
+
     auto const ALTDs = simulation::generateALTDs(
         simulation::constant::NBNEUR, simulation::constant::BASEALTD, simulation::constant::RANDALTD
     );
@@ -175,26 +185,27 @@ void setupExploreMaximum(CLI::App &app) {
           100
       );
 
-      auto const r =
-          responseEvaluationFunction(result.resps.reshaped().topRows(simulation::constant::NBE).cast<double>());
-      std::cout << "Each evaluation: " << r << std::endl;
-      return r;
+      return responseEvaluationFunction(result.resps.reshaped().topRows(simulation::constant::NBE).cast<double>());
     };
 
     Eigen::ArrayXX<std::int8_t> currentImage = imageVector.at(opt->initialInputNumber);
     double currentEvaluation = evaluationFunction(currentImage);
 
-    boost::timer::auto_cpu_timer timer;
+    io::saveMatrix<std::int8_t>(opt->saveLogDirectory / "0.txt", currentImage);
+
     boost::timer::progress_display showProgress(opt->iterationNumber, std::cerr);
+    boost::timer::auto_cpu_timer allTimer;
 
     std::uint64_t iteration = 0;
     while (iteration < opt->iterationNumber) {
-      Eigen::ArrayXX<std::int8_t> maxImage = currentImage;
-      double maxEvaluation = currentEvaluation;
+      boost::timer::auto_cpu_timer wholeTimer;
+      Eigen::ArrayXX<std::int8_t> nextImage = currentImage;
 
-      for (auto const &sign : {+opt->delta, -opt->delta}) {
+      for (auto const &sign : {+1, -1}) {
         for (auto const i : boost::counting_range<unsigned>(0, currentImage.cols())) {
           for (auto const j : boost::counting_range<unsigned>(0, currentImage.cols())) {
+            boost::timer::auto_cpu_timer innerTimer;
+
             Eigen::ArrayXX<std::int8_t> const candidateImage = [&] {
               auto candidateImage = currentImage;
               candidateImage(i, j) += sign;
@@ -202,27 +213,36 @@ void setupExploreMaximum(CLI::App &app) {
             }();
 
             auto const evaluation = evaluationFunction(candidateImage);
+            auto const evaluationDiff = currentEvaluation - evaluation;
+            std::uint8_t const pixelDiff = evaluationDiff * opt->delta * sign;
 
-            if (maxEvaluation < evaluation) {
-              maxImage = std::move(candidateImage);
-              maxEvaluation = evaluation;
-            }
+            std::cout << "Each evaluation (" << sign << ", " << i << ", " << j << "): " << evaluation << "\n"
+                      << "Each evaluation diff (" << sign << ", " << i << ", " << j << "): " << evaluationDiff << "\n"
+                      << "Pixel diff (" << sign << ", " << i << ", " << j << "): " << int(pixelDiff) << std::endl;
 
-            std::cout << "Inner iteration: (" << sign << ", " << i << ", " << j << "): " << timer.format() << std::endl;
+            nextImage(i, j) += evaluationDiff * opt->delta * sign;
+
+            std::cout << "Inner iteration: (" << sign << ", " << i << ", " << j << "): " << innerTimer.format()
+                      << std::endl;
           }
+        }
+
+        if (iteration == 0 || iteration % opt->saveInterval == 0) {
+          io::saveMatrix<std::int8_t>(opt->saveLogDirectory / (std::to_string(iteration + 1) + ".txt"), currentImage);
         }
       }
 
-      currentImage = maxImage;
-      currentEvaluation = maxEvaluation;
+      currentImage = nextImage;
+      currentEvaluation = evaluationFunction(currentImage);
 
-      std::cout << "Max evaluation "
-                << "(" << iteration << "): " << currentEvaluation << std::endl;
+      std::cout << "Max evaluation (" << iteration << "): " << currentEvaluation << std::endl;
 
       ++iteration;
       ++showProgress;
-      std::cout << "Whole iteration (" << iteration << "): " << timer.format() << std::endl;
+      std::cout << "Whole iteration (" << iteration << "): " << wholeTimer.format() << std::endl;
     }
+
+    std::cout << "All execution: " << allTimer.format() << std::endl;
 
     io::saveMatrix<std::int8_t>(opt->outputFile, currentImage);
   });
