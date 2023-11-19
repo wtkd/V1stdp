@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -204,6 +206,11 @@ void setupExploreMaximum(CLI::App &app) {
       for (auto const &sign : {+1, -1}) {
         for (auto const i : boost::counting_range<unsigned>(0, currentImage.cols())) {
           for (auto const j : boost::counting_range<unsigned>(0, currentImage.cols())) {
+            if ((sign == +1 && currentImage(i, j) == std::numeric_limits<std::int8_t>::max()) ||
+                (sign == -1 && currentImage(i, j) == std::numeric_limits<std::int8_t>::min())) {
+              continue;
+            }
+
             boost::timer::auto_cpu_timer innerTimer;
 
             Eigen::ArrayXX<std::int8_t> const candidateImage = [&] {
@@ -213,14 +220,18 @@ void setupExploreMaximum(CLI::App &app) {
             }();
 
             auto const evaluation = evaluationFunction(candidateImage);
-            auto const evaluationDiff = currentEvaluation - evaluation;
-            std::uint8_t const pixelDiff = evaluationDiff * opt->delta * sign;
+            auto const evaluationDiff = evaluation - currentEvaluation;
+            int const pixelDiff = evaluationDiff * opt->delta * sign;
 
             std::cout << "Each evaluation (" << sign << ", " << i << ", " << j << "): " << evaluation << "\n"
                       << "Each evaluation diff (" << sign << ", " << i << ", " << j << "): " << evaluationDiff << "\n"
-                      << "Pixel diff (" << sign << ", " << i << ", " << j << "): " << int(pixelDiff) << std::endl;
+                      << "Pixel diff (" << sign << ", " << i << ", " << j << "): " << pixelDiff << std::endl;
 
-            nextImage(i, j) += evaluationDiff * opt->delta * sign;
+            nextImage(i, j) = std::clamp<int>(
+                int(nextImage(i, j)) + pixelDiff,
+                std::numeric_limits<std::int8_t>::min(),
+                std::numeric_limits<std::int8_t>::max()
+            );
 
             std::cout << "Inner iteration: (" << sign << ", " << i << ", " << j << "): " << innerTimer.format()
                       << std::endl;
