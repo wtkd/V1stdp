@@ -4,8 +4,6 @@
 
 #include "statistics.hpp"
 
-#include "evaluationFunction.hpp"
-
 namespace v1stdp::main::tool::analyze::exploreMaximum::evaluationFunction::meta {
 
 inline auto correlation(int const a, int const b, Eigen::VectorXd const &templateResponse) {
