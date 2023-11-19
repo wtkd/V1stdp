@@ -24,6 +24,8 @@ struct exploreMaximumOptions {
   double evaluationFunctionParameterA = 0.01;
   double evaluationFunctionParameterB = 0.01;
 
+  unsigned delta = 1;
+
   std::uint64_t neuronNumber;
 
   int randomSeed = 0;
@@ -64,7 +66,9 @@ void setupExploreMaximum(CLI::App &app) {
       ("Parameter b of evaluation function.\n"
        "It means relative intensity of inactive neuron responses against correlation.")
   );
-       "It means relative intensity of inactive neuron responses against correlation.")
+
+  sub->add_option(
+      "-D,--delta", opt->delta, "Add/substract this value to/from intensity of pixel on gradient discnent."
   );
 
   sub->add_option("--template-response", opt->templateResponseFile, "File which contains template response.")
@@ -188,7 +192,7 @@ void setupExploreMaximum(CLI::App &app) {
       Eigen::ArrayXX<std::int8_t> maxImage = currentImage;
       double maxEvaluation = currentEvaluation;
 
-      for (auto const &sign : {+1, -1}) {
+      for (auto const &sign : {+opt->delta, -opt->delta}) {
         for (auto const i : boost::counting_range<unsigned>(0, currentImage.cols())) {
           for (auto const j : boost::counting_range<unsigned>(0, currentImage.cols())) {
             Eigen::ArrayXX<std::int8_t> const candidateImage = [&] {
