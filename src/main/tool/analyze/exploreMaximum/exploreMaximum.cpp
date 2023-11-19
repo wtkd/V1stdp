@@ -1,10 +1,12 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
-
-#include <CLI/CLI.hpp>
 #include <optional>
 #include <utility>
+
+#include <CLI/CLI.hpp>
+#include <boost/timer/progress_display.hpp>
+#include <boost/timer/timer.hpp>
 
 #include "ALTDs.hpp"
 #include "delays.hpp"
@@ -17,9 +19,11 @@
 #include "exploreMaximum.hpp"
 
 namespace v1stdp::main::tool::analyze::exploreMaximum {
-
 struct exploreMaximumOptions {
   std::filesystem::path templateResponseFile;
+  double evaluationFunctionParameterA = 0.01;
+  double evaluationFunctionParameterB = 0.01;
+
   std::uint64_t neuronNumber;
 
   int randomSeed = 0;
@@ -47,6 +51,21 @@ struct exploreMaximumOptions {
 void setupExploreMaximum(CLI::App &app) {
   auto opt = std::make_shared<exploreMaximumOptions>();
   auto sub = app.add_subcommand("explore-maximum", "Explore image of input which induce maximum response.");
+
+  sub->add_option(
+      "--evaluation-function-parameter-a",
+      opt->evaluationFunctionParameterA,
+      ("Parameter a of evaluation function.\n"
+       "It means relative intensity of active neuron responses against correlation.")
+  );
+  sub->add_option(
+      "--evaluation-function-parameter-b",
+      opt->evaluationFunctionParameterB,
+      ("Parameter b of evaluation function.\n"
+       "It means relative intensity of inactive neuron responses against correlation.")
+  );
+       "It means relative intensity of inactive neuron responses against correlation.")
+  );
 
   sub->add_option("--template-response", opt->templateResponseFile, "File which contains template response.")
       ->required()
@@ -128,7 +147,9 @@ void setupExploreMaximum(CLI::App &app) {
         simulation::constant::NBNEUR, simulation::constant::BASEALTD, simulation::constant::RANDALTD
     );
 
-    auto const responseEvaluationFunction = evaluationFunction::meta::correlation(1, 1, templateResponse);
+    auto const responseEvaluationFunction = evaluationFunction::meta::correlation(
+        opt->evaluationFunctionParameterA, opt->evaluationFunctionParameterB, templateResponse
+    );
     auto const evaluationFunction = [&](Eigen::ArrayXX<std::int8_t> const &image) -> double {
       auto const [state, result] = simulation::run(
           simulation::Model(),
@@ -150,11 +171,17 @@ void setupExploreMaximum(CLI::App &app) {
           100
       );
 
-      return responseEvaluationFunction(result.resps.reshaped().cast<double>());
+      auto const r =
+          responseEvaluationFunction(result.resps.reshaped().topRows(simulation::constant::NBE).cast<double>());
+      std::cout << "Each evaluation: " << r << std::endl;
+      return r;
     };
 
     Eigen::ArrayXX<std::int8_t> currentImage = imageVector.at(opt->initialInputNumber);
     double currentEvaluation = evaluationFunction(currentImage);
+
+    boost::timer::auto_cpu_timer timer;
+    boost::timer::progress_display showProgress(opt->iterationNumber, std::cerr);
 
     std::uint64_t iteration = 0;
     while (iteration < opt->iterationNumber) {
@@ -176,6 +203,8 @@ void setupExploreMaximum(CLI::App &app) {
               maxImage = std::move(candidateImage);
               maxEvaluation = evaluation;
             }
+
+            std::cout << "Inner iteration: (" << sign << ", " << i << ", " << j << "): " << timer.format() << std::endl;
           }
         }
       }
@@ -183,9 +212,12 @@ void setupExploreMaximum(CLI::App &app) {
       currentImage = maxImage;
       currentEvaluation = maxEvaluation;
 
-      std::cout << "Evaluation: " << currentEvaluation << std::endl;
+      std::cout << "Max evaluation "
+                << "(" << iteration << "): " << currentEvaluation << std::endl;
 
       ++iteration;
+      ++showProgress;
+      std::cout << "Whole iteration (" << iteration << "): " << timer.format() << std::endl;
     }
 
     io::saveMatrix<std::int8_t>(opt->outputFile, currentImage);

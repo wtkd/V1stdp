@@ -22,11 +22,11 @@ target_link_libraries(ExploreMaximum PUBLIC Statistics)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS timer)
 
 target_link_libraries(ExploreMaximum PUBLIC CLI11::CLI11)
 target_link_libraries(ExploreMaximum PUBLIC Eigen3::Eigen)
-target_link_libraries(ExploreMaximum PUBLIC Boost::boost)
+target_link_libraries(ExploreMaximum PUBLIC Boost::boost Boost::timer)
 
 target_compile_features(ExploreMaximum PRIVATE cxx_std_20)
 
