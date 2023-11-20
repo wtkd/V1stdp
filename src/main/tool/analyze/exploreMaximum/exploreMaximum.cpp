@@ -212,6 +212,7 @@ void setupExploreMaximum(CLI::App &app) {
 
     boost::timer::progress_display showProgress(opt->iterationNumber, std::cerr);
     std::uint64_t iteration = 0;
+    int totalPixelDifference = 0;
     while (iteration < opt->iterationNumber) {
       Eigen::ArrayXX<std::int8_t> nextImage = currentImage;
 
@@ -245,12 +246,13 @@ void setupExploreMaximum(CLI::App &app) {
                 std::numeric_limits<std::int8_t>::min(),
                 std::numeric_limits<std::int8_t>::max()
             );
+
+            totalPixelDifference += pixelDiff;
           }
         }
-
-        if (iteration == 0 || iteration % opt->saveInterval == 0) {
-          io::saveMatrix<std::int8_t>(opt->saveLogDirectory / (std::to_string(iteration + 1) + ".txt"), currentImage);
-        }
+      }
+      if (iteration == 0 || iteration % opt->saveInterval == 0) {
+        io::saveMatrix<std::int8_t>(opt->saveLogDirectory / (std::to_string(iteration + 1) + ".txt"), currentImage);
       }
 
       currentImage = nextImage;
@@ -259,8 +261,14 @@ void setupExploreMaximum(CLI::App &app) {
       std::cout << "Current evaluation (" << iteration << "): " << currentEvaluation << std::endl;
       evaluationOutput << iteration << " " << currentEvaluation << std::endl;
 
+      if (totalPixelDifference == 0) {
+        std::cout << "All of differences are 0." << std::endl;
+        break;
+      }
+
       ++iteration;
       ++showProgress;
+      totalPixelDifference = 0;
     }
 
     io::saveMatrix<std::int8_t>(opt->outputFile, currentImage);
