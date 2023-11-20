@@ -54,7 +54,9 @@ run(Model const &model,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
     std::uint16_t const startLearningStimulationNumber = 0) {
-  model.outputLog();
+  if constexpr (outputToConsole) {
+    model.outputLog();
+  }
 
   auto const &NOLAT = model.nolat;
   auto const &NOELAT = model.noelat;
