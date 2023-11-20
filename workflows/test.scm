@@ -19,11 +19,11 @@
            #:outputs
            (log #:type stdout)
            (lastnspikes #:type File
-                        #:binding '((glob . "lastnspikes_test.txt")))
+                        #:binding ((glob . "lastnspikes_test.txt")))
            (resps-test #:type File
-                       #:binding '((glob . "resps_test.txt")))
+                       #:binding ((glob . "resps_test.txt")))
            (lastnv-test #:type File
-                        #:binding '((glob . "lastnv_test.txt")))))
+                        #:binding ((glob . "lastnv_test.txt")))))
 
 (workflow ((stdp-executable #:type File
                             #:default '((class . "File")

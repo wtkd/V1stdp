@@ -14,7 +14,7 @@
            "--excitatory-only-output" "response-excitatory.txt"
            #:outputs
            (response-excitatory #:type File
-                                #:binding '((glob . "response-excitatory.txt")))))
+                                #:binding ((glob . "response-excitatory.txt")))))
 
 (define response-clustering
   (command #:inputs
@@ -31,11 +31,11 @@
            "--stimulation" "sort-index-stimulation.txt"
            #:outputs
            (response-sorted #:type File
-                            #:binding '((glob . "response-sorted.txt")))
+                            #:binding ((glob . "response-sorted.txt")))
            (sort-index-neuron #:type File
-                              #:binding '((glob . "sort-index-neuron.txt")))
+                              #:binding ((glob . "sort-index-neuron.txt")))
            (sort-index-stimulation #:type File
-                                   #:binding '((glob . "sort-index-stimulation.txt")))))
+                                   #:binding ((glob . "sort-index-stimulation.txt")))))
 
 (define sort-response-half
   (command #:inputs
@@ -49,7 +49,7 @@
            "--colomn" sort-index-stimulation
            #:outputs
            (response-sorted-half #:type File
-                                 #:binding '((glob . "$(inputs[\"output-name\"])")))))
+                                 #:binding ((glob . "$(inputs[\"output-name\"])")))))
 
 (define lateral-weight-cut-out-excitatory
   (command #:inputs
@@ -65,7 +65,7 @@
            "--excitatory-only-output" "weight-excitatory.txt"
            #:outputs
            (weight-excitatory #:type File
-                              #:binding '((glob . "weight-excitatory.txt")))))
+                              #:binding ((glob . "weight-excitatory.txt")))))
 
 (define sort-lateral-weight
   (command #:inputs
@@ -81,7 +81,7 @@
            "--row" sort-index-neuron-colomn
            #:outputs
            (weight-sorted #:type File
-                          #:binding '((glob . "$(inputs[\"output-name\"])")))))
+                          #:binding ((glob . "$(inputs[\"output-name\"])")))))
 
 (define response-correlation-matrix
   (command #:inputs
@@ -98,9 +98,9 @@
            "--stimulation" "correlation-matrix-stimulation.txt"
            #:outputs
            (correlation-matrix-neuron #:type File
-                                      #:binding '((glob . "correlation-matrix-neuron.txt")))
+                                      #:binding ((glob . "correlation-matrix-neuron.txt")))
            (correlation-matrix-stimulation #:type File
-                                           #:binding '((glob . "correlation-matrix-stimulation.txt")))))
+                                           #:binding ((glob . "correlation-matrix-stimulation.txt")))))
 
 (define cluster-map
   (command #:inputs
@@ -120,7 +120,7 @@
            "--minimum-cluster-size" minimum-cluster-size
            #:outputs
            (cluster-map #:type File
-                        #:binding '((glob . "$(inputs[\"output-name\"])")))))
+                        #:binding ((glob . "$(inputs[\"output-name\"])")))))
 
 (define delay-cut-out-excitatory
   (command #:inputs
@@ -136,7 +136,7 @@
            "--excitatory-only-output" "delays-excitatory.txt"
            #:outputs
            (delays-excitatory #:type File
-                              #:binding '((glob . "delays-excitatory.txt")))))
+                              #:binding ((glob . "delays-excitatory.txt")))))
 
 (define sort-delay
   (command #:inputs
@@ -152,7 +152,7 @@
            "--row" sort-index-neuron-colomn
            #:outputs
            (delays-sorted #:type File
-                          #:binding '((glob . "$(inputs[\"output-name\"])")))))
+                          #:binding ((glob . "$(inputs[\"output-name\"])")))))
 
 (define divide-line
   (command #:inputs
@@ -166,9 +166,9 @@
            "--number-output" output-number-file
            #:outputs
            (divided-directory #:type Directory
-                              #:binding '((glob . "$(inputs[\"output-directory\"])")))
+                              #:binding ((glob . "$(inputs[\"output-directory\"])")))
            (number-file #:type File
-                        #:binding '((glob . "$(inputs[\"output-number-file\"])")))))
+                        #:binding ((glob . "$(inputs[\"output-number-file\"])")))))
 
 (define plot-correlation
   (command #:inputs
@@ -187,7 +187,7 @@
            gnuplot-script
            #:outputs
            (correlation-plot #:type File
-                             #:binding '((glob . "$(inputs[\"output-name\"])")))))
+                             #:binding ((glob . "$(inputs[\"output-name\"])")))))
 
 (define plot-correlation-without-pixels
   (command #:inputs
@@ -206,7 +206,7 @@
            gnuplot-script
            #:outputs
            (correlation-plot #:type File
-                             #:binding '((glob . "$(inputs[\"output-name\"])")))))
+                             #:binding ((glob . "$(inputs[\"output-name\"])")))))
 
 (define plot-matrix
   (command #:inputs
@@ -224,7 +224,7 @@
            gnuplot-script
            #:outputs
            (matrix-plot #:type File
-                        #:binding '((glob . "$(inputs[\"output-name\"])")))))
+                        #:binding ((glob . "$(inputs[\"output-name\"])")))))
 
 (define export-feedforward-weight
   (command #:inputs
@@ -249,11 +249,11 @@
            "--zero-padding" "0"
            #:outputs
            (on-feedforward-weight #:type Directory
-                                  #:binding '((glob . "$(inputs[\"on-directory-name\"])")))
+                                  #:binding ((glob . "$(inputs[\"on-directory-name\"])")))
            (off-feedforward-weight #:type Directory
-                                   #:binding '((glob . "$(inputs[\"off-directory-name\"])")))
+                                   #:binding ((glob . "$(inputs[\"off-directory-name\"])")))
            (diff-feedforward-weight #:type Directory
-                                    #:binding '((glob . "$(inputs[\"diff-directory-name\"])")))))
+                                    #:binding ((glob . "$(inputs[\"diff-directory-name\"])")))))
 
 (define plot-each-feedforward-weight
   (command #:inputs
@@ -278,7 +278,7 @@
            #:outputs
            (feedforward-weight-plots-directory
             #:type Directory
-            #:binding '((glob . "$(inputs[\"output-directory\"])")))))
+            #:binding ((glob . "$(inputs[\"output-directory\"])")))))
 
 (define plot-all-feedforward-weight
   (command #:inputs
@@ -297,7 +297,7 @@
            gnuplot-script
            #:outputs
            (feedforward-weight-plot #:type File
-                                    #:binding '((glob . "$(inputs[\"output-file\"])")))))
+                                    #:binding ((glob . "$(inputs[\"output-file\"])")))))
 
 (define plot-each-cluster-neurons
   (command #:inputs
@@ -322,7 +322,7 @@
            gnuplot-script
            #:outputs
            (image-directory #:type Directory
-                            #:binding '((glob . "$(inputs[\"output-directory\"])")))))
+                            #:binding ((glob . "$(inputs[\"output-directory\"])")))))
 
 (define plot-each-cluster-images
   (command #:inputs
@@ -348,7 +348,7 @@
            gnuplot-script
            #:outputs
            (image-directory #:type Directory
-                            #:binding '((glob . "$(inputs[\"output-directory\"])")))))
+                            #:binding ((glob . "$(inputs[\"output-directory\"])")))))
 
 (define convert-svg-to-png
   (command #:inputs
@@ -358,7 +358,7 @@
            "rsvg-convert" input-svg "-o" output-png-name "-b" "white"
            #:outputs
            (output-png #:type File
-                       #:binding '((glob . "$(inputs[\"output-png-name\"])")))))
+                       #:binding ((glob . "$(inputs[\"output-png-name\"])")))))
 
 (define convert-svg-to-png-directory
   (command #:inputs
@@ -370,7 +370,7 @@
            input-directory output-directory-name
            #:outputs
            (output-directory #:type Directory
-                             #:binding '((glob . "$(inputs[\"output-directory-name\"])")))))
+                             #:binding ((glob . "$(inputs[\"output-directory-name\"])")))))
 
 (workflow ((stdp-executable #:type File)
            (response-test #:type File)

@@ -17,16 +17,16 @@
            (log #:type stdout)
            (lateral-weight-txt
             #:type File
-            #:binding '((glob . "w.txt")))
+            #:binding ((glob . "w.txt")))
            (lateral-weight-dat
             #:type File
-            #:binding '((glob . "w.dat")))
+            #:binding ((glob . "w.dat")))
            (feedforward-weight-txt
             #:type File
-            #:binding '((glob . "wff.txt")))
+            #:binding ((glob . "wff.txt")))
            (feedforward-weight-dat
             #:type File
-            #:binding '((glob . "wff.dat")))))
+            #:binding ((glob . "wff.dat")))))
 
 (workflow ((stdp-executable #:type File
                             #:default '((class . "File")

@@ -16,13 +16,13 @@
            #:outputs
            (on-images-text-directory
             #:type Directory
-            #:binding '((glob . "$(inputs[\"on-image-directory-name\"])")))
+            #:binding ((glob . "$(inputs[\"on-image-directory-name\"])")))
            (off-images-text-directory
             #:type Directory
-            #:binding '((glob . "$(inputs[\"off-image-directory-name\"])")))
+            #:binding ((glob . "$(inputs[\"off-image-directory-name\"])")))
            (text-images-directory
             #:type Directory
-            #:binding '((glob . "$(inputs[\"text-image-directory-name\"])")))))
+            #:binding ((glob . "$(inputs[\"text-image-directory-name\"])")))))
 
 (define generate-svg-images
   (command #:inputs
@@ -48,7 +48,7 @@
             ;; #:secondaryFiles
             ;; '((class . "File")
             ;;   (location . "$(inputs[\"output-directory\"].location)"))
-            #:binding '((glob . "$(inputs[\"output-directory\"])"))
+            #:binding ((glob . "$(inputs[\"output-directory\"])"))
             )))
 
 (workflow ((stdp-executable #:type File
