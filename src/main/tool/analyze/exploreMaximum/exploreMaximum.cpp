@@ -250,7 +250,7 @@ void setupExploreMaximum(CLI::App &app) {
                 std::numeric_limits<std::int8_t>::max()
             );
 
-            totalPixelDifference += pixelDiff;
+            totalPixelDifference += std::abs(pixelDiff);
           }
         }
       }
@@ -262,6 +262,7 @@ void setupExploreMaximum(CLI::App &app) {
       currentEvaluation = evaluationFunction(currentImage);
 
       std::cout << "Current evaluation (" << iteration << "): " << currentEvaluation << std::endl;
+      std::cout << "Current sum of pixel differences (" << iteration << "): " << totalPixelDifference << std::endl;
       evaluationOutput << iteration << " " << currentEvaluation << std::endl;
 
       if (totalPixelDifference == 0) {
