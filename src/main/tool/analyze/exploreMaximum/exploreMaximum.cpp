@@ -234,9 +234,12 @@ void setupExploreMaximum(CLI::App &app) {
             auto const evaluationDiff = evaluation - currentEvaluation;
             int const pixelDiff = evaluationDiff * opt->delta * sign;
 
-            std::cout << "Each evaluation (" << sign << ", " << i << ", " << j << "): " << evaluation << "\n"
-                      << "Each evaluation diff (" << sign << ", " << i << ", " << j << "): " << evaluationDiff << "\n"
-                      << "Pixel diff (" << sign << ", " << i << ", " << j << "): " << pixelDiff << std::endl;
+            std::cout << "Each evaluation (" << iteration << ", " << sign << ", " << i << ", " << j
+                      << "): " << evaluation << "\n"
+                      << "Each evaluation diff (" << iteration << ", " << sign << ", " << i << ", " << j
+                      << "): " << evaluationDiff << "\n"
+                      << "Pixel diff (" << iteration << ", " << sign << ", " << i << ", " << j << "): " << pixelDiff
+                      << std::endl;
 
             evaluationPixelOutput << iteration << " " << sign << " " << i << " " << j << " " << evaluation << " "
                                   << evaluationDiff << " " << pixelDiff << std::endl;
