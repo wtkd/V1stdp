@@ -28,7 +28,9 @@
             #:delta delta)
            (tee
             (rename #:ouptut-text-image ouptut-text-image
-                    #:ouptut-text-image-log ouptut-text-image-log)
+                    #:ouptut-text-image-log ouptut-text-image-log
+                    #:output-evaluation-file output-evaluation-file
+                    #:output-evaluation-pixel-file output-evaluation-pixel-file)
             (analyze-explore-maximum
              #:input-directory ouptut-text-image-log
              #:total-iteration-number total-iteration-number
