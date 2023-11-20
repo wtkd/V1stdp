@@ -43,7 +43,7 @@ add_custom_command(
   OUTPUT simulation.cwl
   COMMAND ${CCWL_EXECUTABLE} compile simulation.scm > simulation.cwl
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  DEPENDS simulation.scm learn.cwl test.cwl
+  DEPENDS simulation.scm generate_learn_cwl generate_test_cwl
   VERBATIM)
 add_custom_target(generate_simulation_cwl DEPENDS simulation.cwl)
 
@@ -67,8 +67,32 @@ add_custom_command(
   OUTPUT all.cwl
   COMMAND ${CCWL_EXECUTABLE} compile all.scm > all.cwl
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  DEPENDS all.scm learn.cwl test.cwl analyze.cwl exportImages.cwl
+  DEPENDS all.scm learn.cwl test.cwl generate_analyze_cwl generate_exportImages_cwl
   VERBATIM)
 add_custom_target(generate_all_cwl DEPENDS all.cwl)
 
-add_custom_target(GenerateCWL DEPENDS generate_test_cwl generate_learn_cwl generate_simulation_cwl generate_analyze_cwl generate_exportImages_cwl generate_all_cwl)
+add_custom_command(
+  OUTPUT run-explore-maximum.cwl
+  COMMAND ${CCWL_EXECUTABLE} compile run-explore-maximum.scm > run-explore-maximum.cwl
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  DEPENDS run-explore-maximum.scm
+  VERBATIM)
+add_custom_target(generate_run-explore-maximum_cwl DEPENDS run-explore-maximum.cwl)
+
+add_custom_command(
+  OUTPUT analyze-explore-maximum.cwl
+  COMMAND ${CCWL_EXECUTABLE} compile analyze-explore-maximum.scm > analyze-explore-maximum.cwl
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  DEPENDS analyze-explore-maximum.scm
+  VERBATIM)
+add_custom_target(generate_analyze-explore-maximum_cwl DEPENDS analyze-explore-maximum.cwl)
+
+add_custom_command(
+  OUTPUT all-explore-maximum.cwl
+  COMMAND ${CCWL_EXECUTABLE} compile all-explore-maximum.scm > all-explore-maximum.cwl
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  DEPENDS all-explore-maximum.scm generate_run-explore-maximum_cwl generate_analyze-explore-maximum_cwl
+  VERBATIM)
+add_custom_target(generate_all-explore-maximum_cwl DEPENDS all-explore-maximum.cwl)
+
+add_custom_target(GenerateCWL DEPENDS generate_test_cwl generate_learn_cwl generate_simulation_cwl generate_analyze_cwl generate_exportImages_cwl generate_all_cwl generate_run-explore-maximum_cwl generate_analyze-explore-maximum_cwl generate_all-explore-maximum_cwl)
