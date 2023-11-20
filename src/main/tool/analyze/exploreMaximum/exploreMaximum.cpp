@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -54,6 +55,8 @@ struct exploreMaximumOptions {
 
   unsigned saveInterval = 10;
   std::filesystem::path saveLogDirectory;
+
+  std::filesystem::path saveEvaluationFile;
 };
 
 void setupExploreMaximum(CLI::App &app) {
@@ -116,6 +119,10 @@ void setupExploreMaximum(CLI::App &app) {
 
   sub->add_option("--save-log-interval", opt->saveInterval, "Interval to save image log");
   sub->add_option("--save-log-directory", opt->saveLogDirectory, "Directory to save log")
+      ->required()
+      ->check(CLI::NonexistentPath);
+
+  sub->add_option("--save-evaluation-file", opt->saveEvaluationFile, "Save evaluations of each iteration")
       ->required()
       ->check(CLI::NonexistentPath);
 
@@ -193,6 +200,8 @@ void setupExploreMaximum(CLI::App &app) {
     Eigen::ArrayXX<std::int8_t> currentImage = imageVector.at(opt->initialInputNumber);
     double currentEvaluation = evaluationFunction(currentImage);
 
+    std::ofstream evaluationOutput(opt->saveEvaluationFile);
+
     io::saveMatrix<std::int8_t>(opt->saveLogDirectory / "0.txt", currentImage);
 
     boost::timer::progress_display showProgress(opt->iterationNumber, std::cerr);
@@ -246,7 +255,8 @@ void setupExploreMaximum(CLI::App &app) {
       currentImage = nextImage;
       currentEvaluation = evaluationFunction(currentImage);
 
-      std::cout << "Max evaluation (" << iteration << "): " << currentEvaluation << std::endl;
+      std::cout << "Current evaluation (" << iteration << "): " << currentEvaluation << std::endl;
+      evaluationOutput << iteration << " " << currentEvaluation << std::endl;
 
       ++iteration;
       ++showProgress;
