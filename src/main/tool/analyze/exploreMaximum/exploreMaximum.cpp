@@ -10,7 +10,6 @@
 
 #include <CLI/CLI.hpp>
 #include <boost/timer/progress_display.hpp>
-#include <boost/timer/timer.hpp>
 
 #include "ALTDs.hpp"
 #include "delays.hpp"
@@ -212,11 +211,8 @@ void setupExploreMaximum(CLI::App &app) {
     io::saveMatrix<std::int8_t>(opt->saveLogDirectory / "0.txt", currentImage);
 
     boost::timer::progress_display showProgress(opt->iterationNumber, std::cerr);
-    boost::timer::auto_cpu_timer allTimer;
-
     std::uint64_t iteration = 0;
     while (iteration < opt->iterationNumber) {
-      boost::timer::auto_cpu_timer wholeTimer;
       Eigen::ArrayXX<std::int8_t> nextImage = currentImage;
 
       for (auto const &sign : {+1, -1}) {
@@ -226,8 +222,6 @@ void setupExploreMaximum(CLI::App &app) {
                 (sign == -1 && currentImage(i, j) == std::numeric_limits<std::int8_t>::min())) {
               continue;
             }
-
-            boost::timer::auto_cpu_timer innerTimer;
 
             Eigen::ArrayXX<std::int8_t> const candidateImage = [&] {
               auto candidateImage = currentImage;
@@ -251,9 +245,6 @@ void setupExploreMaximum(CLI::App &app) {
                 std::numeric_limits<std::int8_t>::min(),
                 std::numeric_limits<std::int8_t>::max()
             );
-
-            std::cout << "Inner iteration: (" << sign << ", " << i << ", " << j << "): " << innerTimer.format()
-                      << std::endl;
           }
         }
 
@@ -270,10 +261,7 @@ void setupExploreMaximum(CLI::App &app) {
 
       ++iteration;
       ++showProgress;
-      std::cout << "Whole iteration (" << iteration << "): " << wholeTimer.format() << std::endl;
     }
-
-    std::cout << "All execution: " << allTimer.format() << std::endl;
 
     io::saveMatrix<std::int8_t>(opt->outputFile, currentImage);
   });
