@@ -17,7 +17,6 @@ add_library(Simulation STATIC
   noise.cpp
   ALTDs.cpp
   delays.cpp
-  run.cpp
   utils.cpp)
 
 target_link_libraries(Simulation IO)

@@ -179,7 +179,7 @@ void setupExploreMaximum(CLI::App &app) {
         opt->evaluationFunctionParameterA, opt->evaluationFunctionParameterB, templateResponse
     );
     auto const evaluationFunction = [&](Eigen::ArrayXX<std::int8_t> const &image) -> double {
-      auto const [state, result] = simulation::run(
+      auto const [state, result] = simulation::run<false>(
           simulation::Model(),
           opt->presentationTime,
           1, // Lastnspikes is not needed

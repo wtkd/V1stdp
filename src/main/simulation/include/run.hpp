@@ -27,7 +27,7 @@ struct ModelResult {
   Eigen::MatrixXd respssumv;
 };
 
-template <typename F>
+template <bool outputToConsole = true, typename F>
   requires std::regular_invocable<F, std::uint32_t> &&
            std::same_as<std::invoke_result_t<F, std::uint32_t>, Eigen::ArrayXd>
 std::pair<ModelState, ModelResult>
@@ -77,7 +77,9 @@ run(Model const &model,
 
   // XXX: This should use type of the vector imagedata.
   // To change depending on whether the data is float/single (4) or double (8)
-  std::cout << "Number of patches in file: " << nbpatchesinfile << std::endl;
+  if constexpr (outputToConsole) {
+    std::cout << "Number of patches in file: " << nbpatchesinfile << std::endl;
+  }
 
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
@@ -497,18 +499,22 @@ run(Model const &model,
     }
 
     if (numpres % 100 == 0) {
-      std::cout << "Presentation " << numpres << " / " << NBPRES << std::endl;
-      std::cout << "TIME: " << (double)(clock() - tic) / (double)CLOCKS_PER_SEC << std::endl;
-      tic = clock();
-      std::cout << "Total spikes for each neuron for this presentation: " << resps.col(numpres % NBRESPS).transpose()
-                << std::endl;
-      std::cout << "Vlongtraces: " << vlongtrace.transpose() << std::endl;
-      std::cout << " Max LGN rate (should be << 1.0): " << lgnrates.maxCoeff() << std::endl;
+      if constexpr (outputToConsole) {
+        std::cout << "Presentation " << numpres << " / " << NBPRES << std::endl;
+        std::cout << "TIME: " << (double)(clock() - tic) / (double)CLOCKS_PER_SEC << std::endl;
+        tic = clock();
+        std::cout << "Total spikes for each neuron for this presentation: " << resps.col(numpres % NBRESPS).transpose()
+                  << std::endl;
+        std::cout << "Vlongtraces: " << vlongtrace.transpose() << std::endl;
+        std::cout << " Max LGN rate (should be << 1.0): " << lgnrates.maxCoeff() << std::endl;
+      }
     }
     if (((numpres + 1) % 10000 == 0) || (numpres == 0) || (numpres + 1 == NBPRES)) {
 
       if (phase == Phase::learning) {
-        std::cout << "(Saving temporary data ... )" << std::endl;
+        if constexpr (outputToConsole) {
+          std::cout << "(Saving temporary data ... )" << std::endl;
+        }
 
         {
           std::ofstream myfile(saveDirectory / "w.txt", std::ios::trunc | std::ios::out);
@@ -551,6 +557,7 @@ run(Model const &model,
   return std::make_pair(modelState, modelResult);
 }
 
+template <bool outputToConsole = true>
 std::pair<ModelState, ModelResult>
 run(Model const &model,
     int const presentationTime,
@@ -569,6 +576,38 @@ run(Model const &model,
     std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
-    std::uint16_t const startLearningStimulationNumber = 0);
+    std::uint16_t const startLearningStimulationNumber = 0) {
+
+  auto const getRatioLgnRates = [&](std::uint32_t const i) -> Eigen::ArrayXd {
+    auto const dataNumber = i % imageVector.size();
+    Eigen::ArrayXd result(constant::FFRFSIZE);
+    result << (1.0 + (constant::MOD * imageVector.at(dataNumber).reshaped().cast<double>()).max(0)).log(),
+        (1.0 - (constant::MOD * imageVector.at(dataNumber).reshaped().cast<double>()).min(0)).log();
+
+    return result / result.maxCoeff();
+  };
+
+  return run<outputToConsole>(
+      model,
+      presentationTime,
+      NBLASTSPIKESPRES,
+      NBPRES,
+      NBRESPS,
+      phase,
+      presentationTimeRange,
+      initwff,
+      initw,
+      negnoisein,
+      posnoisein,
+      ALTDs,
+      delays,
+      delaysFF,
+      getRatioLgnRates,
+      imageVector.size(),
+      saveDirectory,
+      saveLogInterval,
+      startLearningStimulationNumber
+  );
+}
 
 } // namespace v1stdp::main::simulation
