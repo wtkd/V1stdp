@@ -3,6 +3,7 @@
 #include "applyPermutation.hpp"
 #include "delay.hpp"
 #include "divideLine.hpp"
+#include "exploreMaximum.hpp"
 #include "response.hpp"
 #include "weight.hpp"
 
@@ -18,5 +19,6 @@ void setupAnalyze(CLI::App &app) {
   delay::setupDelay(*sub);
   applyPermutation::setupApplyPermutation(*sub);
   divideLine::setupDivideLine(*sub);
+  exploreMaximum::setupExploreMaximum(*sub);
 }
 } // namespace v1stdp::main::tool::analyze
