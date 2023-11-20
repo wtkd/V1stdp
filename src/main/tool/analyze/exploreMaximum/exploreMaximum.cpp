@@ -57,6 +57,7 @@ struct exploreMaximumOptions {
   std::filesystem::path saveLogDirectory;
 
   std::filesystem::path saveEvaluationFile;
+  std::filesystem::path saveEvaluationPixelFile;
 };
 
 void setupExploreMaximum(CLI::App &app) {
@@ -123,6 +124,11 @@ void setupExploreMaximum(CLI::App &app) {
       ->check(CLI::NonexistentPath);
 
   sub->add_option("--save-evaluation-file", opt->saveEvaluationFile, "Save evaluations of each iteration")
+      ->required()
+      ->check(CLI::NonexistentPath);
+  sub->add_option(
+         "--save-evaluation-pixel-file", opt->saveEvaluationPixelFile, "Save evaluations when each pixel is changed"
+  )
       ->required()
       ->check(CLI::NonexistentPath);
 
@@ -201,6 +207,7 @@ void setupExploreMaximum(CLI::App &app) {
     double currentEvaluation = evaluationFunction(currentImage);
 
     std::ofstream evaluationOutput(opt->saveEvaluationFile);
+    std::ofstream evaluationPixelOutput(opt->saveEvaluationPixelFile);
 
     io::saveMatrix<std::int8_t>(opt->saveLogDirectory / "0.txt", currentImage);
 
@@ -235,6 +242,9 @@ void setupExploreMaximum(CLI::App &app) {
             std::cout << "Each evaluation (" << sign << ", " << i << ", " << j << "): " << evaluation << "\n"
                       << "Each evaluation diff (" << sign << ", " << i << ", " << j << "): " << evaluationDiff << "\n"
                       << "Pixel diff (" << sign << ", " << i << ", " << j << "): " << pixelDiff << std::endl;
+
+            evaluationPixelOutput << iteration << " " << sign << " " << i << " " << j << " " << evaluation << " "
+                                  << evaluationDiff << " " << pixelDiff << std::endl;
 
             nextImage(i, j) = std::clamp<int>(
                 int(nextImage(i, j)) + pixelDiff,
