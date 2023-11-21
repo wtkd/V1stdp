@@ -24,8 +24,8 @@
 namespace v1stdp::main::tool::analyze::exploreMaximum {
 struct exploreMaximumOptions {
   std::filesystem::path templateResponseFile;
-  double evaluationFunctionParameterA = 0.01;
-  double evaluationFunctionParameterB = 0.01;
+  double evaluationFunctionParameterA;
+  double evaluationFunctionParameterB;
 
   double delta;
 
@@ -64,17 +64,19 @@ void setupExploreMaximum(CLI::App &app) {
   auto sub = app.add_subcommand("explore-maximum", "Explore image of input which induce maximum response.");
 
   sub->add_option(
-      "--evaluation-function-parameter-a",
-      opt->evaluationFunctionParameterA,
-      ("Parameter a of evaluation function.\n"
-       "It means relative intensity of active neuron responses against correlation.")
-  );
+         "--evaluation-function-parameter-a",
+         opt->evaluationFunctionParameterA,
+         ("Parameter a of evaluation function.\n"
+          "It means relative intensity of active neuron responses against correlation.")
+  )
+      ->required();
   sub->add_option(
-      "--evaluation-function-parameter-b",
-      opt->evaluationFunctionParameterB,
-      ("Parameter b of evaluation function.\n"
-       "It means relative intensity of inactive neuron responses against correlation.")
-  );
+         "--evaluation-function-parameter-b",
+         opt->evaluationFunctionParameterB,
+         ("Parameter b of evaluation function.\n"
+          "It means relative intensity of inactive neuron responses against correlation.")
+  )
+      ->required();
 
   sub->add_option("-D,--delta", opt->delta, "Add/substract this value to/from intensity of pixel on gradient discnent.")
       ->required();
