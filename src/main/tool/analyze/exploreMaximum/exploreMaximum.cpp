@@ -215,7 +215,7 @@ void setupExploreMaximum(CLI::App &app) {
     double currentEvaluation = initialEvaluation;
 
     std::ofstream evaluationOutput(opt->saveEvaluationFile);
-    evaluationOutput << 0 << initialEvaluation << std::endl;
+    evaluationOutput << 0 << " " << initialEvaluation << std::endl;
 
     std::ofstream evaluationPixelOutput(opt->saveEvaluationPixelFile);
 
