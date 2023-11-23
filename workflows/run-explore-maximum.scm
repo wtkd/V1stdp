@@ -12,6 +12,8 @@
            (output-log-directory-name #:type string)
            (template-response #:type File)
            (delta #:type float)
+           (evaluation-function-parameter-a #:type float)
+           (evaluation-function-parameter-b #:type float)
            #:run
            stdp-executable "tool" "analyze" "explore-maximum"
            "--neuron-number" neuron-number
@@ -29,11 +31,14 @@
            "--save-log-interval" "1"
            "--save-evaluation-file" "evaluations.txt"
            "--save-evaluation-pixel-file" "evaluations-pixel.txt"
+           "--save-response-file" "responses.txt"
+           "--evaluation-function-parameter-a" evaluation-function-parameter-a
+           "--evaluation-function-parameter-b" evaluation-function-parameter-b
            #:outputs
            (output-text-image
             #:type File
             #:binding ((glob . "$(inputs[\"output-text-image-name\"])")))
-           (ouptut-text-image-log
+           (output-text-image-log
             #:type Directory
             #:binding ((glob . "$(inputs[\"output-log-directory-name\"])")))
            (output-evaluation-file
@@ -41,7 +46,10 @@
             #:binding ((glob . "evaluations.txt")))
            (output-evaluation-pixel-file
             #:type File
-            #:binding ((glob . "evaluations-pixel.txt")))))
+            #:binding ((glob . "evaluations-pixel.txt")))
+           (output-response-file
+            #:type File
+            #:binding ((glob . "responses.txt")))))
 
 (workflow ((stdp-executable #:type File)
            (transformed-image-data #:type File)
@@ -52,7 +60,9 @@
            (feedforward-weight #:type File)
            (delays #:type File)
            (template-response #:type File)
-           (delta #:type float))
+           (delta #:type float)
+           (evaluation-function-parameter-a #:type float)
+           (evaluation-function-parameter-b #:type float))
           (run-explore-maximum
            #:stdp-executable stdp-executable
            #:transformed-image-data transformed-image-data
@@ -65,4 +75,6 @@
            #:output-text-image-name "explored-image.txt"
            #:output-log-directory-name "explored-log"
            #:template-response template-response
-           #:delta delta))
+           #:delta delta
+           #:evaluation-function-parameter-a evaluation-function-parameter-a
+           #:evaluation-function-parameter-b evaluation-function-parameter-b))

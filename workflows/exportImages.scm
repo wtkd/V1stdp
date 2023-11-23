@@ -68,9 +68,9 @@
             #:off-image-directory-name "offImagesText"
             #:text-image-directory-name "imagesText")
            (tee
-            (rename #:text-images-directory text-image-directory
-                    #:on-images-directory on-image-directory
-                    #:off-images-directory off-image-directory)
+            (rename #:text-images-directory text-images-directory
+                    #:on-images-directory on-images-text-directory
+                    #:off-images-directory off-images-text-directory)
             (generate-svg-images
              #:stdp-executable stdp-executable
              #:total-image-number total-image-number
