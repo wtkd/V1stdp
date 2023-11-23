@@ -58,7 +58,7 @@ void setupApplyPermutation(CLI::App &app) {
 
     io::ensureParentDirectory(opt->outputFile);
 
-    std::ofstream(opt->outputFile) << resultMatrix;
+    std::ofstream(opt->outputFile) << resultMatrix << std::endl;
   });
 }
 
