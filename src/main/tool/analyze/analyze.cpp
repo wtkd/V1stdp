@@ -5,6 +5,7 @@
 #include "divideLine.hpp"
 #include "exploreMaximum.hpp"
 #include "response.hpp"
+#include "transpose.hpp"
 #include "weight.hpp"
 
 #include "analyze.hpp"
@@ -18,6 +19,7 @@ void setupAnalyze(CLI::App &app) {
   weight::setupWeight(*sub);
   delay::setupDelay(*sub);
   applyPermutation::setupApplyPermutation(*sub);
+  transpose::setupTranspose(*sub);
   divideLine::setupDivideLine(*sub);
   exploreMaximum::setupExploreMaximum(*sub);
 }

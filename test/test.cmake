@@ -919,3 +919,29 @@ set_tests_properties(
   FIXTURES_REQUIRED run_weight_feedforward_export
   LABELS weight_feedforward_export
 )
+
+#### transpose
+add_test(
+  NAME run_transpose
+  COMMAND $<TARGET_FILE:stdp> tool analyze transpose
+  ${CMAKE_SOURCE_DIR}/test/data/analyze/transpose/before.txt
+  ./data/analyze/transpose/after.txt
+  --colomn 3
+  --row 2
+)
+set_tests_properties(
+  run_transpose PROPERTIES
+  FIXTURES_REQUIRED data_directory
+  FIXTURES_SETUP run_transpose
+  LABELS transpose
+)
+
+add_test(
+  NAME compare_transpose
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/transpose/after.txt ./data/analyze/transpose/after.txt
+)
+set_tests_properties(
+  compare_transpose PROPERTIES
+  FIXTURES_REQUIRED run_transpose
+  LABELS transpose
+)
