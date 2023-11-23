@@ -44,4 +44,6 @@
              #:total-iteration-number total-iteration-number
              #:delta delta
              #:response-file output-response-file
-             #:sort-index-neuron sort-index-neuron))))
+             #:sort-index-neuron sort-index-neuron
+             #:template-response template-response
+             #:neuron-number neuron-number))))
