@@ -13,7 +13,7 @@ inline auto correlation(double const a, double const b, Eigen::VectorXd const &t
   Eigen::ArrayXi const inactive = 1 - active;
 
   return [=](Eigen::VectorXd const &realResponse) -> double {
-    return -statistics::correlationDistance(templateResponse, realResponse) +
+    return statistics::correlation(templateResponse, realResponse) +
            a * realResponse.dot(active.matrix().cast<double>()) -
            b * realResponse.dot(inactive.matrix().cast<double>());
   };

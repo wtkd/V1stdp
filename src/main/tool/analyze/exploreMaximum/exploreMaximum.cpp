@@ -57,6 +57,7 @@ struct exploreMaximumOptions {
 
   std::filesystem::path saveEvaluationFile;
   std::filesystem::path saveEvaluationPixelFile;
+  std::filesystem::path saveResponseFile;
 };
 
 void setupExploreMaximum(CLI::App &app) {
@@ -132,6 +133,9 @@ void setupExploreMaximum(CLI::App &app) {
   )
       ->required()
       ->check(CLI::NonexistentPath);
+  sub->add_option("--save-response-file", opt->saveResponseFile, "Save responses when each pixel is changed")
+      ->required()
+      ->check(CLI::NonexistentPath);
 
   sub->callback([opt] {
     int const NBSTEPSPERPRES = (int)(opt->presentationTime / simulation::constant::dt);
@@ -180,7 +184,7 @@ void setupExploreMaximum(CLI::App &app) {
     auto const responseEvaluationFunction = evaluationFunction::meta::correlation(
         opt->evaluationFunctionParameterA, opt->evaluationFunctionParameterB, templateResponse
     );
-    auto const evaluationFunction = [&](Eigen::ArrayXX<std::int8_t> const &image) -> double {
+    auto const evaluationFunction = [&](Eigen::ArrayXX<std::int8_t> const &image) {
       auto const [state, result] = simulation::run<false>(
           simulation::Model(),
           opt->presentationTime,
@@ -201,21 +205,29 @@ void setupExploreMaximum(CLI::App &app) {
           100
       );
 
-      return responseEvaluationFunction(result.resps.reshaped().topRows(simulation::constant::NBE).cast<double>());
+      Eigen::VectorXi const response = result.resps.reshaped().topRows(simulation::constant::NBE);
+
+      return std::pair{responseEvaluationFunction(response.cast<double>()), response};
     };
 
     Eigen::ArrayXX<std::int8_t> currentImage = imageVector.at(opt->initialInputNumber);
-    double currentEvaluation = evaluationFunction(currentImage);
+    auto const [initialEvaluation, initialResopnse] = evaluationFunction(currentImage);
+    double currentEvaluation = initialEvaluation;
 
     std::ofstream evaluationOutput(opt->saveEvaluationFile);
+    evaluationOutput << 0 << initialEvaluation << std::endl;
+
     std::ofstream evaluationPixelOutput(opt->saveEvaluationPixelFile);
+
+    std::ofstream responseOutput(opt->saveResponseFile);
+    responseOutput << initialResopnse.transpose() << std::endl;
 
     io::saveMatrix<std::int8_t>(opt->saveLogDirectory / "0.txt", currentImage);
 
     boost::timer::progress_display showProgress(opt->iterationNumber, std::cerr);
     std::uint64_t iteration = 0;
-    int totalPixelDifference = 0;
     while (iteration < opt->iterationNumber) {
+      int totalPixelDifference = 0;
       Eigen::ArrayXX<std::int8_t> nextImage = currentImage;
 
       for (auto const &sign : {+1, -1}) {
@@ -232,7 +244,7 @@ void setupExploreMaximum(CLI::App &app) {
               return candidateImage;
             }();
 
-            auto const evaluation = evaluationFunction(candidateImage);
+            auto const [evaluation, response] = evaluationFunction(candidateImage);
             auto const evaluationDiff = evaluation - currentEvaluation;
             int const pixelDiff = evaluationDiff * opt->delta * sign;
 
@@ -243,7 +255,7 @@ void setupExploreMaximum(CLI::App &app) {
                       << "Pixel diff (" << iteration << ", " << sign << ", " << i << ", " << j << "): " << pixelDiff
                       << std::endl;
 
-            evaluationPixelOutput << iteration << " " << sign << " " << i << " " << j << " " << evaluation << " "
+            evaluationPixelOutput << iteration + 1 << " " << sign << " " << i << " " << j << " " << evaluation << " "
                                   << evaluationDiff << " " << pixelDiff << std::endl;
 
             nextImage(i, j) = std::clamp<int>(
@@ -261,11 +273,13 @@ void setupExploreMaximum(CLI::App &app) {
       }
 
       currentImage = nextImage;
-      currentEvaluation = evaluationFunction(currentImage);
+      auto const [evaluation, response] = evaluationFunction(currentImage);
+      responseOutput << response.transpose() << std::endl;
+      currentEvaluation = evaluation;
 
       std::cout << "Current evaluation (" << iteration << "): " << currentEvaluation << std::endl;
       std::cout << "Current sum of pixel differences (" << iteration << "): " << totalPixelDifference << std::endl;
-      evaluationOutput << iteration << " " << currentEvaluation << std::endl;
+      evaluationOutput << iteration + 1 << " " << currentEvaluation << std::endl;
 
       if (totalPixelDifference == 0) {
         std::cout << "All of differences are 0." << std::endl;
@@ -274,7 +288,6 @@ void setupExploreMaximum(CLI::App &app) {
 
       ++iteration;
       ++showProgress;
-      totalPixelDifference = 0;
     }
 
     io::saveMatrix<std::int8_t>(opt->outputFile, currentImage);
