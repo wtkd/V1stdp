@@ -90,7 +90,7 @@ void setupExploreMaximum(CLI::App &app) {
       ->required();
   sub->add_option(
          "--evaluation-function-parameter-sparseness-range",
-         opt->evaluationFunctionParameterSparsenessIntensity,
+         opt->evaluationFunctionParameterSparsenessRange,
          "Range of sparseness of evaluation function."
   )
       ->required();
