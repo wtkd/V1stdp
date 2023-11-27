@@ -4,7 +4,8 @@
 
 #include "statistics.hpp"
 
-namespace v1stdp::main::tool::analyze::exploreMaximum::evaluationFunction::meta {
+namespace v1stdp::main::tool::analyze::exploreMaximum::evaluationFunction {
+namespace meta {
 
 inline auto correlation(double const a, double const b, Eigen::VectorXd const &templateResponse) {
 
@@ -18,5 +19,7 @@ inline auto correlation(double const a, double const b, Eigen::VectorXd const &t
            b * realResponse.dot(inactive.matrix().cast<double>());
   };
 }
+} // namespace meta
 
-} // namespace v1stdp::main::tool::analyze::exploreMaximum::evaluationFunction::meta
+inline double sparseness(Eigen::ArrayXXd const &image) { return (-image.square()).exp().sum(); }
+} // namespace v1stdp::main::tool::analyze::exploreMaximum::evaluationFunction

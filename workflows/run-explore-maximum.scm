@@ -14,6 +14,8 @@
            (delta #:type float)
            (evaluation-function-parameter-a #:type float)
            (evaluation-function-parameter-b #:type float)
+           (evaluation-function-parameter-sparseness-intensity #:type float)
+           (evaluation-function-parameter-sparseness-range #:type float)
            #:run
            stdp-executable "tool" "analyze" "explore-maximum"
            "--neuron-number" neuron-number
@@ -34,6 +36,8 @@
            "--save-response-file" "responses.txt"
            "--evaluation-function-parameter-a" evaluation-function-parameter-a
            "--evaluation-function-parameter-b" evaluation-function-parameter-b
+           "--evaluation-function-parameter-sparseness-intensity" evaluation-function-parameter-sparseness-intensity
+           "--evaluation-function-parameter-sparseness-range" evaluation-function-parameter-sparseness-range
            #:outputs
            (output-text-image
             #:type File
@@ -62,7 +66,9 @@
            (template-response #:type File)
            (delta #:type float)
            (evaluation-function-parameter-a #:type float)
-           (evaluation-function-parameter-b #:type float))
+           (evaluation-function-parameter-b #:type float)
+           (evaluation-function-parameter-sparseness-intensity #:type float)
+           (evaluation-function-parameter-sparseness-range #:type float))
           (run-explore-maximum
            #:stdp-executable stdp-executable
            #:transformed-image-data transformed-image-data
@@ -77,4 +83,6 @@
            #:template-response template-response
            #:delta delta
            #:evaluation-function-parameter-a evaluation-function-parameter-a
-           #:evaluation-function-parameter-b evaluation-function-parameter-b))
+           #:evaluation-function-parameter-b evaluation-function-parameter-b
+           #:evaluation-function-parameter-sparseness-intensity evaluation-function-parameter-sparseness-intensity
+           #:evaluation-function-parameter-sparseness-range evaluation-function-parameter-sparseness-range))

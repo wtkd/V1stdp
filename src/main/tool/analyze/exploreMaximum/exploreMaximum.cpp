@@ -27,6 +27,9 @@ struct exploreMaximumOptions {
   double evaluationFunctionParameterA;
   double evaluationFunctionParameterB;
 
+  double evaluationFunctionParameterSparsenessIntensity;
+  double evaluationFunctionParameterSparsenessRange;
+
   double delta;
 
   std::uint64_t neuronNumber;
@@ -76,6 +79,19 @@ void setupExploreMaximum(CLI::App &app) {
          opt->evaluationFunctionParameterB,
          ("Parameter b of evaluation function.\n"
           "It means relative intensity of inactive neuron responses against correlation.")
+  )
+      ->required();
+
+  sub->add_option(
+         "--evaluation-function-parameter-sparseness-intensity",
+         opt->evaluationFunctionParameterSparsenessIntensity,
+         "Intensity of sparseness of evaluation function."
+  )
+      ->required();
+  sub->add_option(
+         "--evaluation-function-parameter-sparseness-range",
+         opt->evaluationFunctionParameterSparsenessIntensity,
+         "Range of sparseness of evaluation function."
   )
       ->required();
 
@@ -206,8 +222,11 @@ void setupExploreMaximum(CLI::App &app) {
       );
 
       Eigen::VectorXi const response = result.resps.reshaped().topRows(simulation::constant::NBE);
-
-      return std::pair{responseEvaluationFunction(response.cast<double>()), response};
+      auto const evaluation =
+          responseEvaluationFunction(response.cast<double>()) +
+          opt->evaluationFunctionParameterSparsenessIntensity *
+              evaluationFunction::sparseness(image.cast<double>() / opt->evaluationFunctionParameterSparsenessRange);
+      return std::pair{evaluation, response};
     };
 
     Eigen::ArrayXX<std::int8_t> currentImage = imageVector.at(opt->initialInputNumber);

@@ -16,6 +16,8 @@
            (delta #:type float)
            (evaluation-function-parameter-a #:type float)
            (evaluation-function-parameter-b #:type float)
+           (evaluation-function-parameter-sparseness-intensity #:type float)
+           (evaluation-function-parameter-sparseness-range #:type float)
            (sort-index-neuron #:type File))
           (pipe
            (run-explore-maximum
@@ -30,7 +32,9 @@
             #:template-response template-response
             #:delta delta
             #:evaluation-function-parameter-a evaluation-function-parameter-a
-            #:evaluation-function-parameter-b evaluation-function-parameter-b)
+            #:evaluation-function-parameter-b evaluation-function-parameter-b
+            #:evaluation-function-parameter-sparseness-intensity evaluation-function-parameter-sparseness-intensity
+            #:evaluation-function-parameter-sparseness-range evaluation-function-parameter-sparseness-range)
            (tee
             (rename #:output-text-image output-text-image
                     #:output-text-image-log output-text-image-log
