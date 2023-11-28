@@ -88,6 +88,16 @@
            (matrix-plot #:type File
                         #:binding ((glob . "$(inputs[\"output-name\"])")))))
 
+(define convert-svg-to-png
+  (command #:inputs
+           (input-svg #:type File)
+           (output-png-name #:type string)
+           #:run
+           "rsvg-convert" input-svg "-o" output-png-name "-b" "white"
+           #:outputs
+           (output-png #:type File
+                       #:binding ((glob . "$(inputs[\"output-png-name\"])")))))
+
 (workflow ((stdp-executable #:type File)
            (input-directory #:type Directory)
            (evaluations-file #:type File)
@@ -98,51 +108,61 @@
            (delta #:type float)
            (sort-index-neuron #:type File)
            (interval #:type int #:default 10))
-          (tee
-           (generate-explored-images
-            #:input-directory input-directory
-            #:total-iteration-number total-iteration-number
-            #:delta delta
-            #:output-file "all-explored.svg"
-            #:interval interval)
-           (generate-line-point-plot
-            #:evaluations-file evaluations-file
-            #:title "Evaluation of each iteration"
-            #:output-file "evaluations.svg")
-           ;; (pipe
-           ;;  (sort-response-neuron (sort-template-responses)
-           ;;                        #:stdp-executable stdp-executable
-           ;;                        #:response template-response
-           ;;                        #:sort-index-neuron sort-index-neuron
-           ;;                        #:output-name "template-response-sorted-neuron.txt")
-           ;;  (plot-matrix (plot-template-response)
-           ;;               #:matrix response-sorted-neuron
-           ;;               #:title "Template response"
-           ;;               #:output-name "template-reseponse.svg")
-           ;;  (rename #:template-response-plot matrix-plot))
-           (pipe
-            (tee
-             (pipe
-              (transpose-response
-               #:stdp-executable stdp-executable
-               #:input response-file
-               #:output-name "response-sorted-transposed.txt"
-               #:colomn neuron-number)
-              (sort-response-neuron (sort-responses)
-                                    #:stdp-executable stdp-executable
-                                    #:response output
-                                    #:sort-index-neuron sort-index-neuron
-                                    #:output-name "response-sorted-neuron.txt"))
-             (pipe
-              (sort-response-neuron (sort-template-responses)
-                                    #:stdp-executable stdp-executable
-                                    #:response template-response
-                                    #:sort-index-neuron sort-index-neuron
-                                    #:output-name "template-response-sorted-neuron.txt")
-              (rename #:template-response-sorted response-sorted-neuron)))
-            (plot-matrix-with-template
-             #:matrix response-sorted-neuron
-             #:template template-response-sorted
-             #:title "Reponse of each iteration"
-             #:output-name "responses.svg")
-            (rename #:responses-plot matrix-plot))))
+          (pipe
+           (tee
+            (generate-explored-images
+             #:input-directory input-directory
+             #:total-iteration-number total-iteration-number
+             #:delta delta
+             #:output-file "all-explored.svg"
+             #:interval interval)
+            (generate-line-point-plot
+             #:evaluations-file evaluations-file
+             #:title "Evaluation of each iteration"
+             #:output-file "evaluations.svg")
+            (pipe
+             (tee
+              (pipe
+               (transpose-response
+                #:stdp-executable stdp-executable
+                #:input response-file
+                #:output-name "response-sorted-transposed.txt"
+                #:colomn neuron-number)
+               (sort-response-neuron (sort-responses)
+                                     #:stdp-executable stdp-executable
+                                     #:response output
+                                     #:sort-index-neuron sort-index-neuron
+                                     #:output-name "response-sorted-neuron.txt"))
+              (pipe
+               (sort-response-neuron (sort-template-responses)
+                                     #:stdp-executable stdp-executable
+                                     #:response template-response
+                                     #:sort-index-neuron sort-index-neuron
+                                     #:output-name "template-response-sorted-neuron.txt")
+               (rename #:template-response-sorted response-sorted-neuron)))
+             (plot-matrix-with-template
+              #:matrix response-sorted-neuron
+              #:template template-response-sorted
+              #:title "Reponse of each iteration"
+              #:output-name "responses.svg")
+             (rename #:responses-plot matrix-plot)))
+           (tee
+            (rename
+             #:responses-plot-svg responses-plot
+             #:output-evaluation-plot-svg output-evaluation-plot
+             #:output-explored-svg output-explored)
+            (pipe
+             (convert-svg-to-png
+              #:input-svg responses-plot
+              #:output-png-name "responses.png")
+             (rename #:output-responses-plot-png output-png))
+            (pipe
+             (convert-svg-to-png
+              #:input-svg output-evaluation-plot
+              #:output-png-name "evaluations.png")
+             (rename #:output-evaluations-plot-png output-png))
+            (pipe
+             (convert-svg-to-png
+              #:input-svg output-explored
+              #:output-png-name "all-explored.png")
+             (rename #:output-explored-png output-png)))))
