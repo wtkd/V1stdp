@@ -152,17 +152,17 @@
              #:output-evaluation-plot-svg output-evaluation-plot
              #:output-explored-svg output-explored)
             (pipe
-             (convert-svg-to-png
+             (convert-svg-to-png (convert-svg-to-png-response)
               #:input-svg responses-plot
               #:output-png-name "responses.png")
              (rename #:output-responses-plot-png output-png))
             (pipe
-             (convert-svg-to-png
+             (convert-svg-to-png (convert-svg-to-png-evaluation)
               #:input-svg output-evaluation-plot
               #:output-png-name "evaluations.png")
              (rename #:output-evaluations-plot-png output-png))
             (pipe
-             (convert-svg-to-png
+             (convert-svg-to-png (convert-svg-to-png-explored)
               #:input-svg output-explored
               #:output-png-name "all-explored.png")
              (rename #:output-explored-png output-png)))))
