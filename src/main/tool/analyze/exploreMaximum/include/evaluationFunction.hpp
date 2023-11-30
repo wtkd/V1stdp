@@ -22,4 +22,17 @@ inline auto correlation(double const a, double const b, Eigen::VectorXd const &t
 } // namespace meta
 
 inline double sparseness(Eigen::ArrayXXd const &image) { return (-image.square()).exp().sum(); }
+
+namespace filter {
+
+template <typename T> inline Eigen::ArrayXX<T> secondPartialDerivativeCol2(Eigen::ArrayXX<T> const &m) {
+  return -2 * m.middleRows(1, m.rows() - 2) + m.topRows(m.rows() - 2) + m.bottomRows(m.rows() - 2);
+}
+
+template <typename T> inline Eigen::ArrayXX<T> secondPartialDerivativeRow2(Eigen::ArrayXX<T> const &m) {
+  return -2 * m.middleCols(1, m.cols() - 2) + m.leftCols(m.cols() - 2) + m.rightCols(m.cols() - 2);
+}
+
+} // namespace filter
+
 } // namespace v1stdp::main::tool::analyze::exploreMaximum::evaluationFunction
