@@ -44,6 +44,10 @@ if (NOT NOUNITTEST)
 
   target_link_libraries(
     stdp_unit_test
+    Simulation
+    Tool
+    IO
+    Statistics
     GTest::gtest_main
   )
 
