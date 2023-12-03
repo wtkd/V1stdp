@@ -67,7 +67,7 @@ add_custom_command(
   OUTPUT all.cwl
   COMMAND ${CCWL_EXECUTABLE} compile all.scm > all.cwl
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  DEPENDS all.scm learn.cwl test.cwl generate_analyze_cwl generate_exportImages_cwl
+  DEPENDS all.scm generate_learn_cwl generate_test_cwl generate_analyze_cwl generate_exportImages_cwl
   VERBATIM)
 add_custom_target(generate_all_cwl DEPENDS all.cwl)
 
