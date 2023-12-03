@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <boost/math/ccmath/ccmath.hpp>
 
 #include "statistics.hpp"
 
@@ -34,5 +35,12 @@ template <typename T> inline Eigen::ArrayXX<T> secondPartialDerivativeRow2(Eigen
 }
 
 } // namespace filter
+
+inline double smoothness(Eigen::ArrayXXd const &image) {
+  return -(
+      filter::secondPartialDerivativeCol2(image).square().sum() +
+      filter::secondPartialDerivativeRow2(image).square().sum()
+  );
+}
 
 } // namespace v1stdp::main::tool::analyze::exploreMaximum::evaluationFunction
