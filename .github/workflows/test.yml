@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: lukka/get-cmake@latest
-      - run: sudo apt-get install libcli11-dev libeigen3-dev
+      - run: sudo apt-get install libcli11-dev libeigen3-dev libgtest-dev
       - uses: MarkusJx/install-boost@v2.4.4
         id: install-boost
         with:
