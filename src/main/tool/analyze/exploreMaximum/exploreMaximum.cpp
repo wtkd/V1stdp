@@ -30,6 +30,8 @@ struct exploreMaximumOptions {
   double evaluationFunctionParameterSparsenessIntensity;
   double evaluationFunctionParameterSparsenessRange;
 
+  double evaluationFunctionParameterSmoothnessIntensity;
+
   double delta;
 
   std::uint64_t neuronNumber;
@@ -92,6 +94,13 @@ void setupExploreMaximum(CLI::App &app) {
          "--evaluation-function-parameter-sparseness-range",
          opt->evaluationFunctionParameterSparsenessRange,
          "Range of sparseness of evaluation function."
+  )
+      ->required();
+
+  sub->add_option(
+         "--evaluation-function-parameter-smoothness-intensity",
+         opt->evaluationFunctionParameterSmoothnessIntensity,
+         "Intensity of smoothness of evaluation function."
   )
       ->required();
 
@@ -225,7 +234,8 @@ void setupExploreMaximum(CLI::App &app) {
       auto const evaluation =
           responseEvaluationFunction(response.cast<double>()) +
           opt->evaluationFunctionParameterSparsenessIntensity *
-              evaluationFunction::sparseness(image.cast<double>() / opt->evaluationFunctionParameterSparsenessRange);
+              evaluationFunction::sparseness(image.cast<double>() / opt->evaluationFunctionParameterSparsenessRange) +
+          opt->evaluationFunctionParameterSmoothnessIntensity * evaluationFunction::smoothness(image.cast<double>());
       return std::pair{evaluation, response};
     };
 
