@@ -16,6 +16,7 @@
            (evaluation-function-parameter-b #:type float)
            (evaluation-function-parameter-sparseness-intensity #:type float)
            (evaluation-function-parameter-sparseness-range #:type float)
+           (evaluation-function-parameter-smoothness-intensity #:type float)
            #:run
            stdp-executable "tool" "analyze" "explore-maximum"
            "--neuron-number" neuron-number
@@ -38,6 +39,7 @@
            "--evaluation-function-parameter-b" evaluation-function-parameter-b
            "--evaluation-function-parameter-sparseness-intensity" evaluation-function-parameter-sparseness-intensity
            "--evaluation-function-parameter-sparseness-range" evaluation-function-parameter-sparseness-range
+           "--evaluation-function-parameter-smoothness-intensity" evaluation-function-parameter-smoothness-intensity
            #:outputs
            (output-text-image
             #:type File
@@ -68,7 +70,8 @@
            (evaluation-function-parameter-a #:type float)
            (evaluation-function-parameter-b #:type float)
            (evaluation-function-parameter-sparseness-intensity #:type float)
-           (evaluation-function-parameter-sparseness-range #:type float))
+           (evaluation-function-parameter-sparseness-range #:type float)
+           (evaluation-function-parameter-smoothness-intensity #:type float))
           (run-explore-maximum
            #:stdp-executable stdp-executable
            #:transformed-image-data transformed-image-data
@@ -85,4 +88,5 @@
            #:evaluation-function-parameter-a evaluation-function-parameter-a
            #:evaluation-function-parameter-b evaluation-function-parameter-b
            #:evaluation-function-parameter-sparseness-intensity evaluation-function-parameter-sparseness-intensity
-           #:evaluation-function-parameter-sparseness-range evaluation-function-parameter-sparseness-range))
+           #:evaluation-function-parameter-sparseness-range evaluation-function-parameter-sparseness-range
+           #:evaluation-function-parameter-smoothness-intensity evaluation-function-parameter-smoothness-intensity))
