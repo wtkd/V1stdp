@@ -18,6 +18,7 @@
 #include "run.hpp"
 
 #include "evaluationFunction.hpp"
+#include "smoothness.hpp"
 
 #include "exploreMaximum.hpp"
 
