@@ -6,6 +6,7 @@
 #include "exploreMaximum.hpp"
 #include "response.hpp"
 #include "smoothness.hpp"
+#include "sparseness.hpp"
 #include "transpose.hpp"
 #include "weight.hpp"
 
@@ -24,5 +25,6 @@ void setupAnalyze(CLI::App &app) {
   divideLine::setupDivideLine(*sub);
   exploreMaximum::setupExploreMaximum(*sub);
   exploreMaximum::smoothness::setupSmoothness(*sub);
+  exploreMaximum::sparseness::setupSparseness(*sub);
 }
 } // namespace v1stdp::main::tool::analyze
