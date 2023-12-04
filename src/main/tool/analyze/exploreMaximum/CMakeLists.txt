@@ -14,6 +14,8 @@ endif()
 
 add_library(ExploreMaximum STATIC
   exploreMaximum.cpp
+  smoothness.cpp
+  sparseness.cpp
 )
 
 target_link_libraries(ExploreMaximum PUBLIC IO)
