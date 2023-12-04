@@ -18,6 +18,7 @@
            (evaluation-function-parameter-b #:type float)
            (evaluation-function-parameter-sparseness-intensity #:type float)
            (evaluation-function-parameter-sparseness-range #:type float)
+           (evaluation-function-parameter-smoothness-intensity #:type float)
            (sort-index-neuron #:type File))
           (pipe
            (run-explore-maximum
@@ -34,7 +35,8 @@
             #:evaluation-function-parameter-a evaluation-function-parameter-a
             #:evaluation-function-parameter-b evaluation-function-parameter-b
             #:evaluation-function-parameter-sparseness-intensity evaluation-function-parameter-sparseness-intensity
-            #:evaluation-function-parameter-sparseness-range evaluation-function-parameter-sparseness-range)
+            #:evaluation-function-parameter-sparseness-range evaluation-function-parameter-sparseness-range
+            #:evaluation-function-parameter-smoothness-intensity evaluation-function-parameter-smoothness-intensity)
            (tee
             (rename #:output-text-image output-text-image
                     #:output-text-image-log output-text-image-log
