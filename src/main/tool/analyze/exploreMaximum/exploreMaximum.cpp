@@ -366,6 +366,7 @@ void setupExploreMaximum(CLI::App &app) {
     std::ofstream inactiveNeuronActivityOutput(opt->saveInactiveNeuronActivity);
 
     auto const outputLogs = [&](std::size_t const index,
+                                Eigen::ArrayXX<std::int8_t> const &image,
                                 double const evaluation,
                                 Eigen::VectorXi const &response,
                                 double const correlation,
@@ -393,6 +394,9 @@ void setupExploreMaximum(CLI::App &app) {
       smoothnessOutput << smoothness << std::endl;
       activeNeuronActivityOutput << activeNeuronActivity << std::endl;
       inactiveNeuronActivityOutput << inactiveNeuronActivity << std::endl;
+      if (index == 0 || index % opt->saveInterval == 0) {
+        io::saveMatrix<std::int8_t>(opt->saveLogDirectory / (std::to_string(index + 1) + ".txt"), image);
+      }
     };
 
     Eigen::ArrayXX<std::int8_t> currentImage = imageVector.at(opt->initialInputNumber);
@@ -411,6 +415,7 @@ void setupExploreMaximum(CLI::App &app) {
 
     outputLogs(
         0,
+        currentImage,
         initialEvaluation,
         initialResopnse,
         initialCorrelation,
@@ -427,17 +432,10 @@ void setupExploreMaximum(CLI::App &app) {
     double currentEvaluation = initialEvaluation;
 
     std::ofstream evaluationPixelOutput(opt->saveEvaluationPixelFile);
-    responseOutput << initialResopnse.transpose() << std::endl;
-
-    io::saveMatrix<std::int8_t>(opt->saveLogDirectory / "0.txt", currentImage);
 
     boost::timer::progress_display showProgress(opt->iterationNumber, std::cerr);
     std::uint64_t iteration = 0;
     while (iteration < opt->iterationNumber) {
-      if (iteration == 0 || iteration % opt->saveInterval == 0) {
-        io::saveMatrix<std::int8_t>(opt->saveLogDirectory / (std::to_string(iteration + 1) + ".txt"), currentImage);
-      }
-
       int totalPixelDifference = 0;
       Eigen::ArrayXX<std::int8_t> nextImage = currentImage;
 
@@ -514,6 +512,7 @@ void setupExploreMaximum(CLI::App &app) {
 
       outputLogs(
           iteration + 1,
+          currentImage,
           evaluation,
           response,
           correlation,
