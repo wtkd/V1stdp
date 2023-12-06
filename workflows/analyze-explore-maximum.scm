@@ -24,19 +24,19 @@
 (define generate-line-point-plot
   (command #:inputs
            (title #:type string)
-           (evaluations-file #:type File)
+           (table-file #:type File)
            (output-file #:type string)
            (gnuplot-script #:type File
                            #:default '((class . "File")
                                        (location . "../script/line-chart.gnuplot")))
            #:run
            "gnuplot"
-           "-e" "inputFile='$(inputs[\"evaluations-file\"].path)'"
+           "-e" "inputFile='$(inputs[\"table-file\"].path)'"
            "-e" "outputFile='$(inputs[\"output-file\"])'"
            "-e" "title='$(inputs[\"title\"])'"
            gnuplot-script
            #:outputs
-           (output-evaluation-plot
+           (output-plot
             #:type File
             #:binding ((glob . "$(inputs[\"output-file\"])")))))
 
@@ -101,7 +101,12 @@
 (workflow ((stdp-executable #:type File)
            (input-directory #:type Directory)
            (evaluations-file #:type File)
+           (correlation-file #:type File)
+           (sparseness-file #:type File)
+           (smoothness-file #:type File)
            (response-file #:type File)
+           (active-activity-file #:type File)
+           (inactive-activity-file #:type File)
            (template-response #:type File)
            (total-iteration-number #:type int)
            (neuron-number #:type int)
@@ -116,10 +121,42 @@
              #:delta delta
              #:output-file "all-explored.svg"
              #:interval interval)
-            (generate-line-point-plot
-             #:evaluations-file evaluations-file
-             #:title "Evaluation of each iteration"
-             #:output-file "evaluations.svg")
+            (pipe
+             (generate-line-point-plot (generate-evaluation-plot)
+              #:table-file evaluations-file
+              #:title "Evaluation of each iteration"
+              #:output-file "evaluations.svg")
+             (rename #:output-evaluations-plot output-plot))
+            (pipe
+             (generate-line-point-plot (generate-correlation-plot)
+              #:table-file correlation-file
+              #:title "Correlation of each iteration"
+              #:output-file "correlation.svg")
+             (rename #:output-correlation-plot output-plot))
+            (pipe
+             (generate-line-point-plot (generate-sparseness-plot)
+              #:table-file sparseness-file
+              #:title "Sparseness of each iteration"
+              #:output-file "sparseness.svg")
+             (rename #:output-sparseness-plot output-plot))
+            (pipe
+             (generate-line-point-plot (generate-smoothness-plot)
+              #:table-file smoothness-file
+              #:title "Smoothness of each iteration"
+              #:output-file "smoothness.svg")
+             (rename #:output-smoothness-plot output-plot))
+            (pipe
+             (generate-line-point-plot (generate-active-activity-plot)
+              #:table-file active-activity-file
+              #:title "Should-be-active neuron activity of each iteration"
+              #:output-file "active-activity.svg")
+             (rename #:output-active-activity-plot output-plot))
+            (pipe
+             (generate-line-point-plot (generate-inactive-activity-plot)
+              #:table-file inactive-activity-file
+              #:title "Should-be-inactive neuron activity of each iteration"
+              #:output-file "inactive-activity.svg")
+             (rename #:output-inactive-activity-plot output-plot))
             (pipe
              (tee
               (pipe
@@ -147,10 +184,7 @@
               #:output-name "responses.svg")
              (rename #:responses-plot matrix-plot)))
            (tee
-            (rename
-             #:responses-plot-svg responses-plot
-             #:output-evaluation-plot-svg output-evaluation-plot
-             #:output-explored-svg output-explored)
+            (identity)
             (pipe
              (convert-svg-to-png (convert-svg-to-png-response)
               #:input-svg responses-plot
@@ -158,9 +192,34 @@
              (rename #:output-responses-plot-png output-png))
             (pipe
              (convert-svg-to-png (convert-svg-to-png-evaluation)
-              #:input-svg output-evaluation-plot
+              #:input-svg output-evaluations-plot
               #:output-png-name "evaluations.png")
              (rename #:output-evaluations-plot-png output-png))
+            (pipe
+             (convert-svg-to-png (convert-svg-to-png-correlation)
+              #:input-svg output-correlation-plot
+              #:output-png-name "correlation.png")
+             (rename #:output-correlation-plot-png output-png))
+            (pipe
+             (convert-svg-to-png (convert-svg-to-png-sparseness)
+              #:input-svg output-sparseness-plot
+              #:output-png-name "sparseness.png")
+             (rename #:output-sparseness-plot-png output-png))
+            (pipe
+             (convert-svg-to-png (convert-svg-to-png-smoothness)
+              #:input-svg output-smoothness-plot
+              #:output-png-name "smoothness.png")
+             (rename #:output-smoothness-plot-png output-png))
+            (pipe
+             (convert-svg-to-png (convert-svg-to-png-active-activity)
+              #:input-svg output-active-activity-plot
+              #:output-png-name "active-activity.png")
+             (rename #:output-active-activity-plot-png output-png))
+            (pipe
+             (convert-svg-to-png (convert-svg-to-png-inactive-activity)
+              #:input-svg output-inactive-activity-plot
+              #:output-png-name "inactive-activity.png")
+             (rename #:output-inactive-activity-plot-png output-png))
             (pipe
              (convert-svg-to-png (convert-svg-to-png-explored)
               #:input-svg output-explored
