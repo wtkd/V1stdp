@@ -14,6 +14,7 @@ struct DivideLineOptions {
   std::filesystem::path outputDirectory;
   std::optional<std::filesystem::path> numberFile;
   std::optional<std::uint64_t> zeroPadding;
+  unsigned int indexBegin = 0;
 };
 
 void setupDivideLine(CLI::App &app) {
@@ -34,6 +35,7 @@ void setupDivideLine(CLI::App &app) {
   sub->add_option(
       "-z,--zero-padding", opt->zeroPadding, "Length of zero padding length. If omitted, determined automatically."
   );
+  sub->add_option("--index-begin", opt->indexBegin, "First index of the all output files.");
 
   sub->callback([opt]() {
     std::vector<std::vector<std::string>> const data = io::readVectorVector(opt->inputFile);
@@ -44,12 +46,13 @@ void setupDivideLine(CLI::App &app) {
 
     io::createEmptyDirectory(opt->outputDirectory);
 
-    auto const zeroPadding = opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(data.size()) + 1;
+    auto const zeroPadding =
+        opt->zeroPadding.has_value() ? opt->zeroPadding.value() : std::log10(data.size() + opt->indexBegin) + 1;
 
     for (auto const &&line : data | boost::adaptors::indexed()) {
       std::string const baseFileName = [&]() {
         std::ostringstream baseFileNameStream;
-        baseFileNameStream << std::setfill('0') << std::setw(zeroPadding) << line.index() << ".txt";
+        baseFileNameStream << std::setfill('0') << std::setw(zeroPadding) << line.index() + opt->indexBegin << ".txt";
 
         return baseFileNameStream.str();
       }();
