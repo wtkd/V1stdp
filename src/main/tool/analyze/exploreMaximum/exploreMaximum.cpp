@@ -18,7 +18,6 @@
 #include "run.hpp"
 
 #include "evaluationFunction.hpp"
-#include "smoothness.hpp"
 
 #include "exploreMaximum.hpp"
 
@@ -29,7 +28,7 @@ struct exploreMaximumOptions {
   double evaluationFunctionParameterB;
 
   double evaluationFunctionParameterSparsenessIntensity;
-  double evaluationFunctionParameterSparsenessRange;
+  double evaluationFunctionParameterSparsenessWidth;
 
   double evaluationFunctionParameterSmoothnessIntensity;
 
@@ -53,8 +52,6 @@ struct exploreMaximumOptions {
   std::filesystem::path feedforwardWeight;
 
   int presentationTime = 350;
-
-  std::filesystem::path saveDirectory;
 
   std::filesystem::path outputFile;
 
@@ -92,9 +89,9 @@ void setupExploreMaximum(CLI::App &app) {
   )
       ->required();
   sub->add_option(
-         "--evaluation-function-parameter-sparseness-range",
-         opt->evaluationFunctionParameterSparsenessRange,
-         "Range of sparseness of evaluation function."
+         "--evaluation-function-parameter-sparseness-width",
+         opt->evaluationFunctionParameterSparsenessWidth,
+         "Width of sparseness of evaluation function."
   )
       ->required();
 
@@ -119,7 +116,7 @@ void setupExploreMaximum(CLI::App &app) {
   sub->add_option("-N,--initial-input-number", opt->initialInputNumber, "The number of initial input image")
       ->required();
 
-  sub->add_option("-i,--iteration-number", opt->iterationNumber, "The number of iteration");
+  sub->add_option("-i,--iteration-number", opt->iterationNumber, "The number of iteration")->required();
 
   sub->add_option("-L,--lateral-weight", opt->lateralWeight, "File which contains lateral weight binary data")
       ->required()
@@ -139,10 +136,6 @@ void setupExploreMaximum(CLI::App &app) {
   app.add_option("--delayparam", opt->delayparam, "Delay parameter");
 
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
-
-  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
-      ->required()
-      ->check(CLI::NonexistentPath);
 
   sub->add_option("-o,--output-file", opt->outputFile, "Output file")->required()->check(CLI::NonexistentPath);
 
@@ -227,7 +220,7 @@ void setupExploreMaximum(CLI::App &app) {
           delays,
           delaysFF,
           {image},
-          opt->saveDirectory,
+          "", // Unused
           100
       );
 
@@ -235,7 +228,7 @@ void setupExploreMaximum(CLI::App &app) {
       auto const evaluation =
           responseEvaluationFunction(response.cast<double>()) +
           opt->evaluationFunctionParameterSparsenessIntensity *
-              evaluationFunction::sparseness(image.cast<double>() / opt->evaluationFunctionParameterSparsenessRange) +
+              evaluationFunction::sparseness(image.cast<double>() / opt->evaluationFunctionParameterSparsenessWidth) +
           opt->evaluationFunctionParameterSmoothnessIntensity * evaluationFunction::smoothness(image.cast<double>());
       return std::pair{evaluation, response};
     };

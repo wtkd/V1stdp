@@ -15,7 +15,7 @@
            (evaluation-function-parameter-a #:type float)
            (evaluation-function-parameter-b #:type float)
            (evaluation-function-parameter-sparseness-intensity #:type float)
-           (evaluation-function-parameter-sparseness-range #:type float)
+           (evaluation-function-parameter-sparseness-width #:type float)
            (evaluation-function-parameter-smoothness-intensity #:type float)
            #:run
            stdp-executable "tool" "analyze" "explore-maximum"
@@ -23,7 +23,6 @@
            "--input-file" transformed-image-data
            "--initial-input-number" initial-input-number
            "--iteration-number" total-iteration-number
-           "--save-directory" "tmp"
            "--output-file" output-text-image-name
            "--lateral-weight" lateral-weight
            "--feedforward-weight" feedforward-weight
@@ -38,7 +37,7 @@
            "--evaluation-function-parameter-a" evaluation-function-parameter-a
            "--evaluation-function-parameter-b" evaluation-function-parameter-b
            "--evaluation-function-parameter-sparseness-intensity" evaluation-function-parameter-sparseness-intensity
-           "--evaluation-function-parameter-sparseness-range" evaluation-function-parameter-sparseness-range
+           "--evaluation-function-parameter-sparseness-width" evaluation-function-parameter-sparseness-width
            "--evaluation-function-parameter-smoothness-intensity" evaluation-function-parameter-smoothness-intensity
            #:outputs
            (output-text-image
@@ -70,7 +69,7 @@
            (evaluation-function-parameter-a #:type float)
            (evaluation-function-parameter-b #:type float)
            (evaluation-function-parameter-sparseness-intensity #:type float)
-           (evaluation-function-parameter-sparseness-range #:type float)
+           (evaluation-function-parameter-sparseness-width #:type float)
            (evaluation-function-parameter-smoothness-intensity #:type float))
           (run-explore-maximum
            #:stdp-executable stdp-executable
@@ -88,5 +87,5 @@
            #:evaluation-function-parameter-a evaluation-function-parameter-a
            #:evaluation-function-parameter-b evaluation-function-parameter-b
            #:evaluation-function-parameter-sparseness-intensity evaluation-function-parameter-sparseness-intensity
-           #:evaluation-function-parameter-sparseness-range evaluation-function-parameter-sparseness-range
+           #:evaluation-function-parameter-sparseness-width evaluation-function-parameter-sparseness-width
            #:evaluation-function-parameter-smoothness-intensity evaluation-function-parameter-smoothness-intensity))
