@@ -195,8 +195,9 @@ void setupExploreMaximum(CLI::App &app) {
     std::vector<Eigen::ArrayXX<std::int8_t>> const imageVector =
         io::readImages(opt->inputFile, simulation::constant::PATCHSIZE);
 
-    Eigen::VectorXd const templateResponse =
-        io::readMatrix<double>(opt->templateResponseFile, opt->neuronNumber, 1).reshaped();
+    Eigen::VectorXd const templateResponse = io::readMatrix<double>(opt->templateResponseFile, opt->neuronNumber, 1)
+                                                 .reshaped()
+                                                 .topRows(simulation::constant::NBE);
 
     io::createEmptyDirectory(opt->saveLogDirectory);
 
