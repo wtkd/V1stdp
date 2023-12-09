@@ -952,8 +952,8 @@ add_test(
   NAME run_explore-maximum
   COMMAND $<TARGET_FILE:stdp> tool analyze explore-maximum
   --seed 0
-  --evaluation-function-parameter-a 0.05
-  --evaluation-function-parameter-b 0.05
+  --evaluation-function-parameter-a 0.1
+  --evaluation-function-parameter-b 0.1
   --evaluation-function-parameter-sparseness-intensity 0.05
   --evaluation-function-parameter-sparseness-width 10
   --evaluation-function-parameter-smoothness-intensity 1e-6
@@ -965,7 +965,7 @@ add_test(
   --iteration-number 1
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
-  --presentation-time 100
+  --presentation-time 200
   --output-file ./data/analyze/explore-maximum/last-image.txt
   --save-log-interval 1
   --save-log-directory ./data/analyze/explore-maximum/log
