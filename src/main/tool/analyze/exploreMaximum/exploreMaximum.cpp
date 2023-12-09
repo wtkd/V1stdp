@@ -395,7 +395,7 @@ void setupExploreMaximum(CLI::App &app) {
       activeNeuronActivityOutput << activeNeuronActivity << std::endl;
       inactiveNeuronActivityOutput << inactiveNeuronActivity << std::endl;
       if (index == 0 || index % opt->saveInterval == 0) {
-        io::saveMatrix<std::int8_t>(opt->saveLogDirectory / (std::to_string(index + 1) + ".txt"), image);
+        io::saveMatrix<std::int8_t>(opt->saveLogDirectory / (std::to_string(index) + ".txt"), image);
       }
     };
 
