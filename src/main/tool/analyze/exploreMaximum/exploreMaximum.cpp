@@ -157,6 +157,8 @@ void setupExploreMaximum(CLI::App &app) {
       ->check(CLI::NonexistentPath);
 
   sub->callback([opt] {
+    std::srand(opt->randomSeed);
+
     int const NBSTEPSPERPRES = (int)(opt->presentationTime / simulation::constant::dt);
 
     Eigen::MatrixXd const w =
