@@ -1,11 +1,12 @@
 #pragma once
 
 #include <cmath>
-#include <concepts>
 #include <cstddef>
 #include <list>
 #include <map>
 #include <queue>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include <Eigen/Dense>
@@ -25,6 +26,10 @@ double euclideanDistanceSquare(Eigen::VectorX<T> const &x, Eigen::VectorX<T> con
 template <typename T>
   requires std::integral<T> || std::floating_point<T>
 double correlationSquare(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y) {
+  if (not(x.rows() == y.rows())) {
+    throw std::runtime_error("Different number of rows: " + std::to_string(x.rows()) + std::to_string(y.rows()));
+  }
+
   Eigen::VectorXd const &xx = x.template cast<double>();
   Eigen::VectorXd const &yy = y.template cast<double>();
   double const xmean = xx.mean();
@@ -62,7 +67,10 @@ double correlationDistanceSquare(Eigen::VectorX<T> const &x, Eigen::VectorX<T> c
 template <typename T>
   requires std::integral<T> || std::floating_point<T>
 Eigen::Matrix2d covarianceMatrix(Eigen::VectorX<T> const &x, Eigen::VectorX<T> const &y) {
-  assert(x.rows() == y.rows());
+  if (not(x.rows() == y.rows())) {
+    throw std::runtime_error("Different number of rows: " + std::to_string(x.rows()) + std::to_string(y.rows()));
+  }
+
   Eigen::MatrixX<T> a(x.rows(), 2);
   a << x.template cast<double>(), y.template cast<double>();
 
@@ -153,8 +161,16 @@ template <ColomnOrRow ApplyToEach, typename T, typename F>
 Eigen::MatrixX<T> calculateCorrelationMatrix(
     Eigen::MatrixX<T> const &responseMatrix1, Eigen::MatrixX<T> const &responseMatrix2, F const &correlation
 ) {
-  assert(responseMatrix1.cols() == responseMatrix2.cols());
-  assert(responseMatrix1.rows() == responseMatrix2.rows());
+  if (not(responseMatrix1.rows() == responseMatrix2.rows())) {
+    throw std::runtime_error(
+        "Different number of rows: " + std::to_string(responseMatrix1.rows()) + std::to_string(responseMatrix2.rows())
+    );
+  }
+  if (not(responseMatrix1.cols() == responseMatrix2.cols())) {
+    throw std::runtime_error(
+        "Different number of cols: " + std::to_string(responseMatrix1.cols()) + std::to_string(responseMatrix2.cols())
+    );
+  }
 
   auto const targetNumber = ApplyToEach == ColomnOrRow::Col ? responseMatrix1.cols() : responseMatrix2.rows();
 
@@ -167,7 +183,7 @@ Eigen::MatrixX<T> calculateCorrelationMatrix(
       } else if constexpr (ApplyToEach == ColomnOrRow::Row) {
         correlationMatrix(x, y) = correlation(responseMatrix1.row(x).transpose(), responseMatrix2.row(y).transpose());
       } else {
-        assert(false);
+        throw std::logic_error("This should not be run");
       }
     }
   }
