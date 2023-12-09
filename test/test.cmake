@@ -970,6 +970,11 @@ add_test(
   --save-log-interval 1
   --save-log-directory ./data/analyze/explore-maximum/log
   --save-evaluation-file ./data/analyze/explore-maximum/evaluation.txt
+  --save-correlation-file ./data/analyze/explore-maximum/correlation.txt
+  --save-sparseness-file ./data/analyze/explore-maximum/sparseness.txt
+  --save-smoothness-file ./data/analyze/explore-maximum/smoothness.txt
+  --save-active-neuron-activity-file ./data/analyze/explore-maximum/activity-active.txt
+  --save-inactive-neuron-activity-file ./data/analyze/explore-maximum/activity-inactive.txt
   --save-evaluation-pixel-file ./data/analyze/explore-maximum/evaluation-pixel.txt
   --save-response-file ./data/analyze/explore-maximum/response.txt
   --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt
@@ -992,11 +997,31 @@ set_tests_properties(
 )
 
 add_test(
-  NAME compare_explore-maximum_response
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response.txt ./data/analyze/explore-maximum/response.txt
+  NAME compare_explore-maximum_correlation
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/correlation.txt ./data/analyze/explore-maximum/correlation.txt
 )
 set_tests_properties(
-  compare_explore-maximum_response PROPERTIES
+  compare_explore-maximum_correlation PROPERTIES
+  FIXTURES_REQUIRED run_explore-maximum
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare_explore-maximum_sparseness
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/sparseness.txt ./data/analyze/explore-maximum/sparseness.txt
+)
+set_tests_properties(
+  compare_explore-maximum_sparseness PROPERTIES
+  FIXTURES_REQUIRED run_explore-maximum
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare_explore-maximum_smoothness
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/smoothness.txt ./data/analyze/explore-maximum/smoothness.txt
+)
+set_tests_properties(
+  compare_explore-maximum_smoothness PROPERTIES
   FIXTURES_REQUIRED run_explore-maximum
   LABELS explore-maximum
 )
@@ -1007,6 +1032,36 @@ add_test(
 )
 set_tests_properties(
   compare_explore-maximum_evaluation-pixel PROPERTIES
+  FIXTURES_REQUIRED run_explore-maximum
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare_explore-maximum_response
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response.txt ./data/analyze/explore-maximum/response.txt
+)
+set_tests_properties(
+  compare_explore-maximum_response PROPERTIES
+  FIXTURES_REQUIRED run_explore-maximum
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare_explore-maximum_activity-active
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/activity-active.txt ./data/analyze/explore-maximum/activity-active.txt
+)
+set_tests_properties(
+  compare_explore-maximum_activity-active PROPERTIES
+  FIXTURES_REQUIRED run_explore-maximum
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare_explore-maximum_activity-inactive
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/activity-inactive.txt ./data/analyze/explore-maximum/activity-inactive.txt
+)
+set_tests_properties(
+  compare_explore-maximum_activity-inactive PROPERTIES
   FIXTURES_REQUIRED run_explore-maximum
   LABELS explore-maximum
 )
