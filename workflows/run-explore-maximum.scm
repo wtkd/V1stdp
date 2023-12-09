@@ -33,7 +33,12 @@
            "--save-log-interval" "1"
            "--save-evaluation-file" "evaluations.txt"
            "--save-evaluation-pixel-file" "evaluations-pixel.txt"
+           "--save-correlation-file" "correlation.txt"
+           "--save-sparseness-file" "sparseness.txt"
+           "--save-smoothness-file" "smoothness.txt"
            "--save-response-file" "responses.txt"
+           "--save-active-neuron-activity-file" "activity-active.txt"
+           "--save-inactive-neuron-activity-file" "activity-inactive.txt"
            "--evaluation-function-parameter-a" evaluation-function-parameter-a
            "--evaluation-function-parameter-b" evaluation-function-parameter-b
            "--evaluation-function-parameter-sparseness-intensity" evaluation-function-parameter-sparseness-intensity
@@ -46,15 +51,30 @@
            (output-text-image-log
             #:type Directory
             #:binding ((glob . "$(inputs[\"output-log-directory-name\"])")))
-           (output-evaluation-file
+           (output-evaluations-file
             #:type File
             #:binding ((glob . "evaluations.txt")))
            (output-evaluation-pixel-file
             #:type File
             #:binding ((glob . "evaluations-pixel.txt")))
+           (output-correlation-file
+            #:type File
+            #:binding ((glob . "correlation.txt")))
+           (output-sparseness-file
+            #:type File
+            #:binding ((glob . "sparseness.txt")))
+           (output-smoothness-file
+            #:type File
+            #:binding ((glob . "smoothness.txt")))
            (output-response-file
             #:type File
-            #:binding ((glob . "responses.txt")))))
+            #:binding ((glob . "responses.txt")))
+           (output-active-activity-file
+            #:type File
+            #:binding ((glob . "activity-active.txt")))
+           (output-inactive-activity-file
+            #:type File
+            #:binding ((glob . "activity-inactive.txt")))))
 
 (workflow ((stdp-executable #:type File)
            (transformed-image-data #:type File)

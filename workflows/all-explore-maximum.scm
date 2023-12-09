@@ -38,17 +38,18 @@
             #:evaluation-function-parameter-sparseness-width evaluation-function-parameter-sparseness-width
             #:evaluation-function-parameter-smoothness-intensity evaluation-function-parameter-smoothness-intensity)
            (tee
-            (rename #:output-text-image output-text-image
-                    #:output-text-image-log output-text-image-log
-                    #:output-evaluation-file output-evaluation-file
-                    #:output-evaluation-pixel-file output-evaluation-pixel-file
-                    #:output-response-file output-response-file)
+            (identity)
             (analyze-explore-maximum
              #:stdp-executable stdp-executable
              #:input-directory output-text-image-log
-             #:evaluations-file output-evaluation-file
              #:total-iteration-number total-iteration-number
              #:delta delta
+             #:evaluations-file output-evaluations-file
+             #:correlation-file output-correlation-file
+             #:sparseness-file output-sparseness-file
+             #:smoothness-file output-smoothness-file
+             #:active-activity-file output-active-activity-file
+             #:inactive-activity-file output-inactive-activity-file
              #:response-file output-response-file
              #:sort-index-neuron sort-index-neuron
              #:template-response template-response
