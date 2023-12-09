@@ -10,7 +10,7 @@ namespace meta {
 
 inline auto correlation(double const a, double const b, Eigen::VectorXd const &templateResponse) {
 
-  auto const average = templateResponse.mean();
+  double const average = templateResponse.mean();
   Eigen::ArrayXi const active = (templateResponse.array() > average).cast<int>();
   Eigen::ArrayXi const inactive = 1 - active;
 

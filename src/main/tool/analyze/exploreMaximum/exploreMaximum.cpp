@@ -166,13 +166,14 @@ void setupExploreMaximum(CLI::App &app) {
     Eigen::MatrixXd const wff =
         simulation::readWeights(simulation::constant::NBNEUR, simulation::constant::FFRFSIZE, opt->feedforwardWeight);
 
-    auto const delays = opt->delaysFile.has_value()
-                            ? Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value()))
-                            : simulation::generateDelays(
-                                  simulation::constant::NBNEUR, opt->delayparam, simulation::constant::MAXDELAYDT
-                              );
+    Eigen::ArrayXXi const delays =
+        opt->delaysFile.has_value()
+            ? io::readMatrix<int>(opt->delaysFile.value()).array()
+            : simulation::generateDelays(
+                  simulation::constant::NBNEUR, opt->delayparam, simulation::constant::MAXDELAYDT
+              );
 
-    auto const delaysFF = simulation::generateDelaysFF(
+    std::vector<std::vector<int>> const delaysFF = simulation::generateDelaysFF(
         simulation::constant::NBNEUR, simulation::constant::FFRFSIZE, simulation::constant::MAXDELAYDT
     );
 
@@ -191,14 +192,15 @@ void setupExploreMaximum(CLI::App &app) {
         simulation::constant::dt
     );
 
-    auto const imageVector = io::readImages(opt->inputFile, simulation::constant::PATCHSIZE);
+    std::vector<Eigen::ArrayXX<std::int8_t>> const imageVector =
+        io::readImages(opt->inputFile, simulation::constant::PATCHSIZE);
 
     Eigen::VectorXd const templateResponse =
         io::readMatrix<double>(opt->templateResponseFile, opt->neuronNumber, 1).reshaped();
 
     io::createEmptyDirectory(opt->saveLogDirectory);
 
-    auto const ALTDs = simulation::generateALTDs(
+    Eigen::ArrayXd const ALTDs = simulation::generateALTDs(
         simulation::constant::NBNEUR, simulation::constant::BASEALTD, simulation::constant::RANDALTD
     );
 
@@ -227,7 +229,7 @@ void setupExploreMaximum(CLI::App &app) {
       );
 
       Eigen::VectorXi const response = result.resps.reshaped().topRows(simulation::constant::NBE);
-      auto const evaluation =
+      double const evaluation =
           responseEvaluationFunction(response.cast<double>()) +
           opt->evaluationFunctionParameterSparsenessIntensity *
               evaluationFunction::sparseness(image.cast<double>() / opt->evaluationFunctionParameterSparsenessWidth) +
@@ -270,7 +272,7 @@ void setupExploreMaximum(CLI::App &app) {
             }();
 
             auto const [evaluation, response] = evaluationFunction(candidateImage);
-            auto const evaluationDiff = evaluation - currentEvaluation;
+            double const evaluationDiff = evaluation - currentEvaluation;
             int const pixelDiff = evaluationDiff * opt->delta * sign;
 
             std::cout << "Each evaluation (" << iteration << ", " << sign << ", " << i << ", " << j
