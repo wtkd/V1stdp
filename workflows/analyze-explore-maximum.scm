@@ -59,6 +59,24 @@
             #:type File
             #:binding ((glob . "$(inputs[\"output-file\"])")))))
 
+(define plot-matrix
+  (command #:inputs
+           (gnuplot-script #:type File
+                           #:default '((class . "File")
+                                       (location . "../script/matrix.gnuplot")))
+           (matrix #:type File)
+           (output-name #:type string)
+           (title #:type string)
+           #:run
+           "gnuplot"
+           "-e" "inputFile='$(inputs.matrix.path)'"
+           "-e" "outputFile='$(inputs[\"output-name\"])'"
+           "-e" "title='$(inputs.title)'"
+           gnuplot-script
+           #:outputs
+           (matrix-plot #:type File
+                        #:binding ((glob . "$(inputs[\"output-name\"])")))))
+
 (define sort-response-neuron
   (command #:inputs
            (stdp-executable #:type File)
@@ -126,6 +144,7 @@
            (response-file #:type File)
            (active-activity-file #:type File)
            (inactive-activity-file #:type File)
+           (text-image-name #:type File)
            (template-response #:type File)
            (total-iteration-number #:type int)
            (neuron-number #:type int)
@@ -201,7 +220,13 @@
               #:template template-response-sorted
               #:title "Reponse of each iteration"
               #:output-name "responses.svg")
-             (rename #:responses-plot matrix-plot)))
+             (rename #:responses-plot matrix-plot))
+            (pipe
+             (plot-matrix
+              #:matrix text-image-name
+              #:title "Result image of exploring"
+              #:output-name "result-image.svg")
+             (rename #:result-image-plot matrix-plot)))
            (tee
             (identity)
             (pipe
@@ -243,4 +268,9 @@
              (convert-svg-to-png (convert-svg-to-png-explored)
               #:input-svg output-explored
               #:output-png-name "all-explored.png")
-             (rename #:output-explored-png output-png)))))
+             (rename #:output-explored-png output-png))
+            (pipe
+             (convert-svg-to-png (convert-svg-to-png-result-image)
+              #:input-svg result-image-plot
+              #:output-png-name "result-image.png")
+             (rename #:output-result-image-plot-png output-png)))))
