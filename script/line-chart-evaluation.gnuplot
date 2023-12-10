@@ -9,7 +9,7 @@ set output outputFile
 set title title
 
 set key autotitle columnhead
-set key left bottom
+set key left below
 
 plot inputFile using 2 with linespoints lw 5, \
      "" using 3 with linespoints, \
