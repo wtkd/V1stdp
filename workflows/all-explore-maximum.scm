@@ -51,7 +51,7 @@
              #:active-activity-file output-active-activity-file
              #:inactive-activity-file output-inactive-activity-file
              #:response-file output-response-file
-             #:text-image-name output-text-image
+             #:text-image output-text-image
              #:sort-index-neuron sort-index-neuron
              #:template-response template-response
              #:neuron-number neuron-number))))

@@ -144,7 +144,7 @@
            (response-file #:type File)
            (active-activity-file #:type File)
            (inactive-activity-file #:type File)
-           (text-image-name #:type File)
+           (text-image #:type File)
            (template-response #:type File)
            (total-iteration-number #:type int)
            (neuron-number #:type int)
@@ -223,7 +223,7 @@
              (rename #:responses-plot matrix-plot))
             (pipe
              (plot-matrix
-              #:matrix text-image-name
+              #:matrix text-image
               #:title "Result image of exploring"
               #:output-name "result-image.svg")
              (rename #:result-image-plot matrix-plot)))
