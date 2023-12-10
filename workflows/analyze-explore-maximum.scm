@@ -40,6 +40,25 @@
             #:type File
             #:binding ((glob . "$(inputs[\"output-file\"])")))))
 
+(define generate-line-point-evaluation-plot
+  (command #:inputs
+           (title #:type string)
+           (table-file #:type File)
+           (output-file #:type string)
+           (gnuplot-script #:type File
+                           #:default '((class . "File")
+                                       (location . "../script/line-chart.gnuplot")))
+           #:run
+           "gnuplot"
+           "-e" "inputFile='$(inputs[\"table-file\"].path)'"
+           "-e" "outputFile='$(inputs[\"output-file\"])'"
+           "-e" "title='$(inputs[\"title\"])'"
+           gnuplot-script
+           #:outputs
+           (output-plot
+            #:type File
+            #:binding ((glob . "$(inputs[\"output-file\"])")))))
+
 (define sort-response-neuron
   (command #:inputs
            (stdp-executable #:type File)
@@ -122,7 +141,7 @@
              #:output-file "all-explored.svg"
              #:interval interval)
             (pipe
-             (generate-line-point-plot (generate-evaluation-plot)
+             (generate-line-point-evaluation-plot
               #:table-file evaluations-file
               #:title "Evaluation of each iteration"
               #:output-file "evaluations.svg")
