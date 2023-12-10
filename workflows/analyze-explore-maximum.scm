@@ -47,7 +47,7 @@
            (output-file #:type string)
            (gnuplot-script #:type File
                            #:default '((class . "File")
-                                       (location . "../script/line-chart.gnuplot")))
+                                       (location . "../script/line-chart-evaluation.gnuplot")))
            #:run
            "gnuplot"
            "-e" "inputFile='$(inputs[\"table-file\"].path)'"
