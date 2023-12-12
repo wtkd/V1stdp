@@ -63,7 +63,7 @@
   (command #:inputs
            (gnuplot-script #:type File
                            #:default '((class . "File")
-                                       (location . "../script/matrix.gnuplot")))
+                                       (location . "../script/plot-image.gnuplot")))
            (matrix #:type File)
            (output-name #:type string)
            (title #:type string)
