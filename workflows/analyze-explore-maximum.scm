@@ -59,7 +59,7 @@
             #:type File
             #:binding ((glob . "$(inputs[\"output-file\"])")))))
 
-(define plot-matrix
+(define plot-image
   (command #:inputs
            (gnuplot-script #:type File
                            #:default '((class . "File")
@@ -222,7 +222,7 @@
               #:output-name "responses.svg")
              (rename #:responses-plot matrix-plot))
             (pipe
-             (plot-matrix
+             (plot-image
               #:matrix text-image
               #:title "Result image of exploring"
               #:output-name "result-image.svg")
