@@ -191,4 +191,15 @@ Eigen::MatrixX<T> calculateCorrelationMatrix(
   return correlationMatrix;
 }
 
+template <typename T>
+  requires std::integral<T> || std::floating_point<T>
+double variance(Eigen::VectorX<T> const &x) {
+  return (x.array() - x.mean()).square().mean();
+}
+
+template <typename T>
+  requires std::integral<T> || std::floating_point<T>
+double standardDerivation(Eigen::VectorX<T> const &x) {
+  return std::sqrt(variance(x));
+}
 } // namespace v1stdp::statistics

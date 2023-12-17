@@ -16,6 +16,7 @@ add_library(ExploreMaximum STATIC
   exploreMaximum.cpp
   smoothness.cpp
   sparseness.cpp
+  standardDerivation.cpp
 )
 
 target_link_libraries(ExploreMaximum PUBLIC IO)
