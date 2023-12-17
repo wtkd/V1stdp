@@ -17,6 +17,7 @@
            (evaluation-function-parameter-sparseness-intensity #:type float)
            (evaluation-function-parameter-sparseness-width #:type float)
            (evaluation-function-parameter-smoothness-intensity #:type float)
+           (evaluation-function-parameter-standard-derivation-intensity #:type float)
            #:run
            stdp-executable "tool" "analyze" "explore-maximum"
            "--neuron-number" neuron-number
@@ -36,6 +37,7 @@
            "--save-correlation-file" "correlation.txt"
            "--save-sparseness-file" "sparseness.txt"
            "--save-smoothness-file" "smoothness.txt"
+           "--save-standard-derivation-file" "standard-derivation.txt"
            "--save-response-file" "responses.txt"
            "--save-active-neuron-activity-file" "activity-active.txt"
            "--save-inactive-neuron-activity-file" "activity-inactive.txt"
@@ -44,6 +46,7 @@
            "--evaluation-function-parameter-sparseness-intensity" evaluation-function-parameter-sparseness-intensity
            "--evaluation-function-parameter-sparseness-width" evaluation-function-parameter-sparseness-width
            "--evaluation-function-parameter-smoothness-intensity" evaluation-function-parameter-smoothness-intensity
+           "--evaluation-function-parameter-standard-derivation-intensity" evaluation-function-parameter-standard-derivation-intensity
            #:outputs
            (output-text-image
             #:type File
@@ -66,6 +69,9 @@
            (output-smoothness-file
             #:type File
             #:binding ((glob . "smoothness.txt")))
+           (output-standard-derivation-file
+            #:type File
+            #:binding ((glob . "standard-derivation.txt")))
            (output-response-file
             #:type File
             #:binding ((glob . "responses.txt")))
@@ -90,7 +96,8 @@
            (evaluation-function-parameter-b #:type float)
            (evaluation-function-parameter-sparseness-intensity #:type float)
            (evaluation-function-parameter-sparseness-width #:type float)
-           (evaluation-function-parameter-smoothness-intensity #:type float))
+           (evaluation-function-parameter-smoothness-intensity #:type float)
+           (evaluation-function-parameter-standard-derivation-intensity #:type float))
           (run-explore-maximum
            #:stdp-executable stdp-executable
            #:transformed-image-data transformed-image-data
@@ -108,4 +115,5 @@
            #:evaluation-function-parameter-b evaluation-function-parameter-b
            #:evaluation-function-parameter-sparseness-intensity evaluation-function-parameter-sparseness-intensity
            #:evaluation-function-parameter-sparseness-width evaluation-function-parameter-sparseness-width
-           #:evaluation-function-parameter-smoothness-intensity evaluation-function-parameter-smoothness-intensity))
+           #:evaluation-function-parameter-smoothness-intensity evaluation-function-parameter-smoothness-intensity
+           #:evaluation-function-parameter-standard-derivation-intensity evaluation-function-parameter-standard-derivation-intensity))

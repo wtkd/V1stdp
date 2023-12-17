@@ -1,3 +1,3 @@
 index evaluation correlation weightedActiveNeuronActivity weightedInactiveNeuronActivity weightedSparseness weightedSmoothness weightedStandardDerivation
-0 -4.30389 0.164266 1.7 10.2 4.12933 -0.097479 -0
-1 -9.70721 0.327983 2.4 14.2 3.11322 -1.34842 -0
+0 -4.92314 0.164266 1.7 10.2 4.12933 -0.097479 -0.619251
+1 -10.3963 0.327983 2.4 14.2 3.11322 -1.34816 -0.689315

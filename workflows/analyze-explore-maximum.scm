@@ -141,6 +141,7 @@
            (correlation-file #:type File)
            (sparseness-file #:type File)
            (smoothness-file #:type File)
+           (standard-derivation-file #:type File)
            (response-file #:type File)
            (active-activity-file #:type File)
            (inactive-activity-file #:type File)
@@ -183,6 +184,12 @@
               #:title "Smoothness of each iteration"
               #:output-file "smoothness.svg")
              (rename #:output-smoothness-plot output-plot))
+            (pipe
+             (generate-line-point-plot (generate-standard-derivation-plot)
+              #:table-file standard-derivation-file
+              #:title "Standard-Derivation of each iteration"
+              #:output-file "standard-derivation.svg")
+             (rename #:output-standard-derivation-plot output-plot))
             (pipe
              (generate-line-point-plot (generate-active-activity-plot)
               #:table-file active-activity-file
@@ -254,6 +261,11 @@
               #:input-svg output-smoothness-plot
               #:output-png-name "smoothness.png")
              (rename #:output-smoothness-plot-png output-png))
+            (pipe
+             (convert-svg-to-png (convert-svg-to-png-standard-derivation)
+              #:input-svg output-standard-derivation-plot
+              #:output-png-name "standard-derivation.png")
+             (rename #:output-standard-derivation-plot-png output-png))
             (pipe
              (convert-svg-to-png (convert-svg-to-png-active-activity)
               #:input-svg output-active-activity-plot

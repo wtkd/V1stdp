@@ -20,6 +20,7 @@
 #include "run.hpp"
 
 #include "evaluationFunction.hpp"
+#include "statistics.hpp"
 
 #include "exploreMaximum.hpp"
 
@@ -33,6 +34,8 @@ struct exploreMaximumOptions {
   double evaluationFunctionParameterSparsenessWidth;
 
   double evaluationFunctionParameterSmoothnessIntensity;
+
+  double evaluationFunctionParameterStandardDerivationIntensity;
 
   double delta;
 
@@ -65,6 +68,7 @@ struct exploreMaximumOptions {
   std::filesystem::path saveCorrelationFile;
   std::filesystem::path saveSparsenessFile;
   std::filesystem::path saveSmoothnessFile;
+  std::filesystem::path saveStandardDerivationFile;
   std::filesystem::path saveResponseFile;
   std::filesystem::path saveActiveNeuronActivity;
   std::filesystem::path saveInactiveNeuronActivity;
@@ -106,6 +110,13 @@ void setupExploreMaximum(CLI::App &app) {
          "--evaluation-function-parameter-smoothness-intensity",
          opt->evaluationFunctionParameterSmoothnessIntensity,
          "Intensity of smoothness of evaluation function."
+  )
+      ->required();
+
+  sub->add_option(
+         "--evaluation-function-parameter-standard-derivation-intensity",
+         opt->evaluationFunctionParameterStandardDerivationIntensity,
+         "Intensity of standard derivation of evaluation function."
   )
       ->required();
 
@@ -166,6 +177,13 @@ void setupExploreMaximum(CLI::App &app) {
       ->required()
       ->check(CLI::NonexistentPath);
   sub->add_option("--save-smoothness-file", opt->saveSmoothnessFile, "Save smoothnesss of each iteration")
+      ->required()
+      ->check(CLI::NonexistentPath);
+  sub->add_option(
+         "--save-standard-derivation-file",
+         opt->saveStandardDerivationFile,
+         "Save standard derivations of each iteration"
+  )
       ->required()
       ->check(CLI::NonexistentPath);
   sub->add_option("--save-response-file", opt->saveResponseFile, "Save responses when each pixel is changed")
@@ -271,19 +289,25 @@ void setupExploreMaximum(CLI::App &app) {
       double const sparseness =
           evaluationFunction::sparseness(image.cast<double>() / opt->evaluationFunctionParameterSparsenessWidth);
       double const smoothness = evaluationFunction::smoothness(image.cast<double>());
+      double const standardDerivation =
+          statistics::standardDerivation<double>(image.reshaped().cast<double>().matrix());
 
       double const weightedSparseness = opt->evaluationFunctionParameterSparsenessIntensity * sparseness;
       double const weightedSmoothness = opt->evaluationFunctionParameterSmoothnessIntensity * smoothness;
+      double const weightedStandardDerivation =
+          -opt->evaluationFunctionParameterStandardDerivationIntensity * standardDerivation;
 
-      auto const evaluation = weightedSparseness + weightedSmoothness;
+      auto const evaluation = weightedSparseness + weightedSmoothness + weightedStandardDerivation;
 
       return std::tuple{
           evaluation,
           // To export log
           sparseness,
           smoothness,
+          standardDerivation,
           weightedSparseness,
-          weightedSmoothness
+          weightedSmoothness,
+          weightedStandardDerivation
       };
     };
 
@@ -324,8 +348,10 @@ void setupExploreMaximum(CLI::App &app) {
            // To export log
            sparseness,
            smoothness,
+           standardDerivation,
            weightedSparseness,
-           weightedSmoothness] = imageEvaluationFunction(image);
+           weightedSmoothness,
+           weightedStandardDerivation] = imageEvaluationFunction(image);
 
       auto const evaluation = neuronEvaluation + imageEvaluation;
 
@@ -340,8 +366,10 @@ void setupExploreMaximum(CLI::App &app) {
           weightedInactiveNeuronActivity,
           sparseness,
           smoothness,
+          standardDerivation,
           weightedSparseness,
-          weightedSmoothness
+          weightedSmoothness,
+          weightedStandardDerivation
       };
     };
 
@@ -355,6 +383,7 @@ void setupExploreMaximum(CLI::App &app) {
                      << " " << "weightedInactiveNeuronActivity"
                      << " " << "weightedSparseness"
                      << " " << "weightedSmoothness"
+                     << " " << "weightedStandardDerivation"
                      << std::endl;
     // clang-format on
 
@@ -362,6 +391,7 @@ void setupExploreMaximum(CLI::App &app) {
     std::ofstream correlationOutput(opt->saveCorrelationFile);
     std::ofstream sparsenessOutput(opt->saveSparsenessFile);
     std::ofstream smoothnessOutput(opt->saveSmoothnessFile);
+    std::ofstream standardDerivationOutput(opt->saveStandardDerivationFile);
     std::ofstream activeNeuronActivityOutput(opt->saveActiveNeuronActivity);
     std::ofstream inactiveNeuronActivityOutput(opt->saveInactiveNeuronActivity);
 
@@ -376,8 +406,10 @@ void setupExploreMaximum(CLI::App &app) {
                                 double const weightedInactiveNeuronActivity,
                                 double const sparseness,
                                 double const smoothness,
+                                double const standardDerivation,
                                 double const weightedSparseness,
-                                double const weightedSmoothness) {
+                                double const weightedSmoothness,
+                                double const weightedStandardDerivation) {
       // clang-format off
       evaluationOutput << index
                        << " " << evaluation
@@ -386,12 +418,14 @@ void setupExploreMaximum(CLI::App &app) {
                        << " " << weightedInactiveNeuronActivity
                        << " " << weightedSparseness
                        << " " << weightedSmoothness
+                       << " " << weightedStandardDerivation
                        << std::endl;
       // clang-format on
       responseOutput << response.transpose() << std::endl;
       correlationOutput << correlation << std::endl;
       sparsenessOutput << sparseness << std::endl;
       smoothnessOutput << smoothness << std::endl;
+      standardDerivationOutput << standardDerivation << std::endl;
       activeNeuronActivityOutput << activeNeuronActivity << std::endl;
       inactiveNeuronActivityOutput << inactiveNeuronActivity << std::endl;
       if (index == 0 || index % opt->saveInterval == 0) {
@@ -410,8 +444,10 @@ void setupExploreMaximum(CLI::App &app) {
          initialWeightedInactiveNeuronActivity,
          initialSparseness,
          initialSmoothness,
+         initialStandardDerivation,
          initialWeightedSparseness,
-         initialWeightedSmoothness] = evaluationFunction(currentImage);
+         initialWeightedSmoothness,
+         initialWeightedStandardDerivation] = evaluationFunction(currentImage);
 
     outputLogs(
         0,
@@ -425,8 +461,10 @@ void setupExploreMaximum(CLI::App &app) {
         initialWeightedInactiveNeuronActivity,
         initialSparseness,
         initialSmoothness,
+        initialStandardDerivation,
         initialWeightedSparseness,
-        initialWeightedSmoothness
+        initialWeightedSmoothness,
+        initialWeightedStandardDerivation
     );
 
     double currentEvaluation = initialEvaluation;
@@ -464,8 +502,10 @@ void setupExploreMaximum(CLI::App &app) {
                  weightedInactiveNeuronActivity,
                  sparseness,
                  smoothness,
+                 standardDerivation,
                  weightedSparseness,
-                 weightedSmoothness] = evaluationFunction(candidateImage);
+                 weightedSmoothness,
+                 weightedStandardDerivation] = evaluationFunction(candidateImage);
 
             auto const evaluationDiff = evaluation - currentEvaluation;
             int const pixelDiff = evaluationDiff * opt->delta * sign;
@@ -503,8 +543,10 @@ void setupExploreMaximum(CLI::App &app) {
            weightedInactiveNeuronActivity,
            sparseness,
            smoothness,
+           standardDerivation,
            weightedSparseness,
-           weightedSmoothness] = evaluationFunction(currentImage);
+           weightedSmoothness,
+           weightedStandardDerivation] = evaluationFunction(currentImage);
       currentEvaluation = evaluation;
 
       std::cout << "Current evaluation (" << iteration << "): " << currentEvaluation << std::endl;
@@ -522,8 +564,10 @@ void setupExploreMaximum(CLI::App &app) {
           weightedInactiveNeuronActivity,
           sparseness,
           smoothness,
+          standardDerivation,
           weightedSparseness,
-          weightedSmoothness
+          weightedSmoothness,
+          weightedStandardDerivation
       );
 
       if (totalPixelDifference == 0) {

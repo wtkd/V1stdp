@@ -19,6 +19,7 @@
            (evaluation-function-parameter-sparseness-intensity #:type float)
            (evaluation-function-parameter-sparseness-width #:type float)
            (evaluation-function-parameter-smoothness-intensity #:type float)
+           (evaluation-function-parameter-standard-derivation-intensity #:type float)
            (sort-index-neuron #:type File))
           (pipe
            (run-explore-maximum
@@ -36,7 +37,8 @@
             #:evaluation-function-parameter-b evaluation-function-parameter-b
             #:evaluation-function-parameter-sparseness-intensity evaluation-function-parameter-sparseness-intensity
             #:evaluation-function-parameter-sparseness-width evaluation-function-parameter-sparseness-width
-            #:evaluation-function-parameter-smoothness-intensity evaluation-function-parameter-smoothness-intensity)
+            #:evaluation-function-parameter-smoothness-intensity evaluation-function-parameter-smoothness-intensity
+            #:evaluation-function-parameter-standard-derivation-intensity evaluation-function-parameter-standard-derivation-intensity)
            (tee
             (identity)
             (analyze-explore-maximum
@@ -48,6 +50,7 @@
              #:correlation-file output-correlation-file
              #:sparseness-file output-sparseness-file
              #:smoothness-file output-smoothness-file
+             #:standard-derivation-file output-standard-derivation-file
              #:active-activity-file output-active-activity-file
              #:inactive-activity-file output-inactive-activity-file
              #:response-file output-response-file
