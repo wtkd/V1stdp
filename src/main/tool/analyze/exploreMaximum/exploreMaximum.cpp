@@ -251,7 +251,7 @@ void setupExploreMaximum(CLI::App &app) {
         auto const inactiveNeuronActivity = realResponse.dot(inactive.matrix().cast<double>());
 
         auto const weightedActiveNeuronActivity = opt->evaluationFunctionParameterA * activeNeuronActivity;
-        auto const weightedInactiveNeuronActivity = opt->evaluationFunctionParameterA * inactiveNeuronActivity;
+        auto const weightedInactiveNeuronActivity = opt->evaluationFunctionParameterB * inactiveNeuronActivity;
 
         auto const evaluation = correlation + weightedActiveNeuronActivity - weightedInactiveNeuronActivity;
 

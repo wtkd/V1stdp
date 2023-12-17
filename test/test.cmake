@@ -948,8 +948,10 @@ set_tests_properties(
 
 
 ### Explore maximum
+
+#### a=b=0.1
 add_test(
-  NAME run_explore-maximum
+  NAME run-explore-maximum-0.1-0.1
   COMMAND $<TARGET_FILE:stdp> tool analyze explore-maximum
   --seed 0
   --evaluation-function-parameter-a 0.1
@@ -966,122 +968,261 @@ add_test(
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
   --presentation-time 200
-  --output-file ./data/analyze/explore-maximum/last-image.txt
+  --output-file ./data/analyze/explore-maximum/0.1,0.1/last-image.txt
   --save-log-interval 1
-  --save-log-directory ./data/analyze/explore-maximum/log
-  --save-evaluation-file ./data/analyze/explore-maximum/evaluation.txt
-  --save-correlation-file ./data/analyze/explore-maximum/correlation.txt
-  --save-sparseness-file ./data/analyze/explore-maximum/sparseness.txt
-  --save-smoothness-file ./data/analyze/explore-maximum/smoothness.txt
-  --save-active-neuron-activity-file ./data/analyze/explore-maximum/activity-active.txt
-  --save-inactive-neuron-activity-file ./data/analyze/explore-maximum/activity-inactive.txt
-  --save-evaluation-pixel-file ./data/analyze/explore-maximum/evaluation-pixel.txt
-  --save-response-file ./data/analyze/explore-maximum/response.txt
+  --save-log-directory ./data/analyze/explore-maximum/0.1,0.1/log
+  --save-evaluation-file ./data/analyze/explore-maximum/0.1,0.1/evaluation.txt
+  --save-correlation-file ./data/analyze/explore-maximum/0.1,0.1/correlation.txt
+  --save-sparseness-file ./data/analyze/explore-maximum/0.1,0.1/sparseness.txt
+  --save-smoothness-file ./data/analyze/explore-maximum/0.1,0.1/smoothness.txt
+  --save-active-neuron-activity-file ./data/analyze/explore-maximum/0.1,0.1/activity-active.txt
+  --save-inactive-neuron-activity-file ./data/analyze/explore-maximum/0.1,0.1/activity-inactive.txt
+  --save-evaluation-pixel-file ./data/analyze/explore-maximum/0.1,0.1/evaluation-pixel.txt
+  --save-response-file ./data/analyze/explore-maximum/0.1,0.1/response.txt
   --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt
 )
 set_tests_properties(
-  run_explore-maximum PROPERTIES
+  run-explore-maximum-0.1-0.1 PROPERTIES
   FIXTURES_REQUIRED data_directory
-  FIXTURES_SETUP run_explore-maximum
+  FIXTURES_SETUP run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_evaluation
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/evaluation.txt ./data/analyze/explore-maximum/evaluation.txt
+  NAME compare-explore-maximum-0.1-0.1_evaluation
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/evaluation.txt ./data/analyze/explore-maximum/0.1,0.1/evaluation.txt
 )
 set_tests_properties(
-  compare_explore-maximum_evaluation PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_evaluation PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_correlation
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/correlation.txt ./data/analyze/explore-maximum/correlation.txt
+  NAME compare-explore-maximum-0.1-0.1_correlation
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/correlation.txt ./data/analyze/explore-maximum/0.1,0.1/correlation.txt
 )
 set_tests_properties(
-  compare_explore-maximum_correlation PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_correlation PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_sparseness
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/sparseness.txt ./data/analyze/explore-maximum/sparseness.txt
+  NAME compare-explore-maximum-0.1-0.1_sparseness
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/sparseness.txt ./data/analyze/explore-maximum/0.1,0.1/sparseness.txt
 )
 set_tests_properties(
-  compare_explore-maximum_sparseness PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_sparseness PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_smoothness
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/smoothness.txt ./data/analyze/explore-maximum/smoothness.txt
+  NAME compare-explore-maximum-0.1-0.1_smoothness
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/smoothness.txt ./data/analyze/explore-maximum/0.1,0.1/smoothness.txt
 )
 set_tests_properties(
-  compare_explore-maximum_smoothness PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_smoothness PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_evaluation-pixel
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/evaluation-pixel.txt ./data/analyze/explore-maximum/evaluation-pixel.txt
+  NAME compare-explore-maximum-0.1-0.1_evaluation-pixel
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/evaluation-pixel.txt ./data/analyze/explore-maximum/0.1,0.1/evaluation-pixel.txt
 )
 set_tests_properties(
-  compare_explore-maximum_evaluation-pixel PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_evaluation-pixel PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_response
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response.txt ./data/analyze/explore-maximum/response.txt
+  NAME compare-explore-maximum-0.1-0.1_response
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/response.txt ./data/analyze/explore-maximum/0.1,0.1/response.txt
 )
 set_tests_properties(
-  compare_explore-maximum_response PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_response PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_activity-active
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/activity-active.txt ./data/analyze/explore-maximum/activity-active.txt
+  NAME compare-explore-maximum-0.1-0.1_activity-active
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/activity-active.txt ./data/analyze/explore-maximum/0.1,0.1/activity-active.txt
 )
 set_tests_properties(
-  compare_explore-maximum_activity-active PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_activity-active PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_activity-inactive
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/activity-inactive.txt ./data/analyze/explore-maximum/activity-inactive.txt
+  NAME compare-explore-maximum-0.1-0.1_activity-inactive
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/activity-inactive.txt ./data/analyze/explore-maximum/0.1,0.1/activity-inactive.txt
 )
 set_tests_properties(
-  compare_explore-maximum_activity-inactive PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_activity-inactive PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_last-image
-  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/last-image.txt ./data/analyze/explore-maximum/last-image.txt
+  NAME compare-explore-maximum-0.1-0.1_last-image
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/last-image.txt ./data/analyze/explore-maximum/0.1,0.1/last-image.txt
 )
 set_tests_properties(
-  compare_explore-maximum_last-image PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_last-image PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
   LABELS explore-maximum
 )
 
 add_test(
-  NAME compare_explore-maximum_log
-  COMMAND diff -r ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/log ./data/analyze/explore-maximum/log
+  NAME compare-explore-maximum-0.1-0.1_log
+  COMMAND diff -r ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.1/log ./data/analyze/explore-maximum/0.1,0.1/log
 )
 set_tests_properties(
-  compare_explore-maximum_log PROPERTIES
-  FIXTURES_REQUIRED run_explore-maximum
+  compare-explore-maximum-0.1-0.1_log PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.1
+  LABELS explore-maximum
+)
+
+#### a=0.1, b=0.2
+add_test(
+  NAME run-explore-maximum-0.1-0.2
+  COMMAND $<TARGET_FILE:stdp> tool analyze explore-maximum
+  --seed 0
+  --evaluation-function-parameter-a 0.1
+  --evaluation-function-parameter-b 0.2
+  --evaluation-function-parameter-sparseness-intensity 0.05
+  --evaluation-function-parameter-sparseness-width 10
+  --evaluation-function-parameter-smoothness-intensity 1e-6
+  --delta 10
+  --template-response ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response-0001.txt
+  --neuron-number 120
+  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --initial-input-number 100
+  --iteration-number 1
+  --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
+  --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
+  --presentation-time 200
+  --output-file ./data/analyze/explore-maximum/0.1,0.2/last-image.txt
+  --save-log-interval 1
+  --save-log-directory ./data/analyze/explore-maximum/0.1,0.2/log
+  --save-evaluation-file ./data/analyze/explore-maximum/0.1,0.2/evaluation.txt
+  --save-correlation-file ./data/analyze/explore-maximum/0.1,0.2/correlation.txt
+  --save-sparseness-file ./data/analyze/explore-maximum/0.1,0.2/sparseness.txt
+  --save-smoothness-file ./data/analyze/explore-maximum/0.1,0.2/smoothness.txt
+  --save-active-neuron-activity-file ./data/analyze/explore-maximum/0.1,0.2/activity-active.txt
+  --save-inactive-neuron-activity-file ./data/analyze/explore-maximum/0.1,0.2/activity-inactive.txt
+  --save-evaluation-pixel-file ./data/analyze/explore-maximum/0.1,0.2/evaluation-pixel.txt
+  --save-response-file ./data/analyze/explore-maximum/0.1,0.2/response.txt
+  --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt
+)
+set_tests_properties(
+  run-explore-maximum-0.1-0.2 PROPERTIES
+  FIXTURES_REQUIRED data_directory
+  FIXTURES_SETUP run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_evaluation
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/evaluation.txt ./data/analyze/explore-maximum/0.1,0.2/evaluation.txt
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_evaluation PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_correlation
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/correlation.txt ./data/analyze/explore-maximum/0.1,0.2/correlation.txt
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_correlation PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_sparseness
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/sparseness.txt ./data/analyze/explore-maximum/0.1,0.2/sparseness.txt
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_sparseness PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_smoothness
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/smoothness.txt ./data/analyze/explore-maximum/0.1,0.2/smoothness.txt
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_smoothness PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_evaluation-pixel
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/evaluation-pixel.txt ./data/analyze/explore-maximum/0.1,0.2/evaluation-pixel.txt
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_evaluation-pixel PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_response
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/response.txt ./data/analyze/explore-maximum/0.1,0.2/response.txt
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_response PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_activity-active
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/activity-active.txt ./data/analyze/explore-maximum/0.1,0.2/activity-active.txt
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_activity-active PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_activity-inactive
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/activity-inactive.txt ./data/analyze/explore-maximum/0.1,0.2/activity-inactive.txt
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_activity-inactive PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_last-image
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/last-image.txt ./data/analyze/explore-maximum/0.1,0.2/last-image.txt
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_last-image PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-0.1-0.2_log
+  COMMAND diff -r ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/0.1,0.2/log ./data/analyze/explore-maximum/0.1,0.2/log
+)
+set_tests_properties(
+  compare-explore-maximum-0.1-0.2_log PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-0.1-0.2
   LABELS explore-maximum
 )
