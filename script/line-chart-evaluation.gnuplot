@@ -16,4 +16,5 @@ plot inputFile using 2 with linespoints lw 5, \
      "" using 4 with linespoints, \
      "" using 5 with linespoints, \
      "" using 6 with linespoints, \
-     "" using 7 with linespoints
+     "" using 7 with linespoints, \
+     "" using 8 with linespoints
