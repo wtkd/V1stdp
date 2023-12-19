@@ -151,7 +151,7 @@ void setupExploreMaximum(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
-  app.add_option("--delayparam", opt->delayparam, "Delay parameter");
+  sub->add_option("--delayparam", opt->delayparam, "Delay parameter");
 
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
 
