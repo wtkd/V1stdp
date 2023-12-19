@@ -7,7 +7,7 @@
 #include "evaluationFunction.hpp"
 #include "io.hpp"
 
-#include "sparseness.hpp"
+#include "exploreMaximum.hpp"
 
 namespace v1stdp::main::tool::analyze::exploreMaximum::sparseness {
 struct sparsenessOptions {

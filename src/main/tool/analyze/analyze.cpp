@@ -6,9 +6,6 @@
 #include "exploreMaximum.hpp"
 #include "response.hpp"
 #include "reverseCorrelation.hpp"
-#include "smoothness.hpp"
-#include "sparseness.hpp"
-#include "standardDerivation.hpp"
 #include "transpose.hpp"
 #include "weight.hpp"
 
