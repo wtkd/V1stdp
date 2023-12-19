@@ -24,7 +24,8 @@ struct InputNoiseOptions {
 
   unsigned edgeLength;
 
-  std::uint64_t iterationNumber;
+  std::uint64_t iterationNumber = 0;
+  bool iterationInfinity = false;
 
   std::filesystem::path outputResponseFile;
   std::filesystem::path outputImageDirectory;
@@ -47,7 +48,14 @@ void setupInputNoise(CLI::App &app) {
       ->required();
   sub->add_option("-l,--edge-length", opt->edgeLength, "Edge length of input image. Usually 17.")->required();
 
-  sub->add_option("-N,--iteration-number", opt->iterationNumber, "The number of iteration")->required();
+  auto iteartionPolicy = sub->add_option_group("iteration-policy");
+  iteartionPolicy->require_option(1);
+  iteartionPolicy->add_flag(
+      "-I,--iteration-infinity",
+      opt->iterationInfinity,
+      "Run forever. Actually, run times of maximum value of 64 bit unsigned integer."
+  );
+  iteartionPolicy->add_option("-i,--iteration-number", opt->iterationNumber, "The number of iteration");
 
   sub->add_option("-R,--response-file", opt->outputResponseFile, "File which will contain responses of each iteration")
       ->required()
@@ -144,7 +152,9 @@ void setupInputNoise(CLI::App &app) {
 
     std::ofstream responseOutput(opt->outputResponseFile);
 
-    for (auto const &i : boost::counting_range<std::uint64_t>(0, opt->iterationNumber)) {
+    for (std::uint64_t const &i : boost::counting_range<std::uint64_t>(
+             0, opt->iterationInfinity ? std::numeric_limits<std::uint64_t>::max() : opt->iterationNumber
+         )) {
       Eigen::ArrayXX<std::int8_t> const image = generateRandomImage();
       std::ofstream(opt->outputImageDirectory / (std::to_string(i) + ".txt")) << image << std::endl;
 
