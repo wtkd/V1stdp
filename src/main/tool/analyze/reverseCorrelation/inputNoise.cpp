@@ -90,13 +90,27 @@ void setupInputNoise(CLI::App &app) {
     std::mt19937 engine(opt->randomSeed);
 
     auto const getRandomPixelValue = [&]() -> std::int8_t {
-      while (true) {
-        double const r = distribution(engine);
-        // NOTE: Do not use maximum value of int8 in order to provide symmetry value range
-        if (std::numeric_limits<std::int8_t>::min() <= r && r < std::numeric_limits<std::int8_t>::max()) {
-          return std::floor(r);
-        }
+      double const r = distribution(engine);
+
+      // NOTE: Do not use maximum value of int8 (=128) in order to provide symmetry value range
+      // [128, ∞): 127
+      if (std::numeric_limits<std::int8_t>::max() <= r) {
+        return std::numeric_limits<std::int8_t>::max() - 1;
       }
+
+      // [-∞, -127): -127
+      if (r < std::numeric_limits<std::int8_t>::min()) {
+        return std::numeric_limits<std::int8_t>::min();
+      }
+
+      // [-127, -126): -127
+      // [-126, -125): -126
+      // ...
+      // [1, 2): 1
+      // ...
+      // [126, 127): 126
+      // [127, 128): 127
+      return std::floor(r);
     };
 
     auto const generateRandomImage = [&] {
