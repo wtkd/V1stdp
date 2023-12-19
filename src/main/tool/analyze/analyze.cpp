@@ -5,6 +5,7 @@
 #include "divideLine.hpp"
 #include "exploreMaximum.hpp"
 #include "response.hpp"
+#include "reverseCorrelation.hpp"
 #include "smoothness.hpp"
 #include "sparseness.hpp"
 #include "standardDerivation.hpp"
@@ -28,5 +29,6 @@ void setupAnalyze(CLI::App &app) {
   exploreMaximum::smoothness::setupSmoothness(*sub);
   exploreMaximum::sparseness::setupSparseness(*sub);
   exploreMaximum::standardDerivation::setupStandardDerivation(*sub);
+  reverseCorrelation::setupInputNoise(*sub);
 }
 } // namespace v1stdp::main::tool::analyze

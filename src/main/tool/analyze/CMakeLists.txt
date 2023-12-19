@@ -18,6 +18,7 @@ add_subdirectory(divideLine)
 add_subdirectory(response)
 add_subdirectory(weight)
 add_subdirectory(exploreMaximum)
+add_subdirectory(reverseCorrelation)
 add_subdirectory(transpose)
 
 add_library(Analyze STATIC
@@ -30,6 +31,7 @@ target_link_libraries(Analyze PUBLIC DivideLine)
 target_link_libraries(Analyze PUBLIC Response)
 target_link_libraries(Analyze PUBLIC Weight)
 target_link_libraries(Analyze PUBLIC ExploreMaximum)
+target_link_libraries(Analyze PUBLIC reverseCorrelation)
 target_link_libraries(Analyze PUBLIC Transpose)
 
 find_package(CLI11 CONFIG REQUIRED)
