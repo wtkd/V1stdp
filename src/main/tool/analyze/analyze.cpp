@@ -27,5 +27,6 @@ void setupAnalyze(CLI::App &app) {
   exploreMaximum::sparseness::setupSparseness(*sub);
   exploreMaximum::standardDerivation::setupStandardDerivation(*sub);
   reverseCorrelation::setupInputNoise(*sub);
+  reverseCorrelation::setupSpikeTrigggeredAverage(*sub);
 }
 } // namespace v1stdp::main::tool::analyze

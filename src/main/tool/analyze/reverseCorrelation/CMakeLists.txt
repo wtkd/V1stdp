@@ -13,7 +13,7 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
 endif()
 
 add_library(reverseCorrelation STATIC
-  # reverseCorrelation.cpp
+  spikeTriggeredAverage.cpp
   inputNoise.cpp
 )
 
