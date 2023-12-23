@@ -387,6 +387,8 @@ void setupExploreMaximum(CLI::App &app) {
                      << std::endl;
     // clang-format on
 
+    std::ofstream evaluationPixelOutput(opt->saveEvaluationPixelFile);
+
     std::ofstream responseOutput(opt->saveResponseFile);
     std::ofstream correlationOutput(opt->saveCorrelationFile);
     std::ofstream sparsenessOutput(opt->saveSparsenessFile);
@@ -395,87 +397,64 @@ void setupExploreMaximum(CLI::App &app) {
     std::ofstream activeNeuronActivityOutput(opt->saveActiveNeuronActivity);
     std::ofstream inactiveNeuronActivityOutput(opt->saveInactiveNeuronActivity);
 
-    auto const outputLogs = [&](std::size_t const index,
-                                Eigen::ArrayXX<std::int8_t> const &image,
-                                double const evaluation,
-                                Eigen::VectorXi const &response,
-                                double const correlation,
-                                double const activeNeuronActivity,
-                                double const inactiveNeuronActivity,
-                                double const weightedActiveNeuronActivity,
-                                double const weightedInactiveNeuronActivity,
-                                double const sparseness,
-                                double const smoothness,
-                                double const standardDerivation,
-                                double const weightedSparseness,
-                                double const weightedSmoothness,
-                                double const weightedStandardDerivation) {
-      // clang-format off
-      evaluationOutput << index
-                       << " " << evaluation
-                       << " " << correlation
-                       << " " << weightedActiveNeuronActivity
-                       << " " << weightedInactiveNeuronActivity
-                       << " " << weightedSparseness
-                       << " " << weightedSmoothness
-                       << " " << weightedStandardDerivation
-                       << std::endl;
-      // clang-format on
-      responseOutput << response.transpose() << std::endl;
-      correlationOutput << correlation << std::endl;
-      sparsenessOutput << sparseness << std::endl;
-      smoothnessOutput << smoothness << std::endl;
-      standardDerivationOutput << standardDerivation << std::endl;
-      activeNeuronActivityOutput << activeNeuronActivity << std::endl;
-      inactiveNeuronActivityOutput << inactiveNeuronActivity << std::endl;
-      if (index == 0 || index % opt->saveInterval == 0) {
-        io::saveMatrix<std::int8_t>(opt->saveLogDirectory / (std::to_string(index) + ".txt"), image);
-      }
-    };
+    auto const outputLogs =
+        [&](std::size_t const index,
+            Eigen::ArrayXX<std::int8_t> const &image,
+            double const evaluation,
+            std::vector<std::pair<std::tuple<int, int, int>, std::tuple<double, double, int>>> pixelEvaluations,
+            Eigen::VectorXi const &response,
+            double const correlation,
+            double const activeNeuronActivity,
+            double const inactiveNeuronActivity,
+            double const weightedActiveNeuronActivity,
+            double const weightedInactiveNeuronActivity,
+            double const sparseness,
+            double const smoothness,
+            double const standardDerivation,
+            double const weightedSparseness,
+            double const weightedSmoothness,
+            double const weightedStandardDerivation) {
+          // clang-format off
+          evaluationOutput << index
+                           << " " << evaluation
+                           << " " << correlation
+                           << " " << weightedActiveNeuronActivity
+                           << " " << weightedInactiveNeuronActivity
+                           << " " << weightedSparseness
+                           << " " << weightedSmoothness
+                           << " " << weightedStandardDerivation
+                           << std::endl;
+          // clang-format on
 
-    Eigen::ArrayXX<std::int8_t> currentImage = imageVector.at(opt->initialInputNumber);
-    auto const
-        [initialEvaluation,
-         initialResopnse,
-         initialCorrelation,
-         initialActiveNeuronActivity,
-         initialInactiveNeuronActivity,
-         initialWeightedActiveNeuronActivity,
-         initialWeightedInactiveNeuronActivity,
-         initialSparseness,
-         initialSmoothness,
-         initialStandardDerivation,
-         initialWeightedSparseness,
-         initialWeightedSmoothness,
-         initialWeightedStandardDerivation] = evaluationFunction(currentImage);
+          for (auto const &i : pixelEvaluations) {
+            // clang-format off
+            evaluationPixelOutput << index
+                                  << " " << std::get<0>(i.first)
+                                  << " " << std::get<1>(i.first)
+                                  << " " << std::get<2>(i.first)
+                                  << " " << std::get<0>(i.second)
+                                  << " " << std::get<1>(i.second)
+                                  << " " << std::get<2>(i.second)
+                                  << std::endl;
+            // clang-format on
+          }
 
-    outputLogs(
-        0,
-        currentImage,
-        initialEvaluation,
-        initialResopnse,
-        initialCorrelation,
-        initialActiveNeuronActivity,
-        initialInactiveNeuronActivity,
-        initialWeightedActiveNeuronActivity,
-        initialWeightedInactiveNeuronActivity,
-        initialSparseness,
-        initialSmoothness,
-        initialStandardDerivation,
-        initialWeightedSparseness,
-        initialWeightedSmoothness,
-        initialWeightedStandardDerivation
-    );
+          responseOutput << response.transpose() << std::endl;
+          correlationOutput << correlation << std::endl;
+          sparsenessOutput << sparseness << std::endl;
+          smoothnessOutput << smoothness << std::endl;
+          standardDerivationOutput << standardDerivation << std::endl;
+          activeNeuronActivityOutput << activeNeuronActivity << std::endl;
+          inactiveNeuronActivityOutput << inactiveNeuronActivity << std::endl;
+          if (index == 0 || index % opt->saveInterval == 0) {
+            io::saveMatrix<std::int8_t>(opt->saveLogDirectory / (std::to_string(index) + ".txt"), image);
+          }
+        };
 
-    double currentEvaluation = initialEvaluation;
-
-    std::ofstream evaluationPixelOutput(opt->saveEvaluationPixelFile);
-
-    boost::timer::progress_display showProgress(opt->iterationNumber, std::cerr);
-    std::uint64_t iteration = 0;
-    while (iteration < opt->iterationNumber) {
-      int totalPixelDifference = 0;
+    auto const getNextImage = [&](Eigen::ArrayXX<std::int8_t> const &currentImage, double const currentEvaluation) {
       Eigen::ArrayXX<std::int8_t> nextImage = currentImage;
+
+      std::vector<std::pair<std::tuple<int, int, int>, std::tuple<double, double, int>>> pixelEvaluations;
 
       for (auto const &sign : {+1, -1}) {
         for (auto const i : boost::counting_range<unsigned>(0, currentImage.cols())) {
@@ -510,28 +489,20 @@ void setupExploreMaximum(CLI::App &app) {
             auto const evaluationDiff = evaluation - currentEvaluation;
             int const pixelDiff = evaluationDiff * opt->delta * sign;
 
-            std::cout << "Each evaluation (" << iteration << ", " << sign << ", " << i << ", " << j
-                      << "): " << evaluation << "\n"
-                      << "Each evaluation diff (" << iteration << ", " << sign << ", " << i << ", " << j
-                      << "): " << evaluationDiff << "\n"
-                      << "Pixel diff (" << iteration << ", " << sign << ", " << i << ", " << j << "): " << pixelDiff
-                      << std::endl;
-
-            evaluationPixelOutput << iteration + 1 << " " << sign << " " << i << " " << j << " " << evaluation << " "
-                                  << evaluationDiff << " " << pixelDiff << std::endl;
-
             nextImage(i, j) = std::clamp<int>(
                 int(nextImage(i, j)) + pixelDiff,
                 std::numeric_limits<std::int8_t>::min(),
                 std::numeric_limits<std::int8_t>::max()
             );
 
-            totalPixelDifference += std::abs(pixelDiff);
+            pixelEvaluations.emplace_back(
+                std::tuple<int, int, int>{sign, i, j},
+                std::tuple<double, double, int>{evaluation, evaluationDiff, pixelDiff}
+            );
           }
         }
       }
 
-      currentImage = std::move(nextImage);
       auto const
           [evaluation,
            // To export log
@@ -546,16 +517,93 @@ void setupExploreMaximum(CLI::App &app) {
            standardDerivation,
            weightedSparseness,
            weightedSmoothness,
-           weightedStandardDerivation] = evaluationFunction(currentImage);
-      currentEvaluation = evaluation;
+           weightedStandardDerivation] = evaluationFunction(nextImage);
 
-      std::cout << "Current evaluation (" << iteration << "): " << currentEvaluation << std::endl;
-      std::cout << "Current sum of pixel differences (" << iteration << "): " << totalPixelDifference << std::endl;
+      return std::tuple{
+          std::move(nextImage),
+          evaluation,
+          // To export log
+          std::move(pixelEvaluations),
+          std::move(response),
+          correlation,
+          activeNeuronActivity,
+          inactiveNeuronActivity,
+          weightedActiveNeuronActivity,
+          weightedInactiveNeuronActivity,
+          sparseness,
+          smoothness,
+          standardDerivation,
+          weightedSparseness,
+          weightedSmoothness,
+          weightedStandardDerivation
+      };
+    };
+
+    Eigen::ArrayXX<std::int8_t> currentImage = imageVector.at(opt->initialInputNumber);
+    auto const
+        [initialEvaluation,
+         initialResopnse,
+         initialCorrelation,
+         initialActiveNeuronActivity,
+         initialInactiveNeuronActivity,
+         initialWeightedActiveNeuronActivity,
+         initialWeightedInactiveNeuronActivity,
+         initialSparseness,
+         initialSmoothness,
+         initialStandardDerivation,
+         initialWeightedSparseness,
+         initialWeightedSmoothness,
+         initialWeightedStandardDerivation] = evaluationFunction(currentImage);
+
+    double currentEvaluation = initialEvaluation;
+
+    outputLogs(
+        0,
+        currentImage,
+        initialEvaluation,
+        {},
+        initialResopnse,
+        initialCorrelation,
+        initialActiveNeuronActivity,
+        initialInactiveNeuronActivity,
+        initialWeightedActiveNeuronActivity,
+        initialWeightedInactiveNeuronActivity,
+        initialSparseness,
+        initialSmoothness,
+        initialStandardDerivation,
+        initialWeightedSparseness,
+        initialWeightedSmoothness,
+        initialWeightedStandardDerivation
+    );
+
+    boost::timer::progress_display showProgress(opt->iterationNumber, std::cerr);
+    std::uint64_t iteration = 0;
+    while (iteration < opt->iterationNumber) {
+      auto const
+          [nextImage,
+           evaluation,
+           // To export log
+           pixelEvaluations,
+           response,
+           correlation,
+           activeNeuronActivity,
+           inactiveNeuronActivity,
+           weightedActiveNeuronActivity,
+           weightedInactiveNeuronActivity,
+           sparseness,
+           smoothness,
+           standardDerivation,
+           weightedSparseness,
+           weightedSmoothness,
+           weightedStandardDerivation] = getNextImage(currentImage, currentEvaluation);
+
+      std::cout << "Current evaluation (" << iteration << "): " << evaluation << std::endl;
 
       outputLogs(
           iteration + 1,
-          currentImage,
+          nextImage,
           evaluation,
+          pixelEvaluations,
           response,
           correlation,
           activeNeuronActivity,
@@ -570,10 +618,8 @@ void setupExploreMaximum(CLI::App &app) {
           weightedStandardDerivation
       );
 
-      if (totalPixelDifference == 0) {
-        std::cout << "All of differences are 0." << std::endl;
-        break;
-      }
+      currentImage = std::move(nextImage);
+      currentEvaluation = evaluation;
 
       ++iteration;
       ++showProgress;
