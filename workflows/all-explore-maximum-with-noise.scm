@@ -1,8 +1,8 @@
 (define analyze-explore-maximum
   (cwl-workflow "analyze-explore-maximum.cwl"))
 
-(define run-explore-maximum
-  (cwl-workflow "run-explore-maximum.cwl"))
+(define run-explore-maximum-with-noise
+  (cwl-workflow "run-explore-maximum-with-noise.cwl"))
 
 (workflow ((stdp-executable #:type File)
            (transformed-image-data #:type File)
@@ -13,7 +13,8 @@
            (feedforward-weight #:type File)
            (delays #:type File)
            (template-response #:type File)
-           (delta #:type float)
+           (number-of-noise #:type int)
+           (noise-stddev #:type float)
            (evaluation-function-parameter-a #:type float)
            (evaluation-function-parameter-b #:type float)
            (evaluation-function-parameter-sparseness-intensity #:type float)
@@ -22,7 +23,7 @@
            (evaluation-function-parameter-standard-derivation-intensity #:type float)
            (sort-index-neuron #:type File))
           (pipe
-           (run-explore-maximum
+           (run-explore-maximum-with-noise
             #:stdp-executable stdp-executable
             #:transformed-image-data transformed-image-data
             #:neuron-number neuron-number
@@ -32,7 +33,8 @@
             #:feedforward-weight feedforward-weight
             #:delays delays
             #:template-response template-response
-            #:delta delta
+            #:number-of-noise number-of-noise
+            #:noise-stddev noise-stddev
             #:evaluation-function-parameter-a evaluation-function-parameter-a
             #:evaluation-function-parameter-b evaluation-function-parameter-b
             #:evaluation-function-parameter-sparseness-intensity evaluation-function-parameter-sparseness-intensity

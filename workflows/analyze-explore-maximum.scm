@@ -3,7 +3,6 @@
            (input-directory #:type Directory)
            (total-iteration-number #:type int)
            (output-file #:type string)
-           (delta #:type float)
            (interval #:type int)
            (gnuplot-script #:type File
                            #:default '((class . "File")
@@ -13,7 +12,7 @@
            "-e" "inputDirectory='$(inputs[\"input-directory\"].path)'"
            "-e" "outputFile='$(inputs[\"output-file\"])'"
            "-e" "totalIterationNumber=$(inputs[\"total-iteration-number\"])"
-           "-e" "title='Input of each iterations on exploring (delta=$(inputs.delta), n=$(inputs[\"total-iteration-number\"]))'"
+           "-e" "title='Input of each iterations on exploring (n=$(inputs[\"total-iteration-number\"]))'"
            "-e" "interval=$(inputs[\"interval\"])"
            gnuplot-script
            #:outputs
@@ -149,7 +148,6 @@
            (template-response #:type File)
            (total-iteration-number #:type int)
            (neuron-number #:type int)
-           (delta #:type float)
            (sort-index-neuron #:type File)
            (interval #:type int #:default 10))
           (pipe
@@ -157,7 +155,6 @@
             (generate-explored-images
              #:input-directory input-directory
              #:total-iteration-number total-iteration-number
-             #:delta delta
              #:output-file "all-explored.svg"
              #:interval interval)
             (pipe

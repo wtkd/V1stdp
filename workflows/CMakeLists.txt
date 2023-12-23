@@ -103,4 +103,20 @@ add_custom_command(
   VERBATIM)
 add_custom_target(generate_all-explore-maximum_cwl DEPENDS all-explore-maximum.cwl)
 
-add_custom_target(GenerateCWL DEPENDS generate_test_cwl generate_learn_cwl generate_simulation_cwl generate_analyze_cwl generate_exportImages_cwl generate_responseDivide_cwl generate_all_cwl generate_run-explore-maximum_cwl generate_analyze-explore-maximum_cwl generate_all-explore-maximum_cwl)
+add_custom_command(
+  OUTPUT run-explore-maximum-with-noise.cwl
+  COMMAND ${CCWL_EXECUTABLE} compile run-explore-maximum-with-noise.scm > run-explore-maximum-with-noise.cwl
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  DEPENDS run-explore-maximum-with-noise.scm
+  VERBATIM)
+add_custom_target(generate_run-explore-maximum-with-noise_cwl DEPENDS run-explore-maximum-with-noise.cwl)
+
+add_custom_command(
+  OUTPUT all-explore-maximum-with-noise.cwl
+  COMMAND ${CCWL_EXECUTABLE} compile all-explore-maximum-with-noise.scm > all-explore-maximum-with-noise.cwl
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  DEPENDS all-explore-maximum-with-noise.scm generate_run-explore-maximum-with-noise_cwl generate_analyze-explore-maximum_cwl
+  VERBATIM)
+add_custom_target(generate_all-explore-maximum-with-noise_cwl DEPENDS all-explore-maximum-with-noise.cwl)
+
+add_custom_target(GenerateCWL DEPENDS generate_test_cwl generate_learn_cwl generate_simulation_cwl generate_analyze_cwl generate_exportImages_cwl generate_responseDivide_cwl generate_all_cwl generate_run-explore-maximum_cwl generate_analyze-explore-maximum_cwl generate_all-explore-maximum_cwl generate_run-explore-maximum-with-noise_cwl generate_all-explore-maximum-with-noise_cwl)
