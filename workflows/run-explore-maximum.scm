@@ -29,6 +29,7 @@
            "--feedforward-weight" feedforward-weight
            "--template-response" template-response
            "--delays-file" delays
+           "--gradient-descent"
            "--delta" delta
            "--save-log-directory" output-log-directory-name
            "--save-log-interval" "1"

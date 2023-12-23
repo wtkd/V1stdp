@@ -960,6 +960,7 @@ add_test(
   --evaluation-function-parameter-sparseness-width 10
   --evaluation-function-parameter-smoothness-intensity 1e-6
   --evaluation-function-parameter-standard-derivation-intensity 0
+  --gradient-descent
   --delta 10
   --template-response ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response-0001.txt
   --neuron-number 120
@@ -1111,6 +1112,7 @@ add_test(
   --evaluation-function-parameter-sparseness-width 10
   --evaluation-function-parameter-smoothness-intensity 1e-6
   --evaluation-function-parameter-standard-derivation-intensity 0
+  --gradient-descent
   --delta 10
   --template-response ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response-0001.txt
   --neuron-number 120
@@ -1262,6 +1264,7 @@ add_test(
   --evaluation-function-parameter-sparseness-width 10
   --evaluation-function-parameter-smoothness-intensity 1e-6
   --evaluation-function-parameter-standard-derivation-intensity 0.02
+  --gradient-descent
   --delta 10
   --template-response ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response-0001.txt
   --neuron-number 120
@@ -1399,5 +1402,158 @@ add_test(
 set_tests_properties(
   compare-explore-maximum-with-sd_log PROPERTIES
   FIXTURES_REQUIRED run-explore-maximum-with-sd
+  LABELS explore-maximum
+)
+
+#### With noise
+add_test(
+  NAME run-explore-maximum-with-noise
+  COMMAND $<TARGET_FILE:stdp> tool analyze explore-maximum
+  --seed 0
+  --evaluation-function-parameter-a 0.1
+  --evaluation-function-parameter-b 0.1
+  --evaluation-function-parameter-sparseness-intensity 0.05
+  --evaluation-function-parameter-sparseness-width 10
+  --evaluation-function-parameter-smoothness-intensity 1e-6
+  --evaluation-function-parameter-standard-derivation-intensity 0
+  --search-with-noise
+  --number-of-noise 100
+  --stddev 10
+  --template-response ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response-0001.txt
+  --neuron-number 120
+  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --initial-input-number 100
+  --iteration-number 1
+  --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
+  --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
+  --presentation-time 200
+  --output-file ./data/analyze/explore-maximum/with-noise/last-image.txt
+  --save-log-interval 1
+  --save-log-directory ./data/analyze/explore-maximum/with-noise/log
+  --save-evaluation-file ./data/analyze/explore-maximum/with-noise/evaluation.txt
+  --save-correlation-file ./data/analyze/explore-maximum/with-noise/correlation.txt
+  --save-sparseness-file ./data/analyze/explore-maximum/with-noise/sparseness.txt
+  --save-smoothness-file ./data/analyze/explore-maximum/with-noise/smoothness.txt
+  --save-standard-derivation-file ./data/analyze/explore-maximum/with-noise/standard-derivation.txt
+  --save-active-neuron-activity-file ./data/analyze/explore-maximum/with-noise/activity-active.txt
+  --save-inactive-neuron-activity-file ./data/analyze/explore-maximum/with-noise/activity-inactive.txt
+  --save-evaluation-pixel-file ./data/analyze/explore-maximum/with-noise/evaluation-pixel.txt
+  --save-response-file ./data/analyze/explore-maximum/with-noise/response.txt
+  --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt
+)
+set_tests_properties(
+  run-explore-maximum-with-noise PROPERTIES
+  FIXTURES_REQUIRED data_directory
+  FIXTURES_SETUP run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_evaluation
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/evaluation.txt ./data/analyze/explore-maximum/with-noise/evaluation.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_evaluation PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_correlation
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/correlation.txt ./data/analyze/explore-maximum/with-noise/correlation.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_correlation PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_sparseness
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/sparseness.txt ./data/analyze/explore-maximum/with-noise/sparseness.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_sparseness PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_smoothness
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/smoothness.txt ./data/analyze/explore-maximum/with-noise/smoothness.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_smoothness PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_standard-derivation
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/standard-derivation.txt ./data/analyze/explore-maximum/with-noise/standard-derivation.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_standard-derivation PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_evaluation-pixel
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/evaluation-pixel.txt ./data/analyze/explore-maximum/with-noise/evaluation-pixel.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_evaluation-pixel PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_response
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/response.txt ./data/analyze/explore-maximum/with-noise/response.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_response PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_activity-active
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/activity-active.txt ./data/analyze/explore-maximum/with-noise/activity-active.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_activity-active PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_activity-inactive
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/activity-inactive.txt ./data/analyze/explore-maximum/with-noise/activity-inactive.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_activity-inactive PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_last-image
+  COMMAND diff ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/last-image.txt ./data/analyze/explore-maximum/with-noise/last-image.txt
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_last-image PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
+  LABELS explore-maximum
+)
+
+add_test(
+  NAME compare-explore-maximum-with-noise_log
+  COMMAND diff -r ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/with-noise/log ./data/analyze/explore-maximum/with-noise/log
+)
+set_tests_properties(
+  compare-explore-maximum-with-noise_log PROPERTIES
+  FIXTURES_REQUIRED run-explore-maximum-with-noise
   LABELS explore-maximum
 )

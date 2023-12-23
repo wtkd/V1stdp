@@ -6,11 +6,14 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <random>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <utility>
 
 #include <CLI/CLI.hpp>
+#include <boost/range/counting_range.hpp>
 #include <boost/timer/progress_display.hpp>
 
 #include "ALTDs.hpp"
@@ -27,6 +30,7 @@
 namespace v1stdp::main::tool::analyze::exploreMaximum {
 struct exploreMaximumOptions {
   std::filesystem::path templateResponseFile;
+
   double evaluationFunctionParameterA;
   double evaluationFunctionParameterB;
 
@@ -37,7 +41,12 @@ struct exploreMaximumOptions {
 
   double evaluationFunctionParameterStandardDerivationIntensity;
 
-  double delta;
+  bool gradientDescent;
+  std::optional<double> gradientDescent_delta;
+
+  bool searchWithNoise;
+  std::optional<std::uint32_t> searchWithNoise_N;
+  std::optional<double> searchWithNoise_stddev;
 
   std::uint64_t neuronNumber;
 
@@ -120,8 +129,28 @@ void setupExploreMaximum(CLI::App &app) {
   )
       ->required();
 
-  sub->add_option("-D,--delta", opt->delta, "Add/substract this value to/from intensity of pixel on gradient discnent.")
-      ->required();
+  auto exploringByOption = sub->add_option_group("exploring-by", "What way to explore");
+  exploringByOption->require_option(1);
+
+  auto gradientDescentOptions = sub->add_option_group("gradient descent");
+  auto searchWithNoiseOptions = sub->add_option_group("search with noise");
+
+  exploringByOption->add_flag("--gradient-descent", opt->gradientDescent, "Search by gradient descent")
+      ->needs(gradientDescentOptions->add_option(
+          "-D,--delta",
+          opt->gradientDescent_delta,
+          "Add/substract this value to/from intensity of pixel on gradient discnent."
+      ));
+  exploringByOption
+      ->add_flag("--search-with-noise", opt->searchWithNoise, "Search by changing image with N noise patterns")
+      ->needs(
+          searchWithNoiseOptions->add_option(
+              "--stddev", opt->searchWithNoise_stddev, "Standard deviation of gaussian noise"
+          ),
+          searchWithNoiseOptions->add_option(
+              "--number-of-noise", opt->searchWithNoise_N, "Number of noise to input in each iteration"
+          )
+      );
 
   sub->add_option("--template-response", opt->templateResponseFile, "File which contains template response.")
       ->required()
@@ -451,7 +480,12 @@ void setupExploreMaximum(CLI::App &app) {
           }
         };
 
-    auto const getNextImage = [&](Eigen::ArrayXX<std::int8_t> const &currentImage, double const currentEvaluation) {
+    auto const getNextImage_gradientDescent = [&](Eigen::ArrayXX<std::int8_t> const &currentImage,
+                                                  double const currentEvaluation) {
+      if (not opt->gradientDescent) {
+        throw std::runtime_error("Gradient descent is run unexpectedly");
+      }
+
       Eigen::ArrayXX<std::int8_t> nextImage = currentImage;
 
       std::vector<std::pair<std::tuple<int, int, int>, std::tuple<double, double, int>>> pixelEvaluations;
@@ -487,7 +521,7 @@ void setupExploreMaximum(CLI::App &app) {
                  weightedStandardDerivation] = evaluationFunction(candidateImage);
 
             auto const evaluationDiff = evaluation - currentEvaluation;
-            int const pixelDiff = evaluationDiff * opt->delta * sign;
+            int const pixelDiff = evaluationDiff * opt->gradientDescent_delta.value() * sign;
 
             nextImage(i, j) = std::clamp<int>(
                 int(nextImage(i, j)) + pixelDiff,
@@ -525,6 +559,111 @@ void setupExploreMaximum(CLI::App &app) {
           // To export log
           std::move(pixelEvaluations),
           std::move(response),
+          correlation,
+          activeNeuronActivity,
+          inactiveNeuronActivity,
+          weightedActiveNeuronActivity,
+          weightedInactiveNeuronActivity,
+          sparseness,
+          smoothness,
+          standardDerivation,
+          weightedSparseness,
+          weightedSmoothness,
+          weightedStandardDerivation
+      };
+    };
+    auto const getNextImage_searchWithNoise = [&](Eigen::ArrayXX<std::int8_t> const &currentImage, double const) {
+      static std::normal_distribution<double> distribution(0, opt->searchWithNoise_stddev.value());
+      static std::mt19937 engine(opt->randomSeed);
+
+      if (not opt->searchWithNoise) {
+        throw std::runtime_error("Search with noise is run unexpectedly");
+      }
+
+      auto const getRandomPixelValue = [&](std::int8_t const c) -> std::int8_t {
+        double const r = distribution(engine) + c;
+
+        // NOTE: Do not use maximum value of int8 (=128) in order to provide symmetry value range
+        // [128, ∞): 127
+        if (std::numeric_limits<std::int8_t>::max() <= r) {
+          return std::numeric_limits<std::int8_t>::max() - 1;
+        }
+
+        // [-∞, -127): -127
+        if (r < std::numeric_limits<std::int8_t>::min()) {
+          return std::numeric_limits<std::int8_t>::min();
+        }
+
+        // [-127, -126): -127
+        // [-126, -125): -126
+        // ...
+        // [1, 2): 1
+        // ...
+        // [126, 127): 126
+        // [127, 128): 127
+        return std::floor(r);
+      };
+
+      auto const generateRandomImage = [&](Eigen::ArrayXX<std::int8_t> const &baseImage
+                                       ) -> Eigen::ArrayXX<std::int8_t> {
+        Eigen::ArrayX<std::int8_t> resultImage(baseImage.rows() * baseImage.cols());
+
+        for (auto &&pixel : baseImage.reshaped() | boost::adaptors::indexed()) {
+          resultImage(pixel.index()) = getRandomPixelValue(pixel.value());
+        }
+
+        return resultImage.reshaped(baseImage.rows(), baseImage.cols());
+      };
+
+      Eigen::ArrayXX<std::int8_t> maxImage(simulation::constant::PATCHSIZE, simulation::constant::PATCHSIZE);
+      double maxEvaluation = std::numeric_limits<double>::lowest();
+
+      for ([[maybe_unused]] auto const i : boost::counting_range<std::uint32_t>(0, opt->searchWithNoise_N.value())) {
+        Eigen::ArrayXX<std::int8_t> const candidateImage = generateRandomImage(currentImage);
+        auto const
+            [evaluation,
+             // To export log
+             response,
+             correlation,
+             activeNeuronActivity,
+             inactiveNeuronActivity,
+             weightedActiveNeuronActivity,
+             weightedInactiveNeuronActivity,
+             sparseness,
+             smoothness,
+             standardDerivation,
+             weightedSparseness,
+             weightedSmoothness,
+             weightedStandardDerivation] = evaluationFunction(candidateImage);
+
+        if (maxEvaluation < evaluation) {
+          maxEvaluation = evaluation;
+          maxImage = candidateImage;
+        }
+      }
+
+      auto const
+          [evaluation,
+           // To export log
+           response,
+           correlation,
+           activeNeuronActivity,
+           inactiveNeuronActivity,
+           weightedActiveNeuronActivity,
+           weightedInactiveNeuronActivity,
+           sparseness,
+           smoothness,
+           standardDerivation,
+           weightedSparseness,
+           weightedSmoothness,
+           weightedStandardDerivation] = evaluationFunction(maxImage);
+
+      return std::tuple{
+          std::move(maxImage),
+          evaluation,
+          // To export log
+          std::vector<std::pair<std::tuple<int, int, int>, std::tuple<double, double, int>>>(),
+          response,
           correlation,
           activeNeuronActivity,
           inactiveNeuronActivity,
@@ -595,7 +734,13 @@ void setupExploreMaximum(CLI::App &app) {
            standardDerivation,
            weightedSparseness,
            weightedSmoothness,
-           weightedStandardDerivation] = getNextImage(currentImage, currentEvaluation);
+           weightedStandardDerivation] = [&] {
+            if (opt->gradientDescent)
+              return getNextImage_gradientDescent(currentImage, currentEvaluation);
+            if (opt->searchWithNoise)
+              return getNextImage_searchWithNoise(currentImage, currentEvaluation);
+            throw std::runtime_error("There is no way to explore");
+          }();
 
       std::cout << "Current evaluation (" << iteration << "): " << evaluation << std::endl;
 
@@ -618,7 +763,7 @@ void setupExploreMaximum(CLI::App &app) {
           weightedStandardDerivation
       );
 
-      currentImage = std::move(nextImage);
+      currentImage = nextImage;
       currentEvaluation = evaluation;
 
       ++iteration;
