@@ -14,6 +14,8 @@ struct WeightFeefforwardOrientationOptions {
   std::uint64_t excitatoryNeuronNumber;
   std::uint64_t inhibitoryNeuronNumber;
   std::uint64_t edgeLength;
+
+  bool withoutThreshold = false;
 };
 
 void setupWeightFeedforwardOrientation(CLI::App &app) {
@@ -40,21 +42,34 @@ void setupWeightFeedforwardOrientation(CLI::App &app) {
   )
       ->required();
 
+  sub->add_flag(
+      "--without-threshold",
+      opt->withoutThreshold,
+      "Use all point weighted by value and do not use threshold to get the points to use PCA."
+  );
+
   sub->callback([opt] {
     auto const feedforwardWeights = io::readMatrix<double>(
         opt->inputFile, opt->excitatoryNeuronNumber + opt->inhibitoryNeuronNumber, opt->edgeLength * opt->edgeLength * 2
     );
 
-    auto const toIndex = [](Eigen::MatrixXd const &m) {
+    auto const toIndex = [opt](Eigen::MatrixXd const &m) {
       using index_type = decltype(m.rows());
       std::vector<index_type> rowIndices, colIndices;
 
       auto const average = m.mean();
       for (auto const i : boost::counting_range<index_type>(0, m.rows()))
         for (auto const j : boost::counting_range<index_type>(0, m.cols())) {
-          if (m(i, j) > average) {
-            rowIndices.push_back(i);
-            colIndices.push_back(j);
+          if (opt->withoutThreshold) {
+            for ([[maybe_unused]] auto const k : boost::counting_range<index_type>(0, m(i, j))) {
+              rowIndices.push_back(i);
+              colIndices.push_back(j);
+            }
+          } else {
+            if (m(i, j) > average) {
+              rowIndices.push_back(i);
+              colIndices.push_back(j);
+            }
           }
         }
 
