@@ -446,9 +446,7 @@
                      #:neuron-number excitatory-neuron-number
                      #:stimulation-number test-stimulation-number)))
              (tee
-              (rename #:sort-index-neuron sort-index-neuron
-                      #:sort-index-stimulation sort-index-stimulation
-                      #:response-sorted response-sorted)
+              (identity)
               (pipe
                (plot-matrix (plot-response)
                             #:matrix response-sorted
@@ -460,12 +458,15 @@
                 #:stdp-executable stdp-executable
                 #:response response-test
                 #:sort-index-stimulation sort-index-stimulation
-                #:output-name "response-sorted-half.svg")
-               (plot-matrix (plot-response-half)
-                            #:matrix response-sorted-half
-                            #:output-name "response-sorted-half.svg"
-                            #:title "Response of neurons on each stimulation")
-               (rename #:plot-response-matrix-sorted-half matrix-plot))
+                #:output-name "response-sorted-half.txt")
+               (tee
+                (identity)
+                (pipe
+                 (plot-matrix (plot-response-half)
+                              #:matrix response-sorted-half
+                              #:output-name "response-sorted-half.svg"
+                              #:title "Response of neurons on each stimulation")
+                 (rename #:plot-response-matrix-sorted-half matrix-plot))))
               (pipe
                (sort-lateral-weight
                 #:stdp-executable stdp-executable
@@ -492,16 +493,14 @@
                (rename #:plot-delay-matrix matrix-plot))
               (pipe
                (tee
-                (rename #:sort-index-neuron sort-index-neuron
-                        #:sort-index-stimulation sort-index-stimulation
-                        #:response-sorted response-sorted
-                        #:diff-feedforward-weight diff-feedforward-weight)
+                (identity)
                 (response-correlation-matrix
                  #:stdp-executable stdp-executable
                  #:response response-sorted
                  #:neuron-number excitatory-neuron-number
                  #:stimulation-number test-stimulation-number))
                (tee
+                (identity)
                 (pipe
                  (plot-correlation
                   #:correlation-matrix correlation-matrix-neuron
