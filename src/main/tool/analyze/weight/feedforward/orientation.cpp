@@ -20,6 +20,8 @@ struct WeightFeefforwardOrientationOptions {
 
   std::optional<std::filesystem::path> onCenterRectangles;
   std::optional<std::filesystem::path> offCenterRectangles;
+
+  double orientationThreshold = 3;
 };
 
 void setupWeightFeedforwardOrientation(CLI::App &app) {
@@ -59,6 +61,13 @@ void setupWeightFeedforwardOrientation(CLI::App &app) {
   )
       ->check(CLI::NonexistentPath);
 
+  sub->add_option(
+      "-t,--orientation-threshold",
+      opt->orientationThreshold,
+      ("Threshold of intenity of orientation.\n"
+       "Orientation lower than this value is ignored on rectangle.")
+  );
+
   sub->callback([opt] {
     Eigen::MatrixXd const feedforwardWeights = io::readMatrix<double>(
                                                    opt->inputFile,
@@ -89,14 +98,14 @@ void setupWeightFeedforwardOrientation(CLI::App &app) {
       return indexMatrix.eval();
     };
 
-    auto const calculateEigenVector = [](Eigen::MatrixXd const &m) -> Eigen::MatrixXd {
+    auto const calculateEigenVector = [](Eigen::MatrixXd const &m) -> std::tuple<Eigen::MatrixXd, Eigen::VectorXd> {
       Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(m);
-      return eigensolver.eigenvectors();
+      return {eigensolver.eigenvectors(), eigensolver.eigenvalues()};
     };
 
     auto const calculateAngle = [](Eigen::Vector2d const &v) -> double { return std::atan(v(1) / v(0)); };
 
-    std::vector<double> onAngles, offAngles;
+    std::vector<double> onAngles, offAngles, onIntensity, offIntensity;
 
     std::optional<std::ofstream> outputOnStream(opt->onCenterRectangles);
     std::optional<std::ofstream> outputOffStream(opt->offCenterRectangles);
@@ -106,13 +115,16 @@ void setupWeightFeedforwardOrientation(CLI::App &app) {
 
       Eigen::MatrixXd const onWeight = convertedWeight.leftCols(opt->edgeLength);
       Eigen::MatrixXd const onWeightIndex = toIndex(onWeight).cast<double>();
-      auto const onWeightComponents = calculateEigenVector(
+      auto const [onWeightComponents, onWeightComponentsRatio] = calculateEigenVector(
           statistics::covarianceMatrix<double>(onWeightIndex.leftCols(1), onWeightIndex.rightCols(1))
       );
       auto const onWeightAngle = calculateAngle(onWeightComponents.col(0));
       onAngles.push_back(onWeightAngle);
 
-      if (outputOnStream.has_value()) {
+      double const onOrientationIntensity = std::abs(onWeightComponentsRatio(1) / onWeightComponentsRatio(0));
+      onIntensity.push_back(onOrientationIntensity);
+
+      if (outputOnStream.has_value() && opt->orientationThreshold < onOrientationIntensity) {
         Eigen::MatrixXd const transformed = onWeightIndex.cast<double>() * onWeightComponents;
 
         Eigen::VectorXd const max = transformed.colwise().maxCoeff();
@@ -131,13 +143,16 @@ void setupWeightFeedforwardOrientation(CLI::App &app) {
 
       Eigen::MatrixXd const offWeight = convertedWeight.rightCols(opt->edgeLength);
       Eigen::MatrixXd const offWeightIndex = toIndex(offWeight).cast<double>();
-      auto const offWeightComponents = calculateEigenVector(
+      auto const [offWeightComponents, offWeightComponentsRatio] = calculateEigenVector(
           statistics::covarianceMatrix<double>(offWeightIndex.leftCols(1), offWeightIndex.rightCols(1))
       );
       auto const offWeightAngle = calculateAngle(offWeightComponents.col(0));
       offAngles.push_back(offWeightAngle);
 
-      if (outputOffStream.has_value()) {
+      double const offOrientationIntensity = offWeightComponentsRatio(1) / offWeightComponentsRatio(0);
+      offIntensity.push_back(offOrientationIntensity);
+
+      if (outputOffStream.has_value() && opt->orientationThreshold < offOrientationIntensity) {
         Eigen::MatrixXd const transformed = offWeightIndex.cast<double>() * offWeightComponents;
         Eigen::VectorXd const max = transformed.colwise().maxCoeff();
         Eigen::VectorXd const min = transformed.colwise().minCoeff();
@@ -156,11 +171,14 @@ void setupWeightFeedforwardOrientation(CLI::App &app) {
 
     Eigen::Map<Eigen::VectorXd> const onAnglesVector(onAngles.data(), onAngles.size());
     Eigen::Map<Eigen::VectorXd> const offAnglesVector(offAngles.data(), offAngles.size());
+    Eigen::Map<Eigen::VectorXd> const onIntensityVector(onIntensity.data(), onIntensity.size());
+    Eigen::Map<Eigen::VectorXd> const offIntensityVector(offIntensity.data(), offIntensity.size());
 
-    Eigen::MatrixXd anglesTable(onAnglesVector.rows(), 2);
-    anglesTable << onAnglesVector, offAnglesVector;
+    Eigen::MatrixXd anglesTable(onAnglesVector.rows(), 4);
+    anglesTable << onAnglesVector / std::numbers::pi, offAnglesVector / std::numbers::pi, onIntensityVector,
+        offIntensityVector;
 
-    io::saveMatrix<double>(opt->outputFile, (anglesTable.array() / std::numbers::pi));
+    io::saveMatrix<double>(opt->outputFile, (anglesTable.array()));
   });
 }
 
