@@ -20,6 +20,7 @@ add_subdirectory(weight)
 add_subdirectory(exploreMaximum)
 add_subdirectory(reverseCorrelation)
 add_subdirectory(transpose)
+add_subdirectory(substract)
 
 add_library(Analyze STATIC
   analyze.cpp
@@ -33,6 +34,7 @@ target_link_libraries(Analyze PUBLIC Weight)
 target_link_libraries(Analyze PUBLIC ExploreMaximum)
 target_link_libraries(Analyze PUBLIC reverseCorrelation)
 target_link_libraries(Analyze PUBLIC Transpose)
+target_link_libraries(Analyze PUBLIC Substract)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
