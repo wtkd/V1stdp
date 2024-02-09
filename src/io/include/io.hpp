@@ -19,6 +19,8 @@ std::size_t countWord(std::filesystem::path const &file);
 std::vector<std::vector<std::string>> readVectorVector(std::filesystem::path const &file);
 std::vector<Eigen::ArrayXX<std::int8_t>>
 readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLength);
+std::vector<Eigen::ArrayXX<std::int8_t>>
+readTextImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLength);
 void createEmptyDirectory(std::filesystem::path const &p);
 void ensureParentDirectory(std::filesystem::path const &p);
 
