@@ -4,16 +4,19 @@
 
 if (!exists("title")) title=""
 
-set term svg
+set term svg size 300,200
 set output outputFile
 set title title
 
 set style fill solid border linecolor rgb "black"
-set xtics 0, 10, 180
+set xtics 0, 45, 180
 
 binwidth=7.5
 
 set xrange [0:180]
+
+set xlabel "方位の角度 [°]"
+set ylabel "頻度"
 
 transform(x)=(-x<0?-x+1:-x)*180
 

@@ -9,6 +9,16 @@
 # clusterZeroPadding: The number of length of zero padding on cluster file
 # textImageZeroPadding: The number of length of zero padding used on file names of text images
 
+stdpExecutable="/home/rocktakey/rhq/github.com/wtkd/V1stdp/build/src/main/stdp"
+textImageDirectory="/home/rocktakey/rhq/github.com/wtkd/V1stdp/out/images/imagesText"
+clusterDirectory="/home/rocktakey/rhq/github.com/wtkd/V1stdp/script/clusterMapStimulation"
+outputDirectory="stimulation"
+totalImageNumber=109999
+imageRange=1000
+n=13
+clusterZeroPadding=0
+textImageZeroPadding=6
+
 system sprintf("%s tool filesystem make-directory %s", stdpExecutable, outputDirectory)
 
 if(!exists("n")) {
@@ -47,7 +57,7 @@ do for [cluster=0:n-1] {
 
     set term svg size 500*10,400*(size/10+1) dynamic
     set output outputFile
-    set multiplot title sprintf("Cluster %d", cluster) layout (size/10+1),10
+    set multiplot layout (size/10+1),10
     set size ratio 1
 
     do for [i=1:size] {
@@ -58,7 +68,6 @@ do for [cluster=0:n-1] {
         baseName = sprintf(sprintf('%%0%dd', textImageZeroPadding), (ceil(imageNumberFromTop) % imageRange) + (imageTop + 1));
         inputFile = sprintf("%s/%s.txt", textImageDirectory, baseName);
 
-        set title sprintf("Input image %s", baseName)
         set cbrange [-127:128]
         set cbtics (-127, -64, 0, 64, 128)
         set autoscale yfixmin
@@ -67,6 +76,11 @@ do for [cluster=0:n-1] {
         set autoscale xfixmax
         unset tics
         set size ratio 1
+
+        set palette defined (0 "#000000", 1 "#ffffff")
+
+        unset colorbox
+        set border linewidth 3 linecolor "white"
 
         plot inputFile matrix with image pixels
         reset

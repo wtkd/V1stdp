@@ -8,7 +8,14 @@
 # clusterZeroPadding: The number of length of zero padding on cluster file
 # textImageZeroPadding: The number of length of zero padding used on file names of text images
 
-system sprintf("%s tool filesystem make-directory %s", stdpExecutable, outputDirectory)
+stdpExecutable="/home/rocktakey/rhq/github.com/wtkd/V1stdp/build/src/main/stdp"
+diffInputDirectory="/home/rocktakey/rhq/github.com/wtkd/V1stdp/data/analyze/feedforward-weight-diff"
+clusterDirectory="/home/rocktakey/rhq/github.com/wtkd/V1stdp/script/clusterMapNeuron"
+outputDirectory="neurons"
+totalNeuronNumber=100
+n=15
+clusterZeroPadding=0
+textImageZeroPadding=0
 
 if(!exists("n")) {
     stats numberFile using (n=$1,$0) nooutput
@@ -40,14 +47,12 @@ do for [cluster=0:n-1] {
 
     set term svg size 500*10,400*(size/10+1) dynamic
     set output outputFile
-    set multiplot title sprintf("Cluster %d", cluster) layout (size/10+1),10
+    set multiplot layout (size/10+1),10
     set size ratio 1
 
     do for [i=1:size] {
         baseName = sprintf(sprintf('%%0%dd', textImageZeroPadding), clusters[i]);
         inputFile = sprintf("%s/%s.txt", diffInputDirectory, baseName);
-
-        set title sprintf("Neuron %s", baseName)
         set cbrange [-1:1]
         set cbtics (-1, 0, 1)
         set autoscale yfixmin
@@ -56,7 +61,11 @@ do for [cluster=0:n-1] {
         set autoscale xfixmax
         unset tics
         set size ratio 1
-        set palette defined (0 "#00ff00", 1 "#000000", 2 "#ff00ff")
+
+        set border linewidth 3 linecolor "white"
+        unset colorbox
+        # set palette defined (0 "#00ff00", 1 "#000000", 2 "#ff00ff")
+        set palette defined (0 "#000000", 1 "#ffffff")
 
         plot inputFile matrix with image pixels
         reset

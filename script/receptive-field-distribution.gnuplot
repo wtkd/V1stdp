@@ -2,7 +2,7 @@
 # offInputFile: File contains off-center rectangle
 # outputFile: SVG file name to output.
 
-set term svg
+set term svg size 300,300
 set output outputFile
 
 set autoscale yfixmin
@@ -13,7 +13,10 @@ set size ratio 1
 set xrange [0:16]
 set yrange [0:16]
 
-set tics 1
+set notics
 
-plot "data/on-rect.txt" with ellipses linecolor "#990099" notitle, \
-     "data/off-rect.txt" with ellipses linecolor "#009900" notitle
+set xlabel "視野X軸"
+set ylabel "視野Y軸"
+
+# plot "data/on-rect.txt" with ellipses linecolor "#990099" notitle fs solid 0.1
+plot "data/off-rect.txt" with ellipses linecolor "#009900" notitle fs solid 0.1
