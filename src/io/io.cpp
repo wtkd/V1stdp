@@ -109,8 +109,8 @@ readTextImages(std::istream &inputStream, std::uint64_t const edgeLength) {
 
     if (v.size() != totalPixelPerImage) {
       throw std::ios_base::failure(
-          "You expect " + std::to_string(totalPixelPerImage) + "colomns" + ", but " + std::to_string(v.size()) +
-          "was read."
+          "You expect " + std::to_string(totalPixelPerImage) + " colomns, but " + std::to_string(v.size()) +
+          " was read."
       );
     }
 
