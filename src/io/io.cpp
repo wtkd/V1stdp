@@ -91,8 +91,7 @@ readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLengt
   return matrixImages;
 }
 
-std::vector<Eigen::ArrayXX<std::int8_t>>
-readTextImages(std::istream &inputStream, std::uint64_t const edgeLength) {
+std::vector<Eigen::ArrayXX<std::int8_t>> readTextImages(std::istream &inputStream, std::uint64_t const edgeLength) {
 
   std::uint64_t const totalPixelPerImage = edgeLength * edgeLength;
 
