@@ -92,15 +92,14 @@ readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLengt
 }
 
 std::vector<Eigen::ArrayXX<std::int8_t>>
-readTextImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLength) {
-  std::ifstream ifs(inputFile);
+readTextImages(std::istream &inputStream, std::uint64_t const edgeLength) {
 
   std::uint64_t const totalPixelPerImage = edgeLength * edgeLength;
 
   std::vector<Eigen::ArrayXX<std::int8_t>> result;
 
   std::string line;
-  while (std::getline(ifs, line)) {
+  while (std::getline(inputStream, line)) {
     std::stringstream linestream(line);
 
     std::vector<int> v((std::istream_iterator<int>(linestream)), std::istream_iterator<int>());
@@ -118,7 +117,7 @@ readTextImages(std::filesystem::path const &inputFile, std::uint64_t const edgeL
     Eigen::ArrayXX<std::int8_t> const clamped = [&, v = std::move(v)]() {
       Eigen::ArrayXX<std::int8_t> clamped(edgeLength, edgeLength);
 
-      std::ranges::transform(v, clamped.reshaped().begin(), [](auto const x) {
+      std::ranges::transform(v, clamped.reshaped<Eigen::RowMajor>().begin(), [](auto const x) {
         if (x < std::numeric_limits<std::int8_t>::min() || std::numeric_limits<std::int8_t>::max() < x)
           throw std::ios_base::failure("The number " + std::to_string(x) + " cannot be load as signed 8 bit integer.");
 
