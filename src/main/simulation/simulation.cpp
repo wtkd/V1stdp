@@ -106,8 +106,6 @@ void setupLearn(CLI::App &app) {
     // NOTE: At first, it was initialized 50 but became 30 soon, so I squashed it.
     int const NBLASTSPIKESPRES = 30;
 
-    int const NBSTEPSPERPRES = (int)(presentationTime / constant::dt);
-
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = 2000;
@@ -182,13 +180,14 @@ void setupLearn(CLI::App &app) {
 
     auto const [state, result] =
         run(model,
-            presentationTime,
+            0,
+            // Inputs only fire until the 'relaxation' period at the end of each presentation
+            presentationTime - constant::TIMEZEROINPUT,
+            constant::TIMEZEROINPUT,
             NBLASTSPIKESPRES,
             step,
             NBRESPS,
             Phase::learning,
-            // Inputs only fire until the 'relaxation' period at the end of each presentation
-            {0, NBSTEPSPERPRES - double(constant::TIMEZEROINPUT) / constant::dt},
             wff,
             w,
             model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
@@ -292,8 +291,6 @@ void setupTest(CLI::App &app) {
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const NBRESPS = NBPRES;
 
-    int const NBSTEPSPERPRES = (int)(presentationTime / constant::dt);
-
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
@@ -341,13 +338,14 @@ void setupTest(CLI::App &app) {
 
     auto const [state, result] =
         run(model,
-            presentationTime,
+            0,
+            // Inputs only fire until the 'relaxation' period at the end of each presentation
+            presentationTime - constant::TIMEZEROINPUT,
+            constant::TIMEZEROINPUT,
             NBLASTSPIKESPRES,
             step,
             NBRESPS,
             Phase::testing,
-            // Inputs only fire until the 'relaxation' period at the end of each presentation
-            {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
             wff,
             w,
             model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
@@ -438,8 +436,6 @@ void setupMix(CLI::App &app) {
 
     int const presentationTime = opt->presentationTime;
 
-    int const NBSTEPSPERPRES = (int)(presentationTime / constant::dt);
-
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
@@ -489,13 +485,14 @@ void setupMix(CLI::App &app) {
 
     auto const [state, result] =
         run(model,
-            presentationTime,
+            0,
+            presentationTime - constant::TIMEZEROINPUT,
+            // Inputs only fire until the 'relaxation' period at the end of each presentation
+            constant::TIMEZEROINPUT,
             NBLASTSPIKESPRES,
             NBPRES,
             NBRESPS,
             Phase::mixing,
-            // Inputs only fire until the 'relaxation' period at the end of each presentation
-            {0, NBSTEPSPERPRES - ((double)constant::TIMEZEROINPUT / constant::dt)},
             wff,
             w,
             model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
@@ -631,13 +628,14 @@ void setupPulse(CLI::App &app) {
 
     auto const [state, result] =
         run(model,
-            presentationTime,
+            constant::PULSESTART,
+            // In the PULSE case, inputs only fire for a short period of time
+            PULSETIME,
+            presentationTime - constant::PULSESTART - PULSETIME,
             NBLASTSPIKESPRES,
             NBPRES,
             NBRESPS,
             Phase::pulse,
-            // In the PULSE case, inputs only fire for a short period of time
-            {constant::PULSESTART, double(PULSETIME) / constant::dt},
             wff,
             w,
             model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
@@ -748,12 +746,12 @@ void setupSpontaneous(CLI::App &app) {
     auto const [state, result] =
         run(model,
             presentationTime,
+            0,
+            0,
             NBLASTSPIKESPRES,
             NBPRES,
             NBRESPS,
             Phase::spontaneous,
-            // Without presentation
-            {0, 0},
             wff,
             w,
             model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,

@@ -32,12 +32,13 @@ template <bool outputToConsole = true, typename F>
            std::same_as<std::invoke_result_t<F, std::uint32_t>, Eigen::ArrayXd>
 std::pair<ModelState, ModelResult>
 run(Model const &model,
-    int const presentationTime,
+    int const baselineTime,
+    int const stimulationTime,
+    int const relaxationTime,
     int const NBLASTSPIKESPRES,
     unsigned const NBPRES,
     int const NBRESPS,
     Phase const phase,
-    std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
     Eigen::MatrixXd const &negnoisein,
@@ -72,8 +73,9 @@ run(Model const &model,
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
   // number. IF using 'mix', you must specify two stimulus numbers.
 
-  int const NBSTEPSPERPRES = (int)(presentationTime / constant::dt);
-  int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * NBSTEPSPERPRES;
+  int const totalTimePerPresentation = baselineTime + stimulationTime + relaxationTime;
+  int const stepNumberPerPresentation = int(totalTimePerPresentation / constant::dt);
+  int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * stepNumberPerPresentation;
   // totaldatasize = fsize / sizeof(double); // To change depending on whether
   // the data is float/single (4) or double (8)
 
@@ -100,7 +102,6 @@ run(Model const &model,
   // Initializations done, let's get to it!
 
   clock_t tic = clock();
-  int numstep = 0;
 
   auto const saveAllWeights = [](std::filesystem::path const &saveDirectory,
                                  int const index,
@@ -196,6 +197,8 @@ run(Model const &model,
 
   auto &v = modelState.v;
 
+  int numstep = 0;
+
   // For each stimulus presentation...
   for (auto const numpres : boost::counting_range<unsigned>(0, NBPRES)) {
     // Save data
@@ -232,12 +235,11 @@ run(Model const &model,
 
     // Stimulus presentation
     // TODO: rand
-    for (auto const numstepthispres : boost::counting_range<unsigned>(0, NBSTEPSPERPRES)) {
+    for (auto const currentStep : boost::counting_range<unsigned>(0, stepNumberPerPresentation)) {
+      auto const currentTime = currentStep * constant::dt;
       // We determine FF spikes, based on the specified lgnrates:
       Eigen::VectorXd const lgnfirings = [&]() -> Eigen::ArrayXd {
-        auto const [presentationStart, presentationEnd] = presentationTimeRange;
-
-        if (presentationStart <= numstepthispres && (numstepthispres < presentationEnd)) {
+        if (baselineTime <= currentTime && currentTime < baselineTime + stimulationTime) {
           Eigen::ArrayXd r(constant::FFRFSIZE);
           for (auto &&i : r | boost::adaptors::indexed()) {
             // Note that this may go non-poisson if the specified lgnrates are too high (i.e. not << 1.0)
@@ -562,12 +564,13 @@ run(Model const &model,
 template <bool outputToConsole = true>
 std::pair<ModelState, ModelResult>
 run(Model const &model,
-    int const presentationTime,
+    int const baselineTime,
+    int const stimulationTime,
+    int const relaxationTime,
     int const NBLASTSPIKESPRES,
     unsigned const NBPRES,
     int const NBRESPS,
     Phase const phase,
-    std::pair<std::uint16_t, std::uint16_t> presentationTimeRange,
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
     Eigen::MatrixXd const &negnoisein,
@@ -591,12 +594,13 @@ run(Model const &model,
 
   return run<outputToConsole>(
       model,
-      presentationTime,
+      baselineTime,
+      stimulationTime,
+      relaxationTime,
       NBLASTSPIKESPRES,
       NBPRES,
       NBRESPS,
       phase,
-      presentationTimeRange,
       initwff,
       initw,
       negnoisein,

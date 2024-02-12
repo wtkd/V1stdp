@@ -124,8 +124,6 @@ void setupInputNoise(CLI::App &app) {
     };
 
     // Load data
-    int const NBSTEPSPERPRES = (int)(opt->presentationTime / simulation::constant::dt);
-
     Eigen::MatrixXd const w =
         simulation::readWeights(simulation::constant::NBNEUR, simulation::constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff =
@@ -174,12 +172,13 @@ void setupInputNoise(CLI::App &app) {
 
       auto const [state, result] = simulation::run<false>(
           simulation::Model(),
-          opt->presentationTime,
+          0,
+          opt->presentationTime - simulation::constant::TIMEZEROINPUT,
+          simulation::constant::TIMEZEROINPUT,
           1, // Lastnspikes is not needed
           1, // Only one presentation
           1, // Get only one response
           simulation::Phase::testing,
-          {0, NBSTEPSPERPRES - ((double)simulation::constant::TIMEZEROINPUT / simulation::constant::dt)},
           wff,
           w,
           negnoisein,
