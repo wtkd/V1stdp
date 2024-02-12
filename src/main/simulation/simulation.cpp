@@ -65,6 +65,8 @@ void setupLearn(CLI::App &app) {
   sub->add_option("-N,--step,--step-number-learning", opt->totalItarations, "Step number of times on learning");
 
   auto inputFileOptions = sub->add_option_group("input-images");
+  inputFileOptions->require_option(1);
+
   inputFileOptions->add_option(
       "-B,--binary-input-file",
       opt->inputFileBinary,
@@ -265,6 +267,8 @@ void setupTest(CLI::App &app) {
   sub->add_option("-N,--step,--step-number-testing", opt->totalIterations, "Step number of times on testing");
 
   auto inputFileOptions = sub->add_option_group("input-images");
+  inputFileOptions->require_option(1);
+
   inputFileOptions->add_option(
       "-B,--binary-input-file",
       opt->inputFileBinary,
@@ -436,6 +440,8 @@ void setupMix(CLI::App &app) {
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
 
   auto inputFileOptions = sub->add_option_group("input-images");
+  inputFileOptions->require_option(1);
+
   inputFileOptions->add_option(
       "-B,--binary-input-file",
       opt->inputFileBinary,
@@ -613,6 +619,8 @@ void setupPulse(CLI::App &app) {
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
 
   auto inputFileOptions = sub->add_option_group("input-images");
+  inputFileOptions->require_option(1);
+
   inputFileOptions->add_option(
       "-B,--binary-input-file",
       opt->inputFileBinary,
