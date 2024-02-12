@@ -387,13 +387,9 @@ void setupTest(CLI::App &app) {
 
     io::createEmptyDirectory(saveDirectory);
 
-    int const lastIterationNumberToSaveSpikes = 30;
+    int const lastIterationNumberToSaveSpikes = totalIterations;
 
-    int const NBPRES = totalIterations; //* NBPRESPERPATTERNTESTING;
-
-    // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
-    // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
-    int const lastIterationNumberToSaveResponses = NBPRES;
+    int const lastIterationNumberToSaveResponses = totalIterations;
 
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
