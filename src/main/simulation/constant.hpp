@@ -26,10 +26,7 @@ inline double constexpr MAXW = 50.0;
 inline double constexpr VSTIM = 1.0;
 
 inline unsigned constexpr TIMEZEROINPUT = 100;
-inline unsigned constexpr PRESTIMEMIXING = 350; // in ms
-inline unsigned constexpr PRESTIMEPULSE = 350;
 inline unsigned constexpr NBPATTERNSSPONT = 300;
-inline unsigned constexpr PRESTIMESPONT = 1000;
 inline unsigned constexpr PULSESTART = 0;
 
 // #define NBPRESPERPATTERNLEARNING 30

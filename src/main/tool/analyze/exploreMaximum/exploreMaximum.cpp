@@ -52,7 +52,9 @@ struct exploreMaximumOptions {
 
   int randomSeed = 0;
 
-  std::filesystem::path inputFile;
+  std::optional<std::filesystem::path> inputFileBinary;
+  std::optional<std::filesystem::path> inputFileText;
+
   std::uint64_t initialInputNumber;
 
   unsigned iterationNumber;
@@ -159,7 +161,27 @@ void setupExploreMaximum(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
 
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+  auto inputFileOptions = sub->add_option_group("input-images");
+  inputFileOptions
+      ->add_option(
+          "-B,--binary-input-file",
+          opt->inputFileBinary,
+          "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
+  inputFileOptions
+      ->add_option(
+          "-T,--text-input-file",
+          opt->inputFileText,
+          "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
+  CLI::deprecate_option(
+      inputFileOptions->add_option("-I,--input-file", opt->inputFileBinary, "Input image data")
+          ->check(CLI::ExistingFile),
+      "--binary-input-file"
+  );
+
   sub->add_option("-N,--initial-input-number", opt->initialInputNumber, "The number of initial input image")
       ->required();
 
@@ -253,8 +275,9 @@ void setupExploreMaximum(CLI::App &app) {
         simulation::constant::NBNEUR, simulation::constant::FFRFSIZE, simulation::constant::MAXDELAYDT
     );
 
-    std::vector<Eigen::ArrayXX<std::int8_t>> const imageVector =
-        io::readImages(opt->inputFile, simulation::constant::PATCHSIZE);
+    auto const imageVector = opt->inputFileBinary.has_value()
+                                 ? io::readImages(opt->inputFileBinary.value(), simulation::constant::PATCHSIZE)
+                                 : io::readImages(opt->inputFileText.value(), simulation::constant::PATCHSIZE);
 
     Eigen::VectorXd const templateResponse = io::readMatrix<double>(opt->templateResponseFile, opt->neuronNumber, 1)
                                                  .reshaped()

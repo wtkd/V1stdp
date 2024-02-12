@@ -42,17 +42,26 @@ void setAndPrintRandomSeed(int const randomSeed) {
 
 struct LearnOptions {
   Model model;
-  int randomSeed = 0;
-  int totalItarations = 500'000;
+
+  int baselineTime = 0;
+  int stimulationTime = 250;
+  int relaxationTime = constant::TIMEZEROINPUT;
+
+  int totalIterations = 500'000;
+  int startLearningNumber = 401;
+
   std::optional<std::filesystem::path> inputFileBinary;
   std::optional<std::filesystem::path> inputFileText;
-  std::filesystem::path saveDirectory;
+
+  int imageRange = 0;
+
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
+
+  std::filesystem::path saveDirectory;
   int saveLogInterval = 50'000;
-  int presentationTime = 350;
-  int startLearningNumber = 401;
-  int imageRange = 0;
+
+  int randomSeed = 0;
 };
 
 void setupLearn(CLI::App &app) {
@@ -62,41 +71,39 @@ void setupLearn(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
-  sub->add_option("-N,--step,--step-number-learning", opt->totalItarations, "Step number of times on learning");
+
+  sub->add_option(
+      "-N,--iterations",
+      opt->totalIterations,
+      "Total iteration number of times. It inputs one image to model in each iteration."
+  );
+  CLI::deprecate_option(
+      sub->add_option("--step,--step-number-learning", opt->totalIterations, "Step number of times on learning"),
+      "--iterations"
+  );
 
   auto inputFileOptions = sub->add_option_group("input-images");
   inputFileOptions->require_option(1);
 
-  inputFileOptions->add_option(
-      "-B,--binary-input-file",
-      opt->inputFileBinary,
-      "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
-  );
-  inputFileOptions->add_option(
-      "-T,--text-input-file",
-      opt->inputFileText,
-      "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
-  );
+  inputFileOptions
+      ->add_option(
+          "-B,--binary-input-file",
+          opt->inputFileBinary,
+          "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
+  inputFileOptions
+      ->add_option(
+          "-T,--text-input-file",
+          opt->inputFileText,
+          "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
   CLI::deprecate_option(
       inputFileOptions->add_option("-I,--input-file", opt->inputFileBinary, "Input image data")
-          ->required()
           ->check(CLI::ExistingFile),
       "--binary-input-file"
   );
-
-  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
-      ->required()
-      ->check(CLI::NonexistentPath);
-
-  auto delayPolicy = sub->add_option_group("delay-policy");
-  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays")
-      ->check(CLI::ExistingFile);
-  delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
-  delayPolicy->require_option(1);
-
-  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
-  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
-  sub->add_option("--start-learning-number", opt->startLearningNumber, "Start learning after this number ostimulation");
 
   sub->add_option(
       "-R,--image-range",
@@ -106,21 +113,42 @@ void setupLearn(CLI::App &app) {
        "The negative value -N means using all except bottom N of image.")
   );
 
+  auto delayPolicy = sub->add_option_group("delay-policy");
+  delayPolicy->add_option("--delays-file", opt->delaysFile, "File which contains matrix of delays")
+      ->check(CLI::ExistingFile);
+  delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
+  delayPolicy->require_option(1);
+
+  CLI::deprecate_option(
+      sub->add_option("--presentation-time", "Presentation time"),
+      "--baseline-time, --stimulation-time, --relaxation-time"
+  );
+  sub->add_option("--baseline-time", opt->baselineTime, "Duration [ms] to input nothing to model before stimulation.");
+  sub->add_option("--stimulation-time", opt->stimulationTime, "Duration [ms] to input image stimulation to model.");
+  sub->add_option(
+      "--relaxation-time", opt->relaxationTime, "Duration [ms] to input nothing to model after stimulation."
+  );
+
+  sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
+      ->required()
+      ->check(CLI::NonexistentPath);
+  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
+
+  sub->add_option("--start-learning-number", opt->startLearningNumber, "Start learning after this number ostimulation");
+
   sub->callback([opt]() {
     Model const &model = opt->model;
 
     auto const &randomSeed = opt->randomSeed;
     setAndPrintRandomSeed(randomSeed);
 
-    auto const &totalIterations = opt->totalItarations;
+    auto const &totalIterations = opt->totalIterations;
 
     auto const &saveDirectory = opt->saveDirectory;
 
     io::createEmptyDirectory(saveDirectory);
 
     auto const &saveLogInterval = opt->saveLogInterval;
-
-    auto const &presentationTime = opt->presentationTime; // ms
 
     // NOTE: At first, it was initialized 50 but became 30 soon, so I squashed it.
     int const lastIterationNumberToSaveSpikes = 30;
@@ -202,10 +230,9 @@ void setupLearn(CLI::App &app) {
     auto const [state, result] = run<true>(
         model,
 
-        0,
-        // Inputs only fire until the 'relaxation' period at the end of each presentation
-        presentationTime - constant::TIMEZEROINPUT,
-        constant::TIMEZEROINPUT,
+        opt->baselineTime,
+        opt->stimulationTime,
+        opt->relaxationTime,
 
         totalIterations,
 
@@ -242,19 +269,30 @@ void setupLearn(CLI::App &app) {
 
 struct TestOptions {
   Model model;
-  int randomSeed = 0;
+
+  int baselineTime = 0;
+  int stimulationTime = 250;
+  int relaxationTime = constant::TIMEZEROINPUT;
+
   int totalIterations = 1'000;
+
   std::optional<std::filesystem::path> inputFileBinary;
   std::optional<std::filesystem::path> inputFileText;
-  std::filesystem::path saveDirectory;
+
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
-  std::optional<std::filesystem::path> delaysFile;
-  bool randomDelay = false;
-  int presentationTime = 350;
+
   int imageRange = 0;
+
   bool reverseColomn = false;
   bool reverseRow = false;
+
+  std::optional<std::filesystem::path> delaysFile;
+  bool randomDelay = false;
+
+  std::filesystem::path saveDirectory;
+
+  int randomSeed = 0;
 };
 
 void setupTest(CLI::App &app) {
@@ -264,24 +302,36 @@ void setupTest(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
-  sub->add_option("-N,--step,--step-number-testing", opt->totalIterations, "Step number of times on testing");
+
+  sub->add_option(
+      "-N,--iterations",
+      opt->totalIterations,
+      "Total iteration number of times. It inputs one image to model in each iteration."
+  );
+  CLI::deprecate_option(
+      sub->add_option("--step,--step-number-testing", opt->totalIterations, "Step number of times on testing"),
+      "--iterations"
+  );
 
   auto inputFileOptions = sub->add_option_group("input-images");
   inputFileOptions->require_option(1);
 
-  inputFileOptions->add_option(
-      "-B,--binary-input-file",
-      opt->inputFileBinary,
-      "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
-  );
-  inputFileOptions->add_option(
-      "-T,--text-input-file",
-      opt->inputFileText,
-      "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
-  );
+  inputFileOptions
+      ->add_option(
+          "-B,--binary-input-file",
+          opt->inputFileBinary,
+          "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
+  inputFileOptions
+      ->add_option(
+          "-T,--text-input-file",
+          opt->inputFileText,
+          "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
   CLI::deprecate_option(
       inputFileOptions->add_option("-I,--input-file", opt->inputFileBinary, "Input image data")
-          ->required()
           ->check(CLI::ExistingFile),
       "--binary-input-file"
   );
@@ -304,7 +354,16 @@ void setupTest(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
-  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
+  CLI::deprecate_option(
+      sub->add_option("--presentation-time", "Presentation time"),
+      "--baseline-time, --stimulation-time, --relaxation-time"
+  );
+  sub->add_option("--baseline-time", opt->baselineTime, "Duration [ms] to input nothing to model before stimulation.");
+  sub->add_option("--stimulation-time", opt->stimulationTime, "Duration [ms] to input image stimulation to model.");
+  sub->add_option(
+      "--relaxation-time", opt->relaxationTime, "Duration [ms] to input nothing to model after stimulation."
+  );
+
   sub->add_option(
       "-R,--image-range",
       opt->imageRange,
@@ -328,7 +387,6 @@ void setupTest(CLI::App &app) {
 
     io::createEmptyDirectory(saveDirectory);
 
-    auto const &presentationTime = opt->presentationTime;
     int const lastIterationNumberToSaveSpikes = 30;
 
     int const NBPRES = totalIterations; //* NBPRESPERPATTERNTESTING;
@@ -388,10 +446,9 @@ void setupTest(CLI::App &app) {
     auto const [state, result] = run<false>(
         model,
 
-        0,
-        // Inputs only fire until the 'relaxation' period at the end of each presentation
-        presentationTime - constant::TIMEZEROINPUT,
-        constant::TIMEZEROINPUT,
+        opt->baselineTime,
+        opt->stimulationTime,
+        opt->relaxationTime,
 
         totalIterations,
 
@@ -419,16 +476,25 @@ void setupTest(CLI::App &app) {
 
 struct MixOptions {
   Model model;
-  int randomSeed = 0;
+
+  int baselineTime = 0;
+  int stimulationTime = 250;
+  int relaxationTime = constant::TIMEZEROINPUT;
+
   std::optional<std::filesystem::path> inputFileBinary;
   std::optional<std::filesystem::path> inputFileText;
-  std::filesystem::path saveDirectory;
+
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
+
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
-  int presentationTime = constant::PRESTIMEMIXING;
+
+  std::filesystem::path saveDirectory;
+
   std::pair<int, int> stimulationNumbers;
+
+  int randomSeed = 0;
 };
 
 void setupMix(CLI::App &app) {
@@ -442,19 +508,22 @@ void setupMix(CLI::App &app) {
   auto inputFileOptions = sub->add_option_group("input-images");
   inputFileOptions->require_option(1);
 
-  inputFileOptions->add_option(
-      "-B,--binary-input-file",
-      opt->inputFileBinary,
-      "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
-  );
-  inputFileOptions->add_option(
-      "-T,--text-input-file",
-      opt->inputFileText,
-      "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
-  );
+  inputFileOptions
+      ->add_option(
+          "-B,--binary-input-file",
+          opt->inputFileBinary,
+          "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
+  inputFileOptions
+      ->add_option(
+          "-T,--text-input-file",
+          opt->inputFileText,
+          "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
   CLI::deprecate_option(
       inputFileOptions->add_option("-I,--input-file", opt->inputFileBinary, "Input image data")
-          ->required()
           ->check(CLI::ExistingFile),
       "--binary-input-file"
   );
@@ -477,7 +546,16 @@ void setupMix(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
-  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
+  CLI::deprecate_option(
+      sub->add_option("--presentation-time", "Presentation time"),
+      "--baseline-time, --stimulation-time, --relaxation-time"
+  );
+  sub->add_option("--baseline-time", opt->baselineTime, "Duration [ms] to input nothing to model before stimulation.");
+  sub->add_option("--stimulation-time", opt->stimulationTime, "Duration [ms] to input image stimulation to model.");
+  sub->add_option(
+      "--relaxation-time", opt->relaxationTime, "Duration [ms] to input nothing to model after stimulation."
+  );
+
   sub->add_option("stimulation-number", opt->stimulationNumbers, "Two numbers of stimulation to mix")->required();
 
   sub->callback([opt]() {
@@ -503,8 +581,6 @@ void setupMix(CLI::App &app) {
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
     int const lastIterationNumberToSaveResponses = totalIterations;
-
-    int const presentationTime = opt->presentationTime;
 
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
@@ -558,10 +634,9 @@ void setupMix(CLI::App &app) {
     auto const [state, result] = run<false>(
         model,
 
-        0,
-        presentationTime - constant::TIMEZEROINPUT,
-        // Inputs only fire until the 'relaxation' period at the end of each presentation
-        constant::TIMEZEROINPUT,
+        opt->baselineTime,
+        opt->stimulationTime,
+        opt->relaxationTime,
 
         totalIterations,
 
@@ -596,18 +671,27 @@ void setupMix(CLI::App &app) {
 
 struct PulseOptions {
   Model model;
-  int randomSeed = 0;
-  int step = 50;
+
+  int baselineTime = 0;
+  int stimulationTime = 100;
+  int relaxationTime = 250;
+
+  int totalIterations = 50;
+
   std::optional<std::filesystem::path> inputFileBinary;
   std::optional<std::filesystem::path> inputFileText;
-  std::filesystem::path saveDirectory;
+
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
+
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
-  int presentationTime = constant::PRESTIMEPULSE;
+
   int stimulationNumber;
-  int pulsetime = 100;
+
+  std::filesystem::path saveDirectory;
+
+  int randomSeed = 0;
 };
 
 void setupPulse(CLI::App &app) {
@@ -621,19 +705,22 @@ void setupPulse(CLI::App &app) {
   auto inputFileOptions = sub->add_option_group("input-images");
   inputFileOptions->require_option(1);
 
-  inputFileOptions->add_option(
-      "-B,--binary-input-file",
-      opt->inputFileBinary,
-      "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
-  );
-  inputFileOptions->add_option(
-      "-T,--text-input-file",
-      opt->inputFileText,
-      "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
-  );
+  inputFileOptions
+      ->add_option(
+          "-B,--binary-input-file",
+          opt->inputFileBinary,
+          "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
+  inputFileOptions
+      ->add_option(
+          "-T,--text-input-file",
+          opt->inputFileText,
+          "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
+      )
+      ->check(CLI::ExistingFile);
   CLI::deprecate_option(
       inputFileOptions->add_option("-I,--input-file", opt->inputFileBinary, "Input image data")
-          ->required()
           ->check(CLI::ExistingFile),
       "--binary-input-file"
   );
@@ -656,11 +743,20 @@ void setupPulse(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
-  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
+  CLI::deprecate_option(
+      sub->add_option("--presentation-time", "Presentation time"),
+      "--baseline-time, --stimulation-time, --relaxation-time"
+  );
+  sub->add_option("--baseline-time", opt->baselineTime, "Duration [ms] to input nothing to model before stimulation.");
+  sub->add_option("--stimulation-time", opt->stimulationTime, "Duration [ms] to input image stimulation to model.");
+  sub->add_option(
+      "--relaxation-time", opt->relaxationTime, "Duration [ms] to input nothing to model after stimulation."
+  );
+
   sub->add_option("stimulation-number", opt->stimulationNumber, "Numbers of stimulation")->required();
   sub->add_option(
       "pulsetime",
-      opt->pulsetime,
+      opt->stimulationTime,
       "This is the time during which stimulus is active during PULSE trials "
       "(different from PRESTIMEPULSE which is total trial time)"
   );
@@ -671,7 +767,7 @@ void setupPulse(CLI::App &app) {
     auto const &randomSeed = opt->randomSeed;
     setAndPrintRandomSeed(randomSeed);
 
-    int const &NBPATTERNSPULSE = opt->step;
+    int const &NBPATTERNSPULSE = opt->totalIterations;
 
     auto const &saveDirectory = opt->saveDirectory;
 
@@ -680,10 +776,10 @@ void setupPulse(CLI::App &app) {
     // -1 because of c++ zero-counting (the nth pattern has location n-1 in the array)
     int const &STIM1 = opt->stimulationNumber - 1;
 
-    int const &PULSETIME = opt->pulsetime;
+    int const &PULSETIME = opt->stimulationTime;
 
     int const NBPATTERNS = NBPATTERNSPULSE;
-    int const presentationTime = opt->presentationTime;
+
     int const totalIterations = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
 
     int const lastIterationNumberToSaveSpikes = NBPATTERNS;
@@ -723,10 +819,10 @@ void setupPulse(CLI::App &app) {
     auto const [state, result] = run<false>(
         model,
 
-        constant::PULSESTART,
+        opt->baselineTime,
         // In the PULSE case, inputs only fire for a short period of time
-        PULSETIME,
-        presentationTime - constant::PULSESTART - PULSETIME,
+        opt->stimulationTime,
+        opt->relaxationTime,
 
         totalIterations,
 
@@ -758,16 +854,20 @@ void setupPulse(CLI::App &app) {
 
 struct SpontaneousOptions {
   Model model;
-  int randomSeed = 0;
-  int step = 300;
-  std::filesystem::path saveDirectory;
+
+  int presentationTime = 1000;
+
+  int totalIterations = 300;
+
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
+
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
 
-  int presentationTime = constant::PRESTIMESPONT;
-  int imageRange = 0;
+  std::filesystem::path saveDirectory;
+
+  int randomSeed = 0;
 };
 
 void setupSpontaneous(CLI::App &app) {
@@ -777,7 +877,16 @@ void setupSpontaneous(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
-  sub->add_option("-N,--step", opt->step, "Step number to observe");
+
+  sub->add_option(
+      "-N,--iterations",
+      opt->totalIterations,
+      "Total iteration number of times. It inputs one image to model in each iteration."
+  );
+  CLI::deprecate_option(
+      sub->add_option("--step", opt->totalIterations, "Step number to observe spike"), "--iterations"
+  );
+
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
       ->required()
       ->check(CLI::NonexistentPath);
@@ -796,7 +905,7 @@ void setupSpontaneous(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
-  sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
+  sub->add_option("--presentation-time", opt->presentationTime, "Duration to observe");
 
   sub->callback([opt]() {
     Model const &model = opt->model;
@@ -808,7 +917,7 @@ void setupSpontaneous(CLI::App &app) {
 
     io::createEmptyDirectory(saveDirectory);
 
-    int const NBPATTERNS = opt->step;
+    int const NBPATTERNS = opt->totalIterations;
     int const presentationTime = opt->presentationTime;
     int const totalIterations = NBPATTERNS;
     int const lastIterationNumberToSaveSpikes = NBPATTERNS;

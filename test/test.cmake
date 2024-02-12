@@ -27,9 +27,9 @@ add_test(
   NAME run_learn
   COMMAND $<TARGET_FILE:stdp> learn
   --save-directory ./data/learn
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --seed 0
-  --step-number-learning 100
+  --iterations 100
   --save-log-interval 50
   --image-range -200
   --start-learning-number 0
@@ -222,9 +222,9 @@ add_test(
   --save-directory ./data/without-saved-delays/test
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --seed 0
-  --step-number-testing 150
+  --iterations 150
   --image-range 200
   --random-delay
 )
@@ -273,9 +273,9 @@ add_test(
   --save-directory ./data/with-saved-delays/test
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --seed 0
-  --step-number-testing 150
+  --iterations 150
   --image-range 200
   --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt
 )
@@ -326,7 +326,7 @@ add_test(
   --save-directory ./data/without-saved-delays/pulse
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --seed 0
   --random-delay
 )
@@ -365,7 +365,7 @@ add_test(
   --save-directory ./data/with-saved-delays/pulse
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --seed 0
   --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt
 )
@@ -407,7 +407,7 @@ add_test(
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
   --seed 0
-  --step 100
+  --iterations 100
   --presentation-time 100
   --random-delay
 )
@@ -437,7 +437,7 @@ add_test(
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
   --seed 0
-  --step 100
+  --iterations 100
   --presentation-time 100
   --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt
 )
@@ -468,7 +468,7 @@ add_test(
   --save-directory ./data/without-saved-delays/mix
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --seed 0
   --random-delay
 )
@@ -507,7 +507,7 @@ add_test(
   --save-directory ./data/with-saved-delays/mix
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
   --feedforward-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/wff.dat
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --seed 0
   --delays-file ${CMAKE_SOURCE_DIR}/test/data/learn/delays.txt
 )
@@ -964,7 +964,7 @@ add_test(
   --delta 10
   --template-response ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response-0001.txt
   --neuron-number 120
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --initial-input-number 100
   --iteration-number 1
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
@@ -1116,7 +1116,7 @@ add_test(
   --delta 10
   --template-response ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response-0001.txt
   --neuron-number 120
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --initial-input-number 100
   --iteration-number 1
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
@@ -1268,7 +1268,7 @@ add_test(
   --delta 10
   --template-response ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response-0001.txt
   --neuron-number 120
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --initial-input-number 100
   --iteration-number 1
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
@@ -1421,7 +1421,7 @@ add_test(
   --stddev 10
   --template-response ${CMAKE_SOURCE_DIR}/test/data/analyze/explore-maximum/response-0001.txt
   --neuron-number 120
-  --input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
+  --binary-input-file ${PROJECT_SOURCE_DIR}/patchesCenteredScaledBySumTo126ImageNetONOFFRotatedNewInt8.bin.dat
   --initial-input-number 100
   --iteration-number 1
   --lateral-weight ${CMAKE_SOURCE_DIR}/test/data/pre-learned/w.dat
