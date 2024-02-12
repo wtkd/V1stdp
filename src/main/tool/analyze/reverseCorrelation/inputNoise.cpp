@@ -170,25 +170,29 @@ void setupInputNoise(CLI::App &app) {
       Eigen::ArrayXX<std::int8_t> const image = generateRandomImage();
       std::ofstream(opt->outputImageDirectory / (std::to_string(i) + ".txt")) << image << std::endl;
 
-      auto const [state, result] = simulation::run<false>(
+      auto const [state, result] = simulation::run<false, false>(
           simulation::Model(),
+
           0,
           opt->presentationTime - simulation::constant::TIMEZEROINPUT,
           simulation::constant::TIMEZEROINPUT,
-          1, // Lastnspikes is not needed
+
           1, // Only one presentation
-          1, // Get only one response
-          simulation::Phase::testing,
+
+          {image},
+
           wff,
           w,
+
           negnoisein,
           posnoisein,
           ALTDs,
+
           delays,
           delaysFF,
-          {image},
-          "", // Unused
-          100
+
+          1, // Lastnspikes is not needed
+          1  // Get only one response
       );
 
       responseOutput << result.resps.reshaped().transpose() << std::endl;

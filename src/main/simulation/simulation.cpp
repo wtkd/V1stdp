@@ -14,7 +14,6 @@
 #include "io.hpp"
 #include "model.hpp"
 #include "noise.hpp"
-#include "phase.hpp"
 #include "run.hpp"
 #include "utils.hpp"
 
@@ -44,7 +43,7 @@ void setAndPrintRandomSeed(int const randomSeed) {
 struct LearnOptions {
   Model model;
   int randomSeed = 0;
-  int step = 500'000;
+  int totalItarations = 500'000;
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::optional<std::filesystem::path> delaysFile;
@@ -62,7 +61,7 @@ void setupLearn(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
-  sub->add_option("-N,--step,--step-number-learning", opt->step, "Step number of times on learning");
+  sub->add_option("-N,--step,--step-number-learning", opt->totalItarations, "Step number of times on learning");
   sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
       ->required()
@@ -92,7 +91,7 @@ void setupLearn(CLI::App &app) {
     auto const &randomSeed = opt->randomSeed;
     setAndPrintRandomSeed(randomSeed);
 
-    auto const &step = opt->step;
+    auto const &totalIterations = opt->totalItarations;
 
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
@@ -104,11 +103,11 @@ void setupLearn(CLI::App &app) {
     auto const &presentationTime = opt->presentationTime; // ms
 
     // NOTE: At first, it was initialized 50 but became 30 soon, so I squashed it.
-    int const NBLASTSPIKESPRES = 30;
+    int const lastIterationNumberToSaveSpikes = 30;
 
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
-    int const NBRESPS = 2000;
+    int const lastIterationNumberToSaveResponses = 2000;
 
     double const WEI_MAX = model.WEI_MAX();
     double const WIE_MAX = model.WIE_MAX();
@@ -178,27 +177,36 @@ void setupLearn(CLI::App &app) {
             - 1
     );
 
-    auto const [state, result] =
-        run(model,
-            0,
-            // Inputs only fire until the 'relaxation' period at the end of each presentation
-            presentationTime - constant::TIMEZEROINPUT,
-            constant::TIMEZEROINPUT,
-            NBLASTSPIKESPRES,
-            step,
-            NBRESPS,
-            Phase::learning,
-            wff,
-            w,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
-            ALTDs,
-            delays,
-            delaysFF,
-            narrowedImageVector,
-            saveDirectory,
-            saveLogInterval,
-            opt->startLearningNumber);
+    auto const [state, result] = run<true>(
+        model,
+
+        0,
+        // Inputs only fire until the 'relaxation' period at the end of each presentation
+        presentationTime - constant::TIMEZEROINPUT,
+        constant::TIMEZEROINPUT,
+
+        totalIterations,
+
+        narrowedImageVector,
+
+        wff,
+        w,
+
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+        ALTDs,
+
+        delays,
+        delaysFF,
+
+        lastIterationNumberToSaveSpikes,
+        lastIterationNumberToSaveResponses,
+
+        saveDirectory,
+        saveLogInterval,
+
+        opt->startLearningNumber
+    );
 
     io::saveMatrix(saveDirectory / ("lastnspikes" + model.getIndicator() + ".txt"), result.lastnspikes);
     io::saveMatrix(saveDirectory / ("resps" + model.getIndicator() + ".txt"), result.resps);
@@ -213,14 +221,13 @@ void setupLearn(CLI::App &app) {
 struct TestOptions {
   Model model;
   int randomSeed = 0;
-  int step = 1'000;
+  int totalIterations = 1'000;
   std::filesystem::path inputFile;
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
-  int saveLogInterval = 50'000;
   int presentationTime = 350;
   int imageRange = 0;
   bool reverseColomn = false;
@@ -234,7 +241,7 @@ void setupTest(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
-  sub->add_option("-N,--step,--step-number-testing", opt->step, "Step number of times on testing");
+  sub->add_option("-N,--step,--step-number-testing", opt->totalIterations, "Step number of times on testing");
   sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
       ->required()
@@ -254,7 +261,6 @@ void setupTest(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
-  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
   sub->add_option(
       "-R,--image-range",
@@ -273,23 +279,21 @@ void setupTest(CLI::App &app) {
     auto const &randomSeed = opt->randomSeed;
     setAndPrintRandomSeed(randomSeed);
 
-    auto const &step = opt->step;
+    auto const &totalIterations = opt->totalIterations;
 
     auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
     io::createEmptyDirectory(saveDirectory);
 
-    auto const &saveLogInterval = opt->saveLogInterval;
-
     auto const &presentationTime = opt->presentationTime;
-    int const NBLASTSPIKESPRES = 30;
+    int const lastIterationNumberToSaveSpikes = 30;
 
-    int const NBPRES = step; //* NBPRESPERPATTERNTESTING;
+    int const NBPRES = totalIterations; //* NBPRESPERPATTERNTESTING;
 
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
-    int const NBRESPS = NBPRES;
+    int const lastIterationNumberToSaveResponses = NBPRES;
 
     Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
@@ -336,26 +340,31 @@ void setupTest(CLI::App &app) {
         }
     );
 
-    auto const [state, result] =
-        run(model,
-            0,
-            // Inputs only fire until the 'relaxation' period at the end of each presentation
-            presentationTime - constant::TIMEZEROINPUT,
-            constant::TIMEZEROINPUT,
-            NBLASTSPIKESPRES,
-            step,
-            NBRESPS,
-            Phase::testing,
-            wff,
-            w,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
-            ALTDs,
-            opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
-            delaysFF,
-            reversedImageVector,
-            saveDirectory,
-            saveLogInterval);
+    auto const [state, result] = run<false>(
+        model,
+
+        0,
+        // Inputs only fire until the 'relaxation' period at the end of each presentation
+        presentationTime - constant::TIMEZEROINPUT,
+        constant::TIMEZEROINPUT,
+
+        totalIterations,
+
+        reversedImageVector,
+
+        wff,
+        w,
+
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+        ALTDs,
+
+        opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
+        delaysFF,
+
+        lastIterationNumberToSaveSpikes,
+        lastIterationNumberToSaveResponses
+    );
 
     io::saveMatrix(saveDirectory / ("lastnspikes_test" + model.getIndicator() + ".txt"), result.lastnspikes);
     io::saveMatrix(saveDirectory / ("resps_test" + model.getIndicator() + ".txt"), result.resps);
@@ -372,7 +381,6 @@ struct MixOptions {
   std::filesystem::path feedforwardWeight;
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
-  int saveLogInterval = 50'000;
   int presentationTime = constant::PRESTIMEMIXING;
   std::pair<int, int> stimulationNumbers;
 };
@@ -403,7 +411,6 @@ void setupMix(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
-  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
   sub->add_option("stimulation-number", opt->stimulationNumbers, "Two numbers of stimulation to mix")->required();
 
@@ -418,21 +425,19 @@ void setupMix(CLI::App &app) {
 
     io::createEmptyDirectory(saveDirectory);
 
-    auto const &saveLogInterval = opt->saveLogInterval;
-
     auto const &stimulationNumbers = opt->stimulationNumbers;
 
     // -1 because of c++ zero-counting (the nth pattern has location n-1 in the array)
     int const &STIM1 = stimulationNumbers.first - 1;
     int const &STIM2 = stimulationNumbers.second - 1;
 
-    int const NBLASTSPIKESPRES = 30;
+    int const lastIterationNumberToSaveSpikes = 30;
 
-    int const NBPRES = constant::NBMIXES * 3; //* NBPRESPERPATTERNTESTING;
+    int const totalIterations = constant::NBMIXES * 3; //* NBPRESPERPATTERNTESTING;
 
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
-    int const NBRESPS = NBPRES;
+    int const lastIterationNumberToSaveResponses = totalIterations;
 
     int const presentationTime = opt->presentationTime;
 
@@ -474,7 +479,7 @@ void setupMix(CLI::App &app) {
       return mixvals;
     }();
 
-    auto const getRatioLgnRatesMixed = [&](std::uint32_t const i) -> Eigen::ArrayXd {
+    auto const getNthRatioLgnRatesMixed = [&](std::uint32_t const i) -> Eigen::ArrayXd {
       Eigen::ArrayXd const lgnratesS1 = getRatioLgnRates(STIM1);
       Eigen::ArrayXd const lgnratesS2 = getRatioLgnRates(STIM2);
       double const mixval1 = (i / constant::NBMIXES == 2 ? 0 : mixvals[i % constant::NBMIXES]);
@@ -483,26 +488,31 @@ void setupMix(CLI::App &app) {
       return mixval1 * lgnratesS1 + mixval2 * lgnratesS2;
     };
 
-    auto const [state, result] =
-        run(model,
-            0,
-            presentationTime - constant::TIMEZEROINPUT,
-            // Inputs only fire until the 'relaxation' period at the end of each presentation
-            constant::TIMEZEROINPUT,
-            NBLASTSPIKESPRES,
-            NBPRES,
-            NBRESPS,
-            Phase::mixing,
-            wff,
-            w,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
-            ALTDs,
-            opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
-            delaysFF,
-            getRatioLgnRatesMixed,
-            saveDirectory,
-            saveLogInterval);
+    auto const [state, result] = run<false>(
+        model,
+
+        0,
+        presentationTime - constant::TIMEZEROINPUT,
+        // Inputs only fire until the 'relaxation' period at the end of each presentation
+        constant::TIMEZEROINPUT,
+
+        totalIterations,
+
+        getNthRatioLgnRatesMixed,
+
+        wff,
+        w,
+
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+        ALTDs,
+
+        opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
+        delaysFF,
+
+        lastIterationNumberToSaveSpikes,
+        lastIterationNumberToSaveResponses
+    );
 
     io::saveMatrix(
         saveDirectory /
@@ -527,7 +537,6 @@ struct PulseOptions {
   std::filesystem::path feedforwardWeight;
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
-  int saveLogInterval = 50'000;
   int presentationTime = constant::PRESTIMEPULSE;
   int stimulationNumber;
   int pulsetime = 100;
@@ -560,7 +569,6 @@ void setupPulse(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
-  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
   sub->add_option("stimulation-number", opt->stimulationNumber, "Numbers of stimulation")->required();
   sub->add_option(
@@ -583,8 +591,6 @@ void setupPulse(CLI::App &app) {
 
     io::createEmptyDirectory(saveDirectory);
 
-    auto const &saveLogInterval = opt->saveLogInterval;
-
     // -1 because of c++ zero-counting (the nth pattern has location n-1 in the array)
     int const &STIM1 = opt->stimulationNumber - 1;
 
@@ -592,12 +598,12 @@ void setupPulse(CLI::App &app) {
 
     int const NBPATTERNS = NBPATTERNSPULSE;
     int const presentationTime = opt->presentationTime;
-    int const NBPRES = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
+    int const totalIterations = NBPATTERNS; //* NBPRESPERPATTERNTESTING;
 
-    int const NBLASTSPIKESPRES = NBPATTERNS;
+    int const lastIterationNumberToSaveSpikes = NBPATTERNS;
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
-    int const NBRESPS = NBPRES;
+    int const lastIterationNumberToSaveResponses = totalIterations;
 
     std::cout << "Stim1: " << STIM1 << std::endl;
     std::cout << "Pulse input time: " << PULSETIME << " ms" << std::endl;
@@ -625,26 +631,31 @@ void setupPulse(CLI::App &app) {
     auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
     decltype(imageVector) const narrowedImageVector = {imageVector.at(STIM1)};
 
-    auto const [state, result] =
-        run(model,
-            constant::PULSESTART,
-            // In the PULSE case, inputs only fire for a short period of time
-            PULSETIME,
-            presentationTime - constant::PULSESTART - PULSETIME,
-            NBLASTSPIKESPRES,
-            NBPRES,
-            NBRESPS,
-            Phase::pulse,
-            wff,
-            w,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
-            ALTDs,
-            opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
-            delaysFF,
-            narrowedImageVector,
-            saveDirectory,
-            saveLogInterval);
+    auto const [state, result] = run<false>(
+        model,
+
+        constant::PULSESTART,
+        // In the PULSE case, inputs only fire for a short period of time
+        PULSETIME,
+        presentationTime - constant::PULSESTART - PULSETIME,
+
+        totalIterations,
+
+        narrowedImageVector,
+
+        wff,
+        w,
+
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+        ALTDs,
+
+        opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
+        delaysFF,
+
+        lastIterationNumberToSaveSpikes,
+        lastIterationNumberToSaveResponses
+    );
 
     io::saveMatrix(
         saveDirectory / ("lastnspikes_pulse_" + std::to_string(STIM1) + model.getIndicator() + ".txt"),
@@ -666,7 +677,6 @@ struct SpontaneousOptions {
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
 
-  int saveLogInterval = 50'000;
   int presentationTime = constant::PRESTIMESPONT;
   int imageRange = 0;
 };
@@ -697,7 +707,6 @@ void setupSpontaneous(CLI::App &app) {
   delayPolicy->add_flag("--random-delay", opt->randomDelay, "Make random delays");
   delayPolicy->require_option(1);
 
-  sub->add_option("--save-log-interval", opt->saveLogInterval, "Interval to save log");
   sub->add_option("--presentation-time", opt->presentationTime, "Presentation time");
 
   sub->callback([opt]() {
@@ -710,15 +719,13 @@ void setupSpontaneous(CLI::App &app) {
 
     io::createEmptyDirectory(saveDirectory);
 
-    auto const &saveLogInterval = opt->saveLogInterval;
-
     int const NBPATTERNS = opt->step;
     int const presentationTime = opt->presentationTime;
-    int const NBPRES = NBPATTERNS;
-    int const NBLASTSPIKESPRES = NBPATTERNS;
+    int const totalIterations = NBPATTERNS;
+    int const lastIterationNumberToSaveSpikes = NBPATTERNS;
     // Number of resps (total nb of spike / total v for each presentation) to be stored in resps and respssumv.
     // Must be set depending on the PHASE (learmning, testing, mixing, etc.)
-    int const NBRESPS = NBPRES;
+    int const lastIterationNumberToSaveResponses = totalIterations;
 
     std::cout << "Spontaneous activity - no stimulus !" << std::endl;
 
@@ -742,28 +749,33 @@ void setupSpontaneous(CLI::App &app) {
 
     auto const delaysFF = generateDelaysFF(constant::NBNEUR, constant::FFRFSIZE, constant::MAXDELAYDT);
 
-    auto const [state, result] =
-        run(model,
-            presentationTime,
-            0,
-            0,
-            NBLASTSPIKESPRES,
-            NBPRES,
-            NBRESPS,
-            Phase::spontaneous,
-            wff,
-            w,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
-            model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
-            ALTDs,
-            opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
-            delaysFF,
-            // Dummy input image
-            std::vector<Eigen::ArrayXX<std::int8_t>>{
-                Eigen::ArrayXX<std::int8_t>::Zero(constant::PATCHSIZE, constant::PATCHSIZE)
-            },
-            saveDirectory,
-            saveLogInterval);
+    auto const [state, result] = run<false>(
+        model,
+
+        presentationTime,
+        0,
+        0,
+
+        totalIterations,
+
+        // Dummy input image
+        std::vector<Eigen::ArrayXX<std::int8_t>>{
+            Eigen::ArrayXX<std::int8_t>::Zero(constant::PATCHSIZE, constant::PATCHSIZE)
+        },
+
+        wff,
+        w,
+
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(negnoisein.rows(), negnoisein.cols()) : negnoisein,
+        model.nonoise || model.nospike ? Eigen::MatrixXd::Zero(posnoisein.rows(), posnoisein.cols()) : posnoisein,
+        ALTDs,
+
+        opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
+        delaysFF,
+
+        lastIterationNumberToSaveSpikes,
+        lastIterationNumberToSaveResponses
+    );
 
     io::saveMatrix(saveDirectory / ("lastnspikes_spont" + model.getIndicator() + ".txt"), result.lastnspikes);
   });

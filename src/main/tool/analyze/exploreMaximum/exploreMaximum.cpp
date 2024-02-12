@@ -339,25 +339,28 @@ void setupExploreMaximum(CLI::App &app) {
     };
 
     auto const evaluationFunction = [&](Eigen::ArrayXX<std::int8_t> const &image) {
-      auto const [state, result] = simulation::run<false>(
+      auto const [state, result] = simulation::run<false, false>(
           simulation::Model(),
+
           0,
           opt->presentationTime - simulation::constant::TIMEZEROINPUT,
           simulation::constant::TIMEZEROINPUT,
-          1, // Lastnspikes is not needed
+
           1, // Only one presentation
-          1, // Get only one response
-          simulation::Phase::testing,
+
+          {image},
+
           wff,
           w,
+
           negnoisein,
           posnoisein,
           ALTDs,
+
           delays,
           delaysFF,
-          {image},
-          "", // Unused
-          100
+          1, // Lastnspikes is not needed
+          1  // Get only one response
       );
 
       Eigen::VectorXi const response = result.resps.reshaped().topRows(simulation::constant::NBE);

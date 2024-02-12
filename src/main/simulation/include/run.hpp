@@ -15,7 +15,6 @@
 
 #include "../constant.hpp"
 #include "../model.hpp"
-#include "../phase.hpp"
 #include "../utils.hpp"
 
 namespace v1stdp::main::simulation {
@@ -27,32 +26,40 @@ struct ModelResult {
   Eigen::MatrixXd respssumv;
 };
 
-template <bool outputToConsole = true, typename F>
+template <bool withLearning, bool outputToConsole = true, typename F>
   requires std::regular_invocable<F, std::uint32_t> &&
            std::same_as<std::invoke_result_t<F, std::uint32_t>, Eigen::ArrayXd>
 std::pair<ModelState, ModelResult>
 run(Model const &model,
-    int const baselineTime,
-    int const stimulationTime,
-    int const relaxationTime,
-    int const NBLASTSPIKESPRES,
-    unsigned const NBPRES,
-    int const NBRESPS,
-    Phase const phase,
+
+    std::uint32_t const baselineTime,
+    std::uint32_t const stimulationTime,
+    std::uint32_t const relaxationTime,
+
+    std::uint32_t const totalIterationNumber,
+
+    F const &getNthRatioLgnRates,
+
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
+
     Eigen::MatrixXd const &negnoisein,
     Eigen::MatrixXd const &posnoisein,
     Eigen::ArrayXd const &ALTDs,
+
     // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
     // target neuron and j is the source synapse)
     Eigen::ArrayXXi const &delays,
     // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
     // myfile.open("delays.txt", ios::trunc | ios::out);
     std::vector<std::vector<int>> const &delaysFF,
-    F const &getRatioLgnRates,
+
+    std::uint32_t const lastIterationNumberToSaveSpikes,
+    std::uint32_t const lastIterationNumberToSaveResponses,
+
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
+
     std::uint16_t const startLearningStimulationNumber = 0) {
   if constexpr (outputToConsole) {
     model.outputLog();
@@ -72,9 +79,9 @@ run(Model const &model,
   // 'spontaneous', or 'mix'. If using 'pulse', you must specify a stimulus
   // number. IF using 'mix', you must specify two stimulus numbers.
 
-  int const totalTimePerPresentation = baselineTime + stimulationTime + relaxationTime;
-  int const stepNumberPerPresentation = int(totalTimePerPresentation / constant::dt);
-  int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * stepNumberPerPresentation;
+  int const totalTimePerIteration = baselineTime + stimulationTime + relaxationTime;
+  int const stepNumberPerIteration = int(totalTimePerIteration / constant::dt);
+  int const NBLASTSPIKESSTEPS = lastIterationNumberToSaveSpikes * stepNumberPerIteration;
 
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
@@ -152,8 +159,8 @@ run(Model const &model,
   ModelResult modelResult = {
       Eigen::MatrixXi::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS),
       Eigen::MatrixXd::Zero(constant::NBNEUR, NBLASTSPIKESSTEPS),
-      Eigen::MatrixXi::Zero(constant::NBNEUR, NBRESPS),
-      Eigen::MatrixXd::Zero(constant::NBNEUR, NBRESPS)
+      Eigen::MatrixXi::Zero(constant::NBNEUR, lastIterationNumberToSaveResponses),
+      Eigen::MatrixXd::Zero(constant::NBNEUR, lastIterationNumberToSaveResponses)
   };
 
   Eigen::MatrixXi &lastnspikes = modelResult.lastnspikes;
@@ -191,10 +198,12 @@ run(Model const &model,
   int numstep = 0;
 
   // For each stimulus presentation...
-  for (auto const numpres : boost::counting_range<unsigned>(0, NBPRES)) {
+  for (auto const currentIteration : boost::counting_range<unsigned>(0, totalIterationNumber)) {
     // Save data
-    if (phase == Phase::learning && numpres % saveLogInterval == 0) {
-      saveAllWeights(saveDirectory, numpres, w, wff);
+    if constexpr (withLearning) {
+      if (currentIteration % saveLogInterval == 0) {
+        saveAllWeights(saveDirectory, currentIteration, w, wff);
+      }
     }
 
     // cout << posindata << endl;
@@ -205,7 +214,7 @@ run(Model const &model,
     double const INPUTMULT = 150.0 * 2.0;
 
     Eigen::VectorXd const lgnrates =
-        getRatioLgnRates(numpres)
+        getNthRatioLgnRates(currentIteration)
         // We put inputmult here to ensure that it is reflected in the actual number of incoming spikes
         * INPUTMULT *
         // LGN rates from the pattern file are expressed in Hz. We want it in rate
@@ -216,7 +225,7 @@ run(Model const &model,
     // tends to generate epileptic self-sustaining firing; 'normal' learning doesn't need it.)
     v = initialV; // Eigen::VectorXd::Zero(NBNEUR);
 
-    resps.col(numpres % NBRESPS).setZero();
+    resps.col(currentIteration % lastIterationNumberToSaveResponses).setZero();
 
     // The incoming spikes (both lateral and FF) are stored in an array of vectors (one per neuron/incoming
     // synapse); each vector is used as a circular array, containing the incoming spikes at this synapse at
@@ -226,7 +235,7 @@ run(Model const &model,
 
     // Stimulus presentation
     // TODO: rand
-    for (auto const currentStep : boost::counting_range<unsigned>(0, stepNumberPerPresentation)) {
+    for (auto const currentStep : boost::counting_range<unsigned>(0, stepNumberPerIteration)) {
       auto const currentTime = currentStep * constant::dt;
       // We determine FF spikes, based on the specified lgnrates:
       Eigen::VectorXd const lgnfirings = [&]() -> Eigen::ArrayXd {
@@ -423,69 +432,71 @@ run(Model const &model,
       vneg = vneg + (constant::dt / constant::TAUVNEG) * (vprevprev - vneg);
       vpos = vpos + (constant::dt / constant::TAUVPOS) * (vprevprev - vpos);
 
-      if ((phase == Phase::learning) && (numpres >= startLearningStimulationNumber))
-      // if (numpres >= 401)
-      {
-        // Plasticity !
-        // For each neuron, we compute the quantities by which any synapse
-        // reaching this given neuron should be modified, if the synapse's
-        // firing / recent activity (xplast) commands modification.
-        Eigen::VectorXd const EachNeurLTD = constant::dt * (-ALTDs / constant::VREF2) * vlongtrace.array() *
-                                            vlongtrace.array() * (vneg.array() - constant::THETAVNEG).cwiseMax(0);
-        Eigen::VectorXd const EachNeurLTP = constant::dt * constant::ALTP * ALTPMULT *
-                                            (vpos.array() - constant::THETAVNEG).cwiseMax(0) *
-                                            (v.array() - constant::THETAVPOS).cwiseMax(0);
+      if constexpr (withLearning)
+        if (currentIteration >= startLearningStimulationNumber)
+        // if (numpres >= 401)
+        {
+          // Plasticity !
+          // For each neuron, we compute the quantities by which any synapse
+          // reaching this given neuron should be modified, if the synapse's
+          // firing / recent activity (xplast) commands modification.
+          Eigen::VectorXd const EachNeurLTD = constant::dt * (-ALTDs / constant::VREF2) * vlongtrace.array() *
+                                              vlongtrace.array() * (vneg.array() - constant::THETAVNEG).cwiseMax(0);
+          Eigen::VectorXd const EachNeurLTP = constant::dt * constant::ALTP * ALTPMULT *
+                                              (vpos.array() - constant::THETAVNEG).cwiseMax(0) *
+                                              (v.array() - constant::THETAVPOS).cwiseMax(0);
 
-        // Feedforward synapses, then lateral synapses.
+          // Feedforward synapses, then lateral synapses.
 
-        wff.topRows(constant::NBE) += EachNeurLTP.head(constant::NBE) * xplast_ff.transpose();
+          wff.topRows(constant::NBE) += EachNeurLTP.head(constant::NBE) * xplast_ff.transpose();
 
-        // wff.topRows(NBE) += EachNeurLTD.head(NBE).asDiagonal() * (1.0 + wff.topRows(NBE).array() *
-        // WPENSCALE).matrix() *
-        //                     (lgnfirings.array() > 1e-10).matrix().cast<double>().asDiagonal();
-        for (auto const syn : boost::counting_range<unsigned>(0, constant::FFRFSIZE))
-          if (lgnfirings(syn) > 1e-10)
+          // wff.topRows(NBE) += EachNeurLTD.head(NBE).asDiagonal() * (1.0 + wff.topRows(NBE).array() *
+          // WPENSCALE).matrix() *
+          //                     (lgnfirings.array() > 1e-10).matrix().cast<double>().asDiagonal();
+          for (auto const syn : boost::counting_range<unsigned>(0, constant::FFRFSIZE))
+            if (lgnfirings(syn) > 1e-10)
+              for (auto const nn : boost::counting_range<unsigned>(0, constant::NBE))
+                // if (spikesthisstepFF(nn, syn) > 0)
+                wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
+
+          w.topLeftCorner(constant::NBE, constant::NBE) += EachNeurLTP.head(constant::NBE) * xplast_lat.transpose();
+
+          // w.topLeftCorner(NBE, NBE) +=
+          //     ((spikesthisstep.topRows(NBE).array() > 0).cast<double>() *
+          //      (EachNeurLTD.head(NBE).asDiagonal() * (1.0 + w.topLeftCorner(NBE, NBE).array() * WPENSCALE).matrix())
+          //          .array())
+          //         .matrix();
+          for (auto const syn : boost::counting_range<unsigned>(0, constant::NBE))
+            //    if (firingsprev(syn) > 1e-10)
             for (auto const nn : boost::counting_range<unsigned>(0, constant::NBE))
-              // if (spikesthisstepFF(nn, syn) > 0)
-              wff(nn, syn) += EachNeurLTD(nn) * (1.0 + wff(nn, syn) * WPENSCALE);
+              if (spikesthisstep(nn, syn) > 0)
+                w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
 
-        w.topLeftCorner(constant::NBE, constant::NBE) += EachNeurLTP.head(constant::NBE) * xplast_lat.transpose();
+          // Diagonal lateral weights are 0!
+          w.topLeftCorner(constant::NBE, constant::NBE) =
+              w.topLeftCorner(constant::NBE, constant::NBE)
+                  .cwiseProduct(
+                      Eigen::MatrixXd::Constant(constant::NBE, constant::NBE, 1) -
+                      Eigen::MatrixXd::Identity(constant::NBE, constant::NBE)
+                  );
 
-        // w.topLeftCorner(NBE, NBE) +=
-        //     ((spikesthisstep.topRows(NBE).array() > 0).cast<double>() *
-        //      (EachNeurLTD.head(NBE).asDiagonal() * (1.0 + w.topLeftCorner(NBE, NBE).array() * WPENSCALE).matrix())
-        //          .array())
-        //         .matrix();
-        for (auto const syn : boost::counting_range<unsigned>(0, constant::NBE))
-          //    if (firingsprev(syn) > 1e-10)
-          for (auto const nn : boost::counting_range<unsigned>(0, constant::NBE))
-            if (spikesthisstep(nn, syn) > 0)
-              w(nn, syn) += EachNeurLTD(nn) * (1.0 + w(nn, syn) * WPENSCALE);
-
-        // Diagonal lateral weights are 0!
-        w.topLeftCorner(constant::NBE, constant::NBE) =
-            w.topLeftCorner(constant::NBE, constant::NBE)
-                .cwiseProduct(
-                    Eigen::MatrixXd::Constant(constant::NBE, constant::NBE, 1) -
-                    Eigen::MatrixXd::Identity(constant::NBE, constant::NBE)
-                );
-
-        wff.topRows(constant::NBE) = wff.topRows(constant::NBE).cwiseMax(0);
-        w.leftCols(constant::NBE) = w.leftCols(constant::NBE).cwiseMax(0);
-        // w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
-        wff.topRows(constant::NBE) = wff.topRows(constant::NBE).cwiseMin(constant::MAXW);
-        w.topLeftCorner(constant::NBE, constant::NBE) =
-            w.topLeftCorner(constant::NBE, constant::NBE).cwiseMin(constant::MAXW);
-      }
+          wff.topRows(constant::NBE) = wff.topRows(constant::NBE).cwiseMax(0);
+          w.leftCols(constant::NBE) = w.leftCols(constant::NBE).cwiseMax(0);
+          // w.rightCols(NBI) = w.rightCols(NBI).cwiseMin(0);
+          wff.topRows(constant::NBE) = wff.topRows(constant::NBE).cwiseMin(constant::MAXW);
+          w.topLeftCorner(constant::NBE, constant::NBE) =
+              w.topLeftCorner(constant::NBE, constant::NBE).cwiseMin(constant::MAXW);
+        }
 
       // Storing some indicator variablkes...
 
       // vs.col(numstep) = v;
       // spikes.col(numstep) = firings;
-      resps.col(numpres % NBRESPS) += firings;
+      resps.col(currentIteration % lastIterationNumberToSaveResponses) += firings;
       // respssumv.col(numpres % NBRESPS) += v.cwiseMin(vthresh); // We only
       // record subthreshold potentials !
-      respssumv.col(numpres % NBRESPS) += v.cwiseMin(constant::VTMAX); // We only record subthreshold potentials !
+      respssumv.col(currentIteration % lastIterationNumberToSaveResponses) +=
+          v.cwiseMin(constant::VTMAX); // We only record subthreshold potentials !
       lastnspikes.col(numstep % NBLASTSPIKESSTEPS) = firings;
       lastnv.col(numstep % NBLASTSPIKESSTEPS) = v;
 
@@ -493,20 +504,21 @@ run(Model const &model,
       numstep++;
     }
 
-    if (numpres % 100 == 0) {
+    if (currentIteration % 100 == 0) {
       if constexpr (outputToConsole) {
-        std::cout << "Presentation " << numpres << " / " << NBPRES << std::endl;
+        std::cout << "Presentation " << currentIteration << " / " << totalIterationNumber << std::endl;
         std::cout << "TIME: " << (double)(clock() - tic) / (double)CLOCKS_PER_SEC << std::endl;
         tic = clock();
-        std::cout << "Total spikes for each neuron for this presentation: " << resps.col(numpres % NBRESPS).transpose()
-                  << std::endl;
+        std::cout << "Total spikes for each neuron for this presentation: "
+                  << resps.col(currentIteration % lastIterationNumberToSaveResponses).transpose() << std::endl;
         std::cout << "Vlongtraces: " << vlongtrace.transpose() << std::endl;
         std::cout << " Max LGN rate (should be << 1.0): " << lgnrates.maxCoeff() << std::endl;
       }
     }
-    if (((numpres + 1) % 10000 == 0) || (numpres == 0) || (numpres + 1 == NBPRES)) {
+    if (((currentIteration + 1) % 10000 == 0) || (currentIteration == 0) ||
+        (currentIteration + 1 == totalIterationNumber)) {
 
-      if (phase == Phase::learning) {
+      if constexpr (withLearning) {
         if constexpr (outputToConsole) {
           std::cout << "(Saving temporary data ... )" << std::endl;
         }
@@ -545,36 +557,101 @@ run(Model const &model,
     }
   }
 
-  if (phase == Phase::learning) {
-    saveAllWeights(saveDirectory, NBPRES, w, wff);
+  if constexpr (withLearning) {
+    saveAllWeights(saveDirectory, totalIterationNumber, w, wff);
   }
 
   return std::make_pair(modelState, modelResult);
 }
 
-template <bool outputToConsole = true>
+template <bool withLearning, bool outputToConsole = true, typename F>
+  requires((not withLearning) && std::regular_invocable<F, std::uint32_t> && std::same_as<std::invoke_result_t<F, std::uint32_t>, Eigen::ArrayXd>)
 std::pair<ModelState, ModelResult>
 run(Model const &model,
-    int const baselineTime,
-    int const stimulationTime,
-    int const relaxationTime,
-    int const NBLASTSPIKESPRES,
-    unsigned const NBPRES,
-    int const NBRESPS,
-    Phase const phase,
+
+    std::uint32_t const baselineTime,
+    std::uint32_t const stimulationTime,
+    std::uint32_t const relaxationTime,
+
+    std::uint32_t const totalIterationNumber,
+
+    F const &getNthRatioLgnRates,
+
     Eigen::MatrixXd const &initwff,
     Eigen::MatrixXd const &initw,
+
     Eigen::MatrixXd const &negnoisein,
     Eigen::MatrixXd const &posnoisein,
     Eigen::ArrayXd const &ALTDs,
+
+    // Note that delays indices are arranged in "from"-"to" order (different from incomingspikes[i][j]. where i is the
+    // target neuron and j is the source synapse)
+    Eigen::ArrayXXi const &delays,
+    // NOTE: We implement the machinery for feedforward delays, but they are NOT used (see below).
+    // myfile.open("delays.txt", ios::trunc | ios::out);
+    std::vector<std::vector<int>> const &delaysFF,
+
+    std::uint32_t const lastIterationNumberToSaveSpikes,
+    std::uint32_t const lastIterationNumberToSaveResponses) {
+  return run<false>(
+      model,
+
+      baselineTime,
+      stimulationTime,
+      relaxationTime,
+
+      totalIterationNumber,
+
+      getNthRatioLgnRates,
+
+      initwff,
+      initw,
+
+      negnoisein,
+      posnoisein,
+      ALTDs,
+
+      delays,
+      delaysFF,
+
+      lastIterationNumberToSaveSpikes,
+      lastIterationNumberToSaveResponses,
+      "",
+      0
+  );
+}
+
+template <bool withLearning, bool outputToConsole = true>
+std::pair<ModelState, ModelResult>
+run(Model const &model,
+
+    int const baselineTime,
+    int const stimulationTime,
+    int const relaxationTime,
+
+    std::uint32_t const totalIterationNumber,
+
+    std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
+
+    Eigen::MatrixXd const &initwff,
+    Eigen::MatrixXd const &initw,
+
+    Eigen::MatrixXd const &negnoisein,
+    Eigen::MatrixXd const &posnoisein,
+    Eigen::ArrayXd const &ALTDs,
+
     Eigen::ArrayXXi const &delays,
     std::vector<std::vector<int>> const &delaysFF,
-    std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
+
+    std::uint32_t const lastIterationNumberToSaveSpikes,
+    std::uint32_t const lastIterationNumberToSaveResponses,
+
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
+
     std::uint16_t const startLearningStimulationNumber = 0) {
 
-  auto const getRatioLgnRates = [&](std::uint32_t const i) -> Eigen::ArrayXd {
+  auto const getNthRatioLgnRates = [&](std::uint32_t const i) -> Eigen::ArrayXd {
     auto const dataNumber = i % imageVector.size();
     Eigen::ArrayXd result(constant::FFRFSIZE);
     result << (1.0 + (constant::MOD * imageVector.at(dataNumber).reshaped().cast<double>()).max(0)).log(),
@@ -583,25 +660,92 @@ run(Model const &model,
     return result / result.maxCoeff();
   };
 
-  return run<outputToConsole>(
+  return run<withLearning, outputToConsole>(
       model,
+
       baselineTime,
       stimulationTime,
       relaxationTime,
-      NBLASTSPIKESPRES,
-      NBPRES,
-      NBRESPS,
-      phase,
+
+      totalIterationNumber,
+
+      getNthRatioLgnRates,
+
       initwff,
       initw,
+
       negnoisein,
       posnoisein,
       ALTDs,
+
       delays,
       delaysFF,
-      getRatioLgnRates,
+
+      lastIterationNumberToSaveSpikes,
+      lastIterationNumberToSaveResponses,
+
       saveDirectory,
       saveLogInterval,
+
+      startLearningStimulationNumber
+  );
+}
+
+template <bool withLearning, bool outputToConsole = true>
+  requires(not withLearning)
+std::pair<ModelState, ModelResult>
+run(Model const &model,
+
+    int const baselineTime,
+    int const stimulationTime,
+    int const relaxationTime,
+
+    std::uint32_t const totalIterationNumber,
+
+    std::vector<Eigen::ArrayXX<std::int8_t>> const &imageVector,
+
+    Eigen::MatrixXd const &initwff,
+    Eigen::MatrixXd const &initw,
+
+    Eigen::MatrixXd const &negnoisein,
+    Eigen::MatrixXd const &posnoisein,
+    Eigen::ArrayXd const &ALTDs,
+
+    Eigen::ArrayXXi const &delays,
+    std::vector<std::vector<int>> const &delaysFF,
+
+    std::uint32_t const lastIterationNumberToSaveSpikes,
+    std::uint32_t const lastIterationNumberToSaveResponses,
+
+    std::uint16_t const startLearningStimulationNumber = 0) {
+
+  return run<false, outputToConsole>(
+      model,
+
+      baselineTime,
+      stimulationTime,
+      relaxationTime,
+
+      totalIterationNumber,
+
+      imageVector,
+
+      initwff,
+      initw,
+
+      negnoisein,
+      posnoisein,
+      ALTDs,
+
+      delays,
+      delaysFF,
+
+      lastIterationNumberToSaveSpikes,
+      lastIterationNumberToSaveResponses,
+
+      "",
+      0,
+
       startLearningStimulationNumber
   );
 }
