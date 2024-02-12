@@ -1,7 +1,14 @@
+#include <sstream>
+
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
 #include "evaluationFunction.hpp"
+#include "io.hpp"
+
+template <typename T> bool EigenArrayXXEq(Eigen::ArrayXX<T> const &lhs, Eigen::ArrayXX<T> const &rhs) {
+  return lhs.matrix() == rhs.matrix();
+}
 
 TEST(evaluationFunction, secondPartialDerivativeCol2) {
   {
@@ -137,4 +144,78 @@ TEST(evaluationFunction, smoothness) {
       v1stdp::main::tool::analyze::exploreMaximum::evaluationFunction::smoothness(roughMatrix),
       v1stdp::main::tool::analyze::exploreMaximum::evaluationFunction::smoothness(smoothMatrix)
   );
+}
+
+TEST(io, readTextImages) {
+  Eigen::ArrayXX<std::int8_t> expected{
+      // clang-format off
+    {1, 4, 7},
+    {2, 5, 8},
+    {3, 6, 9}
+      // clang-format on
+  };
+
+  // (ROW, COL)
+  EXPECT_EQ(expected(0, 1), 4);
+  EXPECT_EQ(expected(1, 0), 2);
+
+  {
+    std::string const s(("1 2 3 "
+                         "4 5 6 "
+                         "7 8 9"
+                         "\n"));
+    std::stringstream ss(s);
+
+    std::vector<Eigen::ArrayXX<std::int8_t>> const x = v1stdp::io::readTextImages(ss, 3);
+
+    EXPECT_EQ(x.size(), 1);
+    ASSERT_PRED2(EigenArrayXXEq<std::int8_t>, x.at(0), expected);
+  }
+
+  {
+    std::string const s(("1 2 3 "
+                         "4 5 6 "
+                         "7 8 9"));
+    std::stringstream ss(s);
+
+    std::vector<Eigen::ArrayXX<std::int8_t>> const x = v1stdp::io::readTextImages(ss, 3);
+
+    EXPECT_EQ(x.size(), 1);
+    ASSERT_PRED2(EigenArrayXXEq<std::int8_t>, x.at(0), expected);
+  }
+
+  {
+    std::string const s(("1 2 3 "
+                         "4 5 6 "
+                         "7 8 9"
+                         "\n"
+                         "1 2 3 "
+                         "4 5 6 "
+                         "7 8 9"
+                         "\n"));
+    std::stringstream ss(s);
+
+    std::vector<Eigen::ArrayXX<std::int8_t>> const x = v1stdp::io::readTextImages(ss, 3);
+
+    EXPECT_EQ(x.size(), 2);
+    ASSERT_PRED2(EigenArrayXXEq<std::int8_t>, x.at(0), expected);
+    ASSERT_PRED2(EigenArrayXXEq<std::int8_t>, x.at(1), expected);
+  }
+
+  {
+    std::string const s(("1 2 3 "
+                         "4 5 6 "
+                         "7 8 9"
+                         "\n"
+                         "1 2 3 "
+                         "4 5 6 "
+                         "7 8 9"));
+    std::stringstream ss(s);
+
+    std::vector<Eigen::ArrayXX<std::int8_t>> const x = v1stdp::io::readTextImages(ss, 3);
+
+    EXPECT_EQ(x.size(), 2);
+    ASSERT_PRED2(EigenArrayXXEq<std::int8_t>, x.at(0), expected);
+    ASSERT_PRED2(EigenArrayXXEq<std::int8_t>, x.at(1), expected);
+  }
 }

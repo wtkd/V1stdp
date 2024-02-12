@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -87,6 +89,47 @@ readImages(std::filesystem::path const &inputFile, std::uint64_t const edgeLengt
       }
   );
   return matrixImages;
+}
+
+std::vector<Eigen::ArrayXX<std::int8_t>> readTextImages(std::istream &inputStream, std::uint64_t const edgeLength) {
+
+  std::uint64_t const totalPixelPerImage = edgeLength * edgeLength;
+
+  std::vector<Eigen::ArrayXX<std::int8_t>> result;
+
+  std::string line;
+  while (std::getline(inputStream, line)) {
+    std::stringstream linestream(line);
+
+    std::vector<int> v((std::istream_iterator<int>(linestream)), std::istream_iterator<int>());
+
+    if (v.empty())
+      continue;
+
+    if (v.size() != totalPixelPerImage) {
+      throw std::ios_base::failure(
+          "You expect " + std::to_string(totalPixelPerImage) + " colomns, but " + std::to_string(v.size()) +
+          " was read."
+      );
+    }
+
+    Eigen::ArrayXX<std::int8_t> const clamped = [&, v = std::move(v)]() {
+      Eigen::ArrayXX<std::int8_t> clamped(edgeLength, edgeLength);
+
+      std::ranges::transform(v, clamped.reshaped().begin(), [](auto const x) {
+        if (x < std::numeric_limits<std::int8_t>::min() || std::numeric_limits<std::int8_t>::max() < x)
+          throw std::ios_base::failure("The number " + std::to_string(x) + " cannot be load as signed 8 bit integer.");
+
+        return std::int8_t(x);
+      });
+
+      return clamped;
+    }();
+
+    result.emplace_back(std::move(clamped));
+  }
+
+  return result;
 }
 
 void createEmptyDirectory(std::filesystem::path const &p) {
