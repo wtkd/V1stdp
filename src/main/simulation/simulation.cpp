@@ -501,7 +501,6 @@ void setupMix(CLI::App &app) {
             opt->randomDelay ? generatedDelays : Eigen::ArrayXXi(io::readMatrix<int>(opt->delaysFile.value())),
             delaysFF,
             getRatioLgnRatesMixed,
-            imageVector.size(),
             saveDirectory,
             saveLogInterval);
 

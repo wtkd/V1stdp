@@ -51,7 +51,6 @@ run(Model const &model,
     // myfile.open("delays.txt", ios::trunc | ios::out);
     std::vector<std::vector<int>> const &delaysFF,
     F const &getRatioLgnRates,
-    int const nbpatchesinfile,
     std::filesystem::path const saveDirectory,
     int const saveLogInterval,
     std::uint16_t const startLearningStimulationNumber = 0) {
@@ -76,14 +75,6 @@ run(Model const &model,
   int const totalTimePerPresentation = baselineTime + stimulationTime + relaxationTime;
   int const stepNumberPerPresentation = int(totalTimePerPresentation / constant::dt);
   int const NBLASTSPIKESSTEPS = NBLASTSPIKESPRES * stepNumberPerPresentation;
-  // totaldatasize = fsize / sizeof(double); // To change depending on whether
-  // the data is float/single (4) or double (8)
-
-  // XXX: This should use type of the vector imagedata.
-  // To change depending on whether the data is float/single (4) or double (8)
-  if constexpr (outputToConsole) {
-    std::cout << "Number of patches in file: " << nbpatchesinfile << std::endl;
-  }
 
   // -70.5 is approximately the resting potential of the Izhikevich neurons, as it is of the AdEx neurons used in
   // Clopath's experiments
@@ -609,7 +600,6 @@ run(Model const &model,
       delays,
       delaysFF,
       getRatioLgnRates,
-      imageVector.size(),
       saveDirectory,
       saveLogInterval,
       startLearningStimulationNumber
