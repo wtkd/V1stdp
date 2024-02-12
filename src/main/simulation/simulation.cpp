@@ -44,7 +44,8 @@ struct LearnOptions {
   Model model;
   int randomSeed = 0;
   int totalItarations = 500'000;
-  std::filesystem::path inputFile;
+  std::optional<std::filesystem::path> inputFileBinary;
+  std::optional<std::filesystem::path> inputFileText;
   std::filesystem::path saveDirectory;
   std::optional<std::filesystem::path> delaysFile;
   bool randomDelay = false;
@@ -62,7 +63,25 @@ void setupLearn(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-N,--step,--step-number-learning", opt->totalItarations, "Step number of times on learning");
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+
+  auto inputFileOptions = sub->add_option_group("input-images");
+  inputFileOptions->add_option(
+      "-B,--binary-input-file",
+      opt->inputFileBinary,
+      "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
+  );
+  inputFileOptions->add_option(
+      "-T,--text-input-file",
+      opt->inputFileText,
+      "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
+  );
+  CLI::deprecate_option(
+      inputFileOptions->add_option("-I,--input-file", opt->inputFileBinary, "Input image data")
+          ->required()
+          ->check(CLI::ExistingFile),
+      "--binary-input-file"
+  );
+
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
       ->required()
       ->check(CLI::NonexistentPath);
@@ -93,7 +112,6 @@ void setupLearn(CLI::App &app) {
 
     auto const &totalIterations = opt->totalItarations;
 
-    auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
     io::createEmptyDirectory(saveDirectory);
@@ -167,7 +185,9 @@ void setupLearn(CLI::App &app) {
 
     auto const delaysFF = generateDelaysFF(constant::NBNEUR, constant::FFRFSIZE, constant::MAXDELAYDT);
 
-    auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
+    auto const imageVector = opt->inputFileBinary.has_value()
+                                 ? io::readImages(opt->inputFileBinary.value(), constant::PATCHSIZE)
+                                 : io::readImages(opt->inputFileText.value(), constant::PATCHSIZE);
 
     decltype(imageVector) const narrowedImageVector(
         imageVector.begin(),
@@ -222,7 +242,8 @@ struct TestOptions {
   Model model;
   int randomSeed = 0;
   int totalIterations = 1'000;
-  std::filesystem::path inputFile;
+  std::optional<std::filesystem::path> inputFileBinary;
+  std::optional<std::filesystem::path> inputFileText;
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
@@ -242,7 +263,25 @@ void setupTest(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
   sub->add_option("-N,--step,--step-number-testing", opt->totalIterations, "Step number of times on testing");
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+
+  auto inputFileOptions = sub->add_option_group("input-images");
+  inputFileOptions->add_option(
+      "-B,--binary-input-file",
+      opt->inputFileBinary,
+      "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
+  );
+  inputFileOptions->add_option(
+      "-T,--text-input-file",
+      opt->inputFileText,
+      "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
+  );
+  CLI::deprecate_option(
+      inputFileOptions->add_option("-I,--input-file", opt->inputFileBinary, "Input image data")
+          ->required()
+          ->check(CLI::ExistingFile),
+      "--binary-input-file"
+  );
+
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
       ->required()
       ->check(CLI::NonexistentPath);
@@ -281,7 +320,6 @@ void setupTest(CLI::App &app) {
 
     auto const &totalIterations = opt->totalIterations;
 
-    auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
     io::createEmptyDirectory(saveDirectory);
@@ -321,7 +359,10 @@ void setupTest(CLI::App &app) {
     // w.bottomRows(NBI).leftCols(NBE).fill(1.0); // Inhbitory neurons receive excitatory inputs from excitatory neurons
     // w.rightCols(NBI).fill(-1.0); // Everybody receives fixed, negative inhibition (including inhibitory neurons)
 
-    auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
+    auto const imageVector = opt->inputFileBinary.has_value()
+                                 ? io::readImages(opt->inputFileBinary.value(), constant::PATCHSIZE)
+                                 : io::readImages(opt->inputFileText.value(), constant::PATCHSIZE);
+
     decltype(imageVector) const narrowedImageVector(
         imageVector.end() - (opt->imageRange > 0 ? opt->imageRange : imageVector.size() + opt->imageRange),
         imageVector.end()
@@ -375,7 +416,8 @@ void setupTest(CLI::App &app) {
 struct MixOptions {
   Model model;
   int randomSeed = 0;
-  std::filesystem::path inputFile;
+  std::optional<std::filesystem::path> inputFileBinary;
+  std::optional<std::filesystem::path> inputFileText;
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
@@ -392,7 +434,25 @@ void setupMix(CLI::App &app) {
   setupModel(*sub, opt->model);
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+
+  auto inputFileOptions = sub->add_option_group("input-images");
+  inputFileOptions->add_option(
+      "-B,--binary-input-file",
+      opt->inputFileBinary,
+      "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
+  );
+  inputFileOptions->add_option(
+      "-T,--text-input-file",
+      opt->inputFileText,
+      "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
+  );
+  CLI::deprecate_option(
+      inputFileOptions->add_option("-I,--input-file", opt->inputFileBinary, "Input image data")
+          ->required()
+          ->check(CLI::ExistingFile),
+      "--binary-input-file"
+  );
+
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
       ->required()
       ->check(CLI::NonexistentPath);
@@ -420,7 +480,6 @@ void setupMix(CLI::App &app) {
     auto const &randomSeed = opt->randomSeed;
     setAndPrintRandomSeed(randomSeed);
 
-    auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
     io::createEmptyDirectory(saveDirectory);
@@ -463,7 +522,9 @@ void setupMix(CLI::App &app) {
 
     std::cout << "Stim1, Stim2: " << STIM1 << ", " << STIM2 << std::endl;
 
-    auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
+    auto const imageVector = opt->inputFileBinary.has_value()
+                                 ? io::readImages(opt->inputFileBinary.value(), constant::PATCHSIZE)
+                                 : io::readImages(opt->inputFileText.value(), constant::PATCHSIZE);
 
     auto const getRatioLgnRates = [&](std::uint32_t const i) -> Eigen::ArrayXd {
       Eigen::ArrayXd result(constant::FFRFSIZE);
@@ -531,7 +592,8 @@ struct PulseOptions {
   Model model;
   int randomSeed = 0;
   int step = 50;
-  std::filesystem::path inputFile;
+  std::optional<std::filesystem::path> inputFileBinary;
+  std::optional<std::filesystem::path> inputFileText;
   std::filesystem::path saveDirectory;
   std::filesystem::path lateralWeight;
   std::filesystem::path feedforwardWeight;
@@ -550,7 +612,24 @@ void setupPulse(CLI::App &app) {
 
   sub->add_option("-s,--seed", opt->randomSeed, "Seed for pseudorandom");
 
-  sub->add_option("-I,--input-file", opt->inputFile, "Input image data")->required()->check(CLI::ExistingFile);
+  auto inputFileOptions = sub->add_option_group("input-images");
+  inputFileOptions->add_option(
+      "-B,--binary-input-file",
+      opt->inputFileBinary,
+      "Input binary image data. It is deserialized as colomn-major matrices of 8 bit signed integers."
+  );
+  inputFileOptions->add_option(
+      "-T,--text-input-file",
+      opt->inputFileText,
+      "Input text image data. Each row is colomn-major matrix of 8 bit signed integers."
+  );
+  CLI::deprecate_option(
+      inputFileOptions->add_option("-I,--input-file", opt->inputFileBinary, "Input image data")
+          ->required()
+          ->check(CLI::ExistingFile),
+      "--binary-input-file"
+  );
+
   sub->add_option("-S,--save-directory", opt->saveDirectory, "Directory to save weight data")
       ->required()
       ->check(CLI::NonexistentPath);
@@ -586,7 +665,6 @@ void setupPulse(CLI::App &app) {
 
     int const &NBPATTERNSPULSE = opt->step;
 
-    auto const &inputFile = opt->inputFile;
     auto const &saveDirectory = opt->saveDirectory;
 
     io::createEmptyDirectory(saveDirectory);
@@ -628,7 +706,10 @@ void setupPulse(CLI::App &app) {
 
     auto const delaysFF = generateDelaysFF(constant::NBNEUR, constant::FFRFSIZE, constant::MAXDELAYDT);
 
-    auto const imageVector = io::readImages(inputFile, constant::PATCHSIZE);
+    auto const imageVector = opt->inputFileBinary.has_value()
+                                 ? io::readImages(opt->inputFileBinary.value(), constant::PATCHSIZE)
+                                 : io::readImages(opt->inputFileText.value(), constant::PATCHSIZE);
+
     decltype(imageVector) const narrowedImageVector = {imageVector.at(STIM1)};
 
     auto const [state, result] = run<false>(
