@@ -116,7 +116,7 @@ std::vector<Eigen::ArrayXX<std::int8_t>> readTextImages(std::istream &inputStrea
     Eigen::ArrayXX<std::int8_t> const clamped = [&, v = std::move(v)]() {
       Eigen::ArrayXX<std::int8_t> clamped(edgeLength, edgeLength);
 
-      std::ranges::transform(v, clamped.reshaped<Eigen::RowMajor>().begin(), [](auto const x) {
+      std::ranges::transform(v, clamped.reshaped().begin(), [](auto const x) {
         if (x < std::numeric_limits<std::int8_t>::min() || std::numeric_limits<std::int8_t>::max() < x)
           throw std::ios_base::failure("The number " + std::to_string(x) + " cannot be load as signed 8 bit integer.");
 

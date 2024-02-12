@@ -149,15 +149,15 @@ TEST(evaluationFunction, smoothness) {
 TEST(io, readTextImages) {
   Eigen::ArrayXX<std::int8_t> expected{
       // clang-format off
-    {1, 2, 3},
-    {4, 5, 6},
-    {7, 8, 9}
+    {1, 4, 7},
+    {2, 5, 8},
+    {3, 6, 9}
       // clang-format on
   };
 
   // (ROW, COL)
-  EXPECT_EQ(expected(0, 1), 2);
-  EXPECT_EQ(expected(1, 0), 4);
+  EXPECT_EQ(expected(0, 1), 4);
+  EXPECT_EQ(expected(1, 0), 2);
 
   {
     std::string const s(("1 2 3 "
