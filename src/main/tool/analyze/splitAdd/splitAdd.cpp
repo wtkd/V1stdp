@@ -42,15 +42,7 @@ void setupSplitAdd(CLI::App &app) {
   sub->callback([opt]() {
     Eigen::MatrixX<std::uint64_t> const matrix = io::readMatrix<std::uint64_t>(opt->inputFile, opt->row, opt->colomn);
 
-    if (matrix.cols() % opt->width != 0) {
-      throw std::ios_base::failure("Matrix must have rows multiples of " + std::to_string(opt->width));
-    }
-
-    Eigen::MatrixX<std::uint64_t> result = Eigen::MatrixX<std::uint64_t>::Zero(matrix.rows(), opt->width);
-
-    for (auto const &i : boost::counting_range<std::uint64_t>(0, matrix.cols() / opt->width)) {
-      result += matrix.middleCols(i * opt->width, opt->width);
-    }
+    Eigen::MatrixX<std::uint64_t> const result = splitAdd(matrix, opt->width);
 
     io::ensureParentDirectory(opt->outputFile);
 
