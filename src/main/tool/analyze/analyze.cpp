@@ -6,6 +6,7 @@
 #include "exploreMaximum.hpp"
 #include "response.hpp"
 #include "reverseCorrelation.hpp"
+#include "splitAdd.hpp"
 #include "substract.hpp"
 #include "transpose.hpp"
 #include "weight.hpp"
@@ -23,6 +24,7 @@ void setupAnalyze(CLI::App &app) {
   applyPermutation::setupApplyPermutation(*sub);
   transpose::setupTranspose(*sub);
   substract::setupSubstract(*sub);
+  splitAdd::setupSplitAdd(*sub);
   divideLine::setupDivideLine(*sub);
   exploreMaximum::setupExploreMaximum(*sub);
   exploreMaximum::smoothness::setupSmoothness(*sub);
