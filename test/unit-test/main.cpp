@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <sstream>
 
 #include <Eigen/Dense>
@@ -5,6 +6,7 @@
 
 #include "evaluationFunction.hpp"
 #include "io.hpp"
+#include "splitAdd.hpp"
 
 template <typename T> bool EigenArrayXXEq(Eigen::ArrayXX<T> const &lhs, Eigen::ArrayXX<T> const &rhs) {
   return lhs.matrix() == rhs.matrix();
@@ -217,5 +219,61 @@ TEST(io, readTextImages) {
     EXPECT_EQ(x.size(), 2);
     ASSERT_PRED2(EigenArrayXXEq<std::int8_t>, x.at(0), expected);
     ASSERT_PRED2(EigenArrayXXEq<std::int8_t>, x.at(1), expected);
+  }
+}
+
+TEST(analyze, splitAdd) {
+  {
+    Eigen::MatrixXi const matrix{
+        // clang-format off
+    {1, 1, 1, 3, 3, 3},
+    {2, 2, 2, 4, 4, 4},
+        // clang-format on
+    };
+    std::uint64_t const width = 3;
+
+    Eigen::MatrixXi const expected{
+        // clang-format off
+    {1 + 3, 1 + 3, 1 + 3},
+    {2 + 4, 2 + 4, 2 + 4},
+        // clang-format on
+    };
+
+    auto const result = v1stdp::main::tool::analyze::splitAdd::splitAdd(matrix, width);
+
+    EXPECT_EQ(result, expected);
+  }
+
+  {
+    Eigen::MatrixXi const matrix{
+        // clang-format off
+      {1, 1, 1, 3, 3, 3, 5, 5, 5},
+      {2, 2, 2, 4, 4, 4, 6, 6, 6},
+        // clang-format on
+    };
+    std::uint64_t const width = 3;
+
+    Eigen::MatrixXi const expected{
+        // clang-format off
+     {1 + 3 + 5, 1 + 3 + 5, 1 + 3 + 5},
+     {2 + 4 + 6, 2 + 4 + 6, 2 + 4 + 6},
+        // clang-format on
+    };
+
+    auto const result = v1stdp::main::tool::analyze::splitAdd::splitAdd(matrix, width);
+
+    EXPECT_EQ(result, expected);
+  }
+
+  {
+    Eigen::MatrixXi const matrix{
+        // clang-format off
+      {1, 1, 1, 3, 3},
+      {2, 2, 2, 4, 4},
+        // clang-format on
+    };
+    std::uint64_t const width = 3;
+
+    EXPECT_THROW(v1stdp::main::tool::analyze::splitAdd::splitAdd(matrix, width), std::ios_base::failure);
   }
 }
