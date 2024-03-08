@@ -305,3 +305,5 @@ TEST(transform, feedforwardWeights_toVector) {
   ASSERT_PRED2(EigenArrayXXEq<double>, result.at(0), expected_feedforwardWeight0);
   ASSERT_PRED2(EigenArrayXXEq<double>, result.at(1), expected_feedforwardWeight1);
 }
+
+TEST(analyze, predictor) {}
