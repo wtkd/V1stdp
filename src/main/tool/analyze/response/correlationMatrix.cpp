@@ -58,16 +58,14 @@ void setupCorrelationMatrix(CLI::App &app) {
 
   sub->callback([opt]() {
     // Row: Neuron, Colomn: Stimulation
-    auto const responseMatrix1 =
-        io::readMatrix<std::uint64_t>(opt->inputFile1, opt->neuronNumber, opt->stimulationNumber);
-    auto const responseMatrix2 = io::readMatrix<std::uint64_t>(
-        opt->inputFile2.value_or(opt->inputFile1), opt->neuronNumber, opt->stimulationNumber
-    );
+    auto const responseMatrix1 = io::readMatrix<double>(opt->inputFile1, opt->neuronNumber, opt->stimulationNumber);
+    auto const responseMatrix2 =
+        io::readMatrix<double>(opt->inputFile2.value_or(opt->inputFile1), opt->neuronNumber, opt->stimulationNumber);
 
     if (opt->eachNeuronOutputFile.has_value()) {
       auto const matrix = statistics::calculateCorrelationMatrix<
           statistics::ColomnOrRow::Row,
-          double>(responseMatrix1.cast<double>(), responseMatrix2.cast<double>(), statistics::correlation<double>);
+          double>(responseMatrix1, responseMatrix2, statistics::correlation<double>);
 
       io::ensureParentDirectory(opt->eachNeuronOutputFile.value());
       io::saveMatrix(opt->eachNeuronOutputFile.value(), matrix);
@@ -76,7 +74,7 @@ void setupCorrelationMatrix(CLI::App &app) {
     if (opt->eachStimulationOutputFile.has_value()) {
       auto const matrix = statistics::calculateCorrelationMatrix<
           statistics::ColomnOrRow::Col,
-          double>(responseMatrix1.cast<double>(), responseMatrix2.cast<double>(), statistics::correlation<double>);
+          double>(responseMatrix1, responseMatrix2, statistics::correlation<double>);
 
       io::ensureParentDirectory(opt->eachStimulationOutputFile.value());
       io::saveMatrix(opt->eachStimulationOutputFile.value(), matrix);
