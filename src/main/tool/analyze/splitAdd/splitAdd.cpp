@@ -12,7 +12,7 @@
 
 namespace v1stdp::main::tool::analyze::splitAdd {
 
-struct AnalyzeSubstractOptions {
+struct AnalyzeSplitAddOptions {
   std::filesystem::path inputFile;
   std::filesystem::path outputFile;
 
@@ -23,7 +23,7 @@ struct AnalyzeSubstractOptions {
 };
 
 void setupSplitAdd(CLI::App &app) {
-  auto opt = std::make_shared<AnalyzeSubstractOptions>();
+  auto opt = std::make_shared<AnalyzeSplitAddOptions>();
   auto sub = app.add_subcommand("split-add", "Split and add matrix.");
 
   sub->add_option("input-file", opt->inputFile, "Name of input text file which contains matrix to split.")
