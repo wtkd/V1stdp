@@ -12,8 +12,16 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_subdirectory(config)
-add_subdirectory(io)
-add_subdirectory(transform)
-add_subdirectory(statistics)
-add_subdirectory(main)
+add_library(Transform STATIC
+  transform.cpp
+)
+
+target_compile_features(Transform PRIVATE cxx_std_20)
+
+find_package(Eigen3 REQUIRED)
+find_package(Boost REQUIRED)
+
+target_link_libraries(Transform Eigen3::Eigen)
+target_link_libraries(Transform Boost::boost)
+
+target_include_directories(Transform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
