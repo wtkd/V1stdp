@@ -16,7 +16,8 @@ namespace v1stdp::main::tool::analyze::predict {
 Eigen::ArrayXXd predictor(
     Eigen::MatrixXd const &feedforwardWeights,
     std::vector<Eigen::ArrayXX<std::int8_t>> const &images,
-    unsigned const edgeLength
+    unsigned const edgeLength,
+    std::optional<std::int32_t> const threshold
 ) {
   std::vector<Eigen::ArrayXXd> const feedforwardWeightVector = transform::feedforwardWeights::toVector(
       // Normalize each feedforward weights by dividing by maximum
@@ -31,6 +32,9 @@ Eigen::ArrayXXd predictor(
       responses(j, i) = feedforwardWeight.matrix().reshaped().dot(image.cast<double>().matrix().reshaped());
     }
   }
+
+  if (threshold.has_value())
+    return responses.cwiseMax(threshold.value());
 
   return responses;
 }
@@ -49,7 +53,7 @@ struct AnalyzePredictOptions {
 
   int imageRange = 0;
 
-  std::filesystem::path saveDirectory;
+  std::optional<std::int32_t> threshold;
 };
 
 void setupPredict(CLI::App &app) {
@@ -106,6 +110,10 @@ void setupPredict(CLI::App &app) {
   )
       ->required();
 
+  sub->add_option(
+      "-t,--threshold", opt->threshold, "Predicted value same as or lower than this value is clamped to zero."
+  );
+
   sub->callback([opt]() {
     Eigen::MatrixXd const feedforwardWeights = io::readMatrix<double>(
                                                    opt->feedforwardWeight,
@@ -125,7 +133,7 @@ void setupPredict(CLI::App &app) {
             - 1
     );
 
-    auto const responses = predictor(feedforwardWeights, narrowedImageVector, opt->edgeLength);
+    auto const responses = predictor(feedforwardWeights, narrowedImageVector, opt->edgeLength, opt->threshold);
 
     io::ensureParentDirectory(opt->outputFile);
 
