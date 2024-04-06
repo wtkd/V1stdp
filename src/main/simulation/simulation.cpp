@@ -367,7 +367,7 @@ void setupTest(CLI::App &app) {
   );
 
   sub->add_option(
-      "--inhibitory-connection-magnificaiton",
+      "--inhibitory-connection-magnification",
       opt->inhibitoryConnectionMagnification,
       "Facilitate inhibitory connection with this magnification (1> value means inhibition)."
   );
