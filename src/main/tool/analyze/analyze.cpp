@@ -4,6 +4,7 @@
 #include "delay.hpp"
 #include "divideLine.hpp"
 #include "exploreMaximum.hpp"
+#include "predict.hpp"
 #include "response.hpp"
 #include "reverseCorrelation.hpp"
 #include "splitAdd.hpp"
@@ -32,5 +33,6 @@ void setupAnalyze(CLI::App &app) {
   exploreMaximum::standardDerivation::setupStandardDerivation(*sub);
   reverseCorrelation::setupInputNoise(*sub);
   reverseCorrelation::setupSpikeTrigggeredAverage(*sub);
+  predict::setupPredict(*sub);
 }
 } // namespace v1stdp::main::tool::analyze

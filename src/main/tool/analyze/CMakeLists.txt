@@ -22,6 +22,7 @@ add_subdirectory(reverseCorrelation)
 add_subdirectory(transpose)
 add_subdirectory(substract)
 add_subdirectory(splitAdd)
+add_subdirectory(predict)
 
 add_library(Analyze STATIC
   analyze.cpp
@@ -37,6 +38,7 @@ target_link_libraries(Analyze PUBLIC reverseCorrelation)
 target_link_libraries(Analyze PUBLIC Transpose)
 target_link_libraries(Analyze PUBLIC Substract)
 target_link_libraries(Analyze PUBLIC SplitAdd)
+target_link_libraries(Analyze PUBLIC Predict)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)

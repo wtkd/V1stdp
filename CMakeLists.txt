@@ -47,6 +47,7 @@ if (NOT NOUNITTEST)
     Simulation
     Tool
     IO
+    Transform
     Statistics
     GTest::gtest_main
   )

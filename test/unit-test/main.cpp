@@ -7,6 +7,7 @@
 #include "evaluationFunction.hpp"
 #include "io.hpp"
 #include "splitAdd.hpp"
+#include "transform.hpp"
 
 template <typename T> bool EigenArrayXXEq(Eigen::ArrayXX<T> const &lhs, Eigen::ArrayXX<T> const &rhs) {
   return lhs.matrix() == rhs.matrix();
@@ -277,3 +278,32 @@ TEST(analyze, splitAdd) {
     EXPECT_THROW(v1stdp::main::tool::analyze::splitAdd::splitAdd(matrix, width), std::ios_base::failure);
   }
 }
+
+TEST(transform, feedforwardWeights_toVector) {
+  Eigen::MatrixXd const feedforwardWeights{
+      // clang-format off
+    {1, 2, 3, 4, 8, 7, 6, 5},
+    {1, 2, 3, 4, 0, 5, 6, 7},
+      // clang-format on
+  };
+
+  Eigen::ArrayXXd const expected_feedforwardWeight0 = {
+      // clang-format off
+    {1 - 8, 3 - 6},
+    {2 - 7, 4 - 5}
+      // clang-format on
+  };
+  Eigen::ArrayXXd const expected_feedforwardWeight1{
+      // clang-format off
+    {1 - 0, 3 - 6},
+    {2 - 5, 4 - 7}
+      // clang-format on
+  };
+
+  auto const result = v1stdp::transform::feedforwardWeights::toVector(feedforwardWeights, 2);
+
+  ASSERT_PRED2(EigenArrayXXEq<double>, result.at(0), expected_feedforwardWeight0);
+  ASSERT_PRED2(EigenArrayXXEq<double>, result.at(1), expected_feedforwardWeight1);
+}
+
+TEST(analyze, predictor) {}
