@@ -274,6 +274,8 @@ struct TestOptions {
   int stimulationTime = 250;
   int relaxationTime = constant::TIMEZEROINPUT;
 
+  double inhibitoryConnectionMagnification = 1;
+
   int totalIterations = 1'000;
 
   std::optional<std::filesystem::path> inputFileBinary;
@@ -365,6 +367,12 @@ void setupTest(CLI::App &app) {
   );
 
   sub->add_option(
+      "--inhibitory-connection-magnificaiton",
+      opt->inhibitoryConnectionMagnification,
+      "Facilitate inhibitory connection with this magnification (1> value means inhibition)."
+  );
+
+  sub->add_option(
       "-R,--image-range",
       opt->imageRange,
       ("Image range to use. 0 means using all.\n"
@@ -391,7 +399,12 @@ void setupTest(CLI::App &app) {
 
     int const lastIterationNumberToSaveResponses = totalIterations;
 
-    Eigen::MatrixXd const w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
+    Eigen::MatrixXd const w = [&] {
+      Eigen::MatrixXd w = readWeights(constant::NBNEUR, constant::NBNEUR, opt->lateralWeight);
+      // Colomn: source, row: destination
+      w.rightCols(constant::NBI) *= opt->inhibitoryConnectionMagnification;
+      return w;
+    }();
     Eigen::MatrixXd const wff = readWeights(constant::NBNEUR, constant::FFRFSIZE, opt->feedforwardWeight);
 
     Eigen::MatrixXd const negnoisein = -generateNoiseInput(
