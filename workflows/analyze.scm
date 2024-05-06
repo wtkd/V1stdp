@@ -418,6 +418,7 @@
                (rename #:feedforward-weight-plot-svg feedforward-weight-plot)
                (pipe
                 (convert-svg-to-png
+                 (convert-svg-to-png-feedforward-weight)
                  #:input-svg feedforward-weight-plot
                  #:output-png-name "feedforward-weight-image.png")
                 (rename #:feedforward-weight-plot-png output-png)))))
@@ -452,7 +453,14 @@
                             #:matrix response-sorted
                             #:output-name "response-sorted.svg"
                             #:title "Response of excitatory neurons on each stimulation")
-               (rename #:plot-response-matrix matrix-plot))
+               (tee
+                (pipe
+                 (convert-svg-to-png
+                  (convert-svg-to-png-response-sorted)
+                  #:input-svg matrix-plot
+                  #:output-png-name "response-sorted.png")
+                 (rename #:plot-response-matrix-png output-png))
+                (rename #:plot-response-matrix matrix-plot)))
               (pipe
                (sort-response-half
                 #:stdp-executable stdp-executable
