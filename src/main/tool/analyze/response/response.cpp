@@ -1,5 +1,6 @@
 #include <CLI/CLI.hpp>
 
+#include "clusterAnalyze.hpp"
 #include "clusterMap.hpp"
 #include "clustering.hpp"
 #include "correlationMatrix.hpp"
@@ -14,6 +15,7 @@ void setupResponse(CLI::App &app) {
 
   clustering::setupClustering(*sub);
   clusterMap::setupClusterMap(*sub);
+  clusterAnalyze::setupClusterAnalyze(*sub);
   correlationMatrix::setupCorrelationMatrix(*sub);
   cut::setupCut(*sub);
 }

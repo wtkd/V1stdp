@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.20)
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
+add_subdirectory(clusterAnalyze)
+
 add_library(Response STATIC
   response.cpp
   clusterMap.cpp
@@ -14,6 +16,8 @@ add_library(Response STATIC
 
 target_link_libraries(Response PUBLIC IO)
 target_link_libraries(Response PUBLIC Statistics)
+
+target_link_libraries(Response PUBLIC ClusterAnalyze)
 
 find_package(CLI11 CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
