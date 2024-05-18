@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -37,6 +38,12 @@ template <typename T> void writeVector(std::filesystem::path const &file, std::v
   std::ofstream ofs(file);
 
   std::ranges::for_each(v, [&](auto const &i) { ofs << i << std::endl; });
+}
+
+template <typename T, typename U> void writeMap(std::filesystem::path const &file, std::map<T, U> const &v) {
+  std::ofstream ofs(file);
+
+  std::ranges::for_each(v, [&](auto const &i) { ofs << i.first << " " << i.second << std::endl; });
 }
 
 template <typename T>
