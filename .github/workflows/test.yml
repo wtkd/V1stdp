@@ -21,6 +21,7 @@ jobs:
           configurePreset: 'default'
           buildPreset: 'default'
           testPreset: 'default'
+          buildPresetAdditionalArgs: "['--config Release']"
         env:
           BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
       - uses: mikepenz/action-junit-report@v3
@@ -53,5 +54,6 @@ jobs:
         with:
           configurePreset: 'default-with-lint'
           buildPreset: 'default-with-lint'
+          buildPresetAdditionalArgs: "['--config Release']"
         env:
           BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
