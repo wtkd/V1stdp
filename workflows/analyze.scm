@@ -400,6 +400,7 @@
              #:inhibitory-neuron-number inhibitory-neuron-number
              #:edge-length edge-length)
            (tee
+            (identity)
             (tee
              (plot-each-feedforward-weight
               #:stdp-executable stdp-executable
@@ -424,7 +425,7 @@
                 (rename #:feedforward-weight-plot-png output-png)))))
             (pipe
              (tee
-              (rename #:diff-feedforward-weight diff-feedforward-weight)
+              (identity)
               (lateral-weight-cut-out-excitatory
                #:stdp-executable stdp-executable
                #:lateral-weight lateral-weight
@@ -523,7 +524,7 @@
                  (rename #:correlation-plot-stimulation correlation-plot))
                 (pipe
                  (tee
-                  (rename #:diff-feedforward-weight diff-feedforward-weight)
+                  (identity)
                   (pipe
                    (cluster-map (cluster-map-neuron)
                                 #:stdp-executable stdp-executable
@@ -533,20 +534,24 @@
                                 #:correlation-threshold correlation-threshold-neuron
                                 #:minimum-cluster-size minimum-cluster-size-neuron
                                 #:output-name "cluster-map-neuron.txt")
-                   (divide-line (divide-line-neuron)
-                                #:stdp-executable stdp-executable
-                                #:cluster-map cluster-map
-                                #:output-directory "cluster-map-neuron"
-                                #:output-number-file "cluster-map-neuron-number.txt")
+                   (tee
+                    (rename #:cluster-map-neuron cluster-map)
+                    (divide-line (divide-line-neuron)
+                                 #:stdp-executable stdp-executable
+                                 #:cluster-map cluster-map
+                                 #:output-directory "cluster-map-neuron"
+                                 #:output-number-file "cluster-map-neuron-number.txt"))
                    (rename #:divided-directory-neuron divided-directory
                            #:cluster-number-file-neuron number-file)))
-                 (plot-each-cluster-neurons
-                  #:stdp-executable stdp-executable
-                  #:diff-input-directory diff-feedforward-weight
-                  #:cluster-directory divided-directory-neuron
-                  #:number-file cluster-number-file-neuron
-                  #:total-neuron-number excitatory-neuron-number
-                  #:output-directory "clusterNeurons")
+                 (tee
+                  (identity)
+                  (plot-each-cluster-neurons
+                   #:stdp-executable stdp-executable
+                   #:diff-input-directory diff-feedforward-weight
+                   #:cluster-directory divided-directory-neuron
+                   #:number-file cluster-number-file-neuron
+                   #:total-neuron-number excitatory-neuron-number
+                   #:output-directory "clusterNeurons"))
                  (tee
                   (rename #:each-cluster-neurons image-directory)
                   (pipe
@@ -565,21 +570,27 @@
                               #:correlation-threshold correlation-threshold-stimulation
                               #:minimum-cluster-size minimum-cluster-size-stimulation
                               #:output-name "cluster-map-stimulation.txt")
-                 (divide-line (divide-line-stimulation)
-                              #:stdp-executable stdp-executable
-                              #:cluster-map cluster-map
-                              #:output-directory "cluster-map-stimulation"
-                              #:output-number-file "cluster-map-stimulation-number.txt")
-                 (rename #:divided-directory-stimulation divided-directory
-                         #:cluster-number-file-stimulation number-file)
-                 (plot-each-cluster-images
-                  #:stdp-executable stdp-executable
-                  #:text-image-directory text-image-directory
-                  #:cluster-directory divided-directory-stimulation
-                  #:number-file cluster-number-file-stimulation
-                  #:total-image-number total-image-number
-                  #:image-range image-range
-                  #:output-directory "clusterImages")
+                 (tee
+                  (rename #:cluster-map-stimulation cluster-map)
+                  (pipe
+                   (divide-line (divide-line-stimulation)
+                                #:stdp-executable stdp-executable
+                                #:cluster-map cluster-map
+                                #:output-directory "cluster-map-stimulation"
+                                #:output-number-file "cluster-map-stimulation-number.txt")
+                   (rename #:divided-directory-stimulation divided-directory
+                           #:cluster-number-file-stimulation number-file)))
+
+                 (tee
+                  (identity)
+                  (plot-each-cluster-images
+                   #:stdp-executable stdp-executable
+                   #:text-image-directory text-image-directory
+                   #:cluster-directory divided-directory-stimulation
+                   #:number-file cluster-number-file-stimulation
+                   #:total-image-number total-image-number
+                   #:image-range image-range
+                   #:output-directory "clusterImages"))
                  (tee
                   (rename #:each-cluster-images image-directory)
                   (pipe
